@@ -87,25 +87,35 @@ jobs:
           API_TOKEN: ${{ secrets.CODE_REVIEW_API_TOKEN }}
         run: |
           jq -n \
-            --rawfile diff diff.patch \
-            --arg pr_title "${{ steps.pr.outputs.title }}" \
-            --arg pr_body "${{ steps.pr.outputs.body }}" \
-            --arg author "${{ steps.pr.outputs.author }}" \
-            --argjson comments "${{ steps.comments.outputs.comments }}" \
-            --argjson history "${{ steps.history.outputs.author_prs }}" \
+
+          # 统计文件大小（不变）
+          DIFF_SIZE=$(stat -c %s temp_diff.txt 2>/dev/null || stat -f %z temp_diff.txt 2>/dev/null || echo "unknown")
+          COMMENTS_SIZE=$(stat -c %s temp_comments.txt 2>/dev/null || stat -f %z temp_comments.txt 2>/dev/null || echo "unknown")
+          echo "临时文件大小统计:"
+          echo "  diff文件 (temp_diff.txt): $DIFF_SIZE 字节"
+          echo "  comments文件 (temp_comments.txt): $COMMENTS_SIZE 字节"
+
+          # 构建 payload（不变）
+          jq -n \
+            --rawfile diff_content temp_diff.txt \
+            --arg pr_number "${{ steps.get_pr_info.outputs.pr_number }}" \
+            --arg pr_title "${{ steps.get_pr_info.outputs.pr_title }}" \
+            --arg pr_body "${{ steps.get_pr_info.outputs.pr_body }}" \
+            --arg repo_owner "${{ steps.get_pr_info.outputs.repo_owner }}" \
+            --arg repo_name "${{ steps.get_pr_info.outputs.repo_name }}" \
+            --rawfile comments temp_comments.txt \
             '{
-              review_inputs: {
-                diff: $diff,
-                pr_title: $pr_title,
-                pr_body: $pr_body,
-                author: $author,
-                comments: $comments
-              },
-              reputation_inputs: {
-                author: $author,
-                past_prs: $history
-              }
-            }' > payload.json
+              diff: $diff_content,
+              pr_number: $pr_number,
+              pr_title: $pr_title,
+              pr_body: $pr_body,
+              repo_owner: $repo_owner,
+              repo_name: $repo_name,
+              comments: ($comments | fromjson)
+            }' > payload_temp.json
+
+          # 3. curl 请求：使用加固后的 $FULL_URL（关键修改）
+            }' > payload_temp.json
 
       - name: Call AI Review API
         run: |
