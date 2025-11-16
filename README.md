@@ -1,124 +1,188 @@
-from fastapi import APIRouter, Header, HTTPException, status
-from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
-import json
-import logging
+# 智能代码审查系统
 
-# 配置日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+## 项目简介
 
-router = APIRouter()
+智能代码审查系统是一个基于AI的自动化代码审查工具，旨在帮助开发团队提高代码质量和审查效率。该系统通过GitHub Actions集成，能够自动分析Pull Request中的代码变更，并提供详细的审查反馈。
 
-class CodeReviewPayload(BaseModel):
-    diff: str
-    pr_number: str
-    pr_title: str
-    pr_body: str
-    repo_owner: str
-    repo_name: str
-    comments: List[Dict[str, Any]]
+## 核心功能
 
-@router.post("/review", summary="接收GitHub Actions代码审查请求")
-async def receive_code_review(
-    payload: CodeReviewPayload,
-    authorization: str = Header(None)
-):
-    """
-    接收来自GitHub Actions的代码审查请求并打印到控制台
-    用于测试目的
-    """
-    # 记录收到的请求
-    logger.info("=== 收到代码审查请求 ===")
-    logger.info(f"PR编号: {payload.pr_number}")
-    logger.info(f"PR标题: {payload.pr_title}")
-    logger.info(f"仓库: {payload.repo_owner}/{payload.repo_name}")
-    logger.info(f"差异内容长度: {len(payload.diff)} 字符")
-    logger.info(f"评论数量: {len(payload.comments)}")
-    
-    # 如果有PR正文，记录前100个字符
-    if payload.pr_body:
-        logger.info(f"PR正文 (前100字符): {payload.pr_body[:100]}...")
-    
-    # 记录前500个字符的差异内容
-    logger.info(f"差异内容 (前500字符): {payload.diff[:500]}...")
-    
-    # 如果有评论，记录评论摘要
-    if payload.comments:
-        logger.info("评论摘要:")
-        for i, comment in enumerate(payload.comments[:3]):  # 只显示前3条评论
-            logger.info(f"  评论 {i+1}: {comment.get('body', '')[:100]}...")
-        if len(payload.comments) > 3:
-            logger.info(f"  ... 还有 {len(payload.comments) - 3} 条评论")
-    
-    # 验证授权头（简化版）
-    if authorization:
-        logger.info(f"授权头: {authorization[:20]}...")  # 只记录前20个字符
-    else:
-        logger.warning("缺少授权头")
-    
-    # 返回成功响应，包含模拟的代码审查结果
-    # 确保响应格式与GitHub Actions工作流期望的格式完全一致
-    issues = [
-        {
-            "file": "README.md",
-            "line": 15,
-            "description": "检测到未使用的变量 'unusedVar'，建议移除以提高代码可读性。",
-            "suggestion": "移除未使用的变量声明",
-            "severity": "低",
-            "category": "静态缺陷"
-        },
-        {
-            "file": "README.md",
-            "line": 23,
-            "description": "数据库查询缺少异常处理，可能导致程序崩溃。",
-            "suggestion": "添加 try-catch 块来处理可能的数据库异常",
-            "severity": "高",
-            "category": "逻辑缺陷"
-        },
-        {
-            "file": "README.md",
-            "line": 42,
-            "description": "使用了危险的 innerHTML 属性，可能存在 XSS 风险。",
-            "suggestion": "使用安全的 DOM 操作方法或确保内容已正确转义",
-            "severity": "中",
-            "category": "安全漏洞"
-        }
-    ]
-    
-    # 计算各类问题的数量
-    high_severity_count = sum(1 for issue in issues if issue["severity"] == "高")
-    medium_severity_count = sum(1 for issue in issues if issue["severity"] == "中")
-    low_severity_count = sum(1 for issue in issues if issue["severity"] == "低")
-    
-    # 按类别统计问题
-    category_counts = {}
-    for issue in issues:
-        category = issue.get("category", "其他")
-        category_counts[category] = category_counts.get(category, 0) + 1
-    
-    return {
-        "message": "代码审查请求已接收",
-        "status": "success",
-        "received_data": {
-            "pr_number": payload.pr_number,
-            "pr_title": payload.pr_title,
-            "repo": f"{payload.repo_owner}/{payload.repo_name}",
-            "diff_length": len(payload.diff),
-            "comments_count": len(payload.comments)
-        },
-        "issues": issues,
-        "summary": {
-            "total_issues": len(issues),
-            "high_severity": high_severity_count,
-            "medium_severity": medium_severity_count,
-            "low_severity": low_severity_count,
-            "by_category": category_counts,
-            "summary_comments": "本次代码审查发现了多个问题，包括静态缺陷、逻辑缺陷和安全漏洞，请及时修复。"
-        }
-    }
+- **自动化代码审查**：当创建或更新Pull Request时，自动触发代码审查流程
+- **多维度问题检测**：识别代码中的潜在问题，包括：
+  - 静态缺陷（未使用的变量、代码规范等）
+  - 逻辑缺陷（潜在的错误、异常处理缺失等）
+  - 安全漏洞（XSS、SQL注入风险等）
+- **详细的问题报告**：为每个发现的问题提供具体位置、描述和修复建议
+- **用户友好的Web界面**：提供注册、登录、设置等完整的用户功能
+- **API密钥管理**：安全地管理访问凭证
 
-@router.get("/health", summary="健康检查")
-async def health_check():
-    """健康检查端点"""
-    return {"status": "healthy", "service": "code-review-receiver"}
+## 技术架构
+
+### 前端
+- **框架**：React 18 + Vite
+- **UI库**：Material-UI (MUI)
+- **路由**：React Router v7
+- **状态管理**：React Context API
+- **构建工具**：Vite
+
+### 后端
+- **框架**：FastAPI (Python)
+- **数据库**：MongoDB (通过Motor驱动)
+- **认证**：JWT Token
+- **部署**：Uvicorn ASGI服务器
+
+### CI/CD集成
+- **平台**：GitHub Actions
+- **触发事件**：Pull Request (opened, synchronize, reopened)
+
+## 项目结构
+
+```
+.
+├── backend/              # 后端服务
+│   ├── app/             # 应用核心代码
+│   │   ├── models/      # 数据模型
+│   │   ├── routers/     # API路由
+│   │   ├── schemas/     # 数据验证模式
+│   │   ├── services/    # 业务逻辑
+│   │   └── utils/       # 工具函数
+│   ├── main.py          # 应用入口
+│   └── requirements.txt # Python依赖
+├── frontend/            # 前端应用
+│   ├── src/             # 源代码
+│   │   ├── components/  # 可复用组件
+│   │   ├── pages/       # 页面组件
+│   │   ├── contexts/    # React上下文
+│   │   ├── services/    # API服务
+│   │   └── theme/       # 主题配置
+│   └── package.json     # Node.js依赖
+├── .github/workflows/   # GitHub Actions工作流
+└── README.md            # 项目说明文档
+```
+
+## 快速开始
+
+### 后端服务启动
+
+1. 进入后端目录：
+   ```bash
+   cd backend
+   ```
+
+2. 安装Python依赖：
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. 配置环境变量（复制`.env.example`为`.env`并修改相应值）：
+   ```bash
+   cp .env.example .env
+   ```
+
+4. 启动服务：
+   ```bash
+   python main.py
+   ```
+   或使用：
+   ```bash
+   uvicorn main:app --reload
+   ```
+
+### 前端应用启动
+
+1. 进入前端目录：
+   ```bash
+   cd frontend
+   ```
+
+2. 安装Node.js依赖：
+   ```bash
+   npm install
+   ```
+
+3. 启动开发服务器：
+   ```bash
+   npm run dev
+   ```
+
+## API接口
+
+### 认证相关
+- `POST /api/auth/register` - 用户注册
+- `POST /api/auth/login` - 用户登录
+
+### 代码审查相关
+- `POST /api/codereview/review` - 接收代码审查请求
+- `GET /api/codereview/health` - 健康检查
+
+### API密钥管理
+- `POST /api/apikeys` - 创建API密钥
+- `GET /api/apikeys` - 列出所有API密钥
+- `PUT /api/apikeys/{apikey}/disable` - 禁用API密钥
+- `PUT /api/apikeys/{apikey}/enable` - 启用API密钥
+- `DELETE /api/apikeys/{apikey}` - 删除API密钥
+
+## GitHub Actions集成
+
+系统通过GitHub Actions工作流自动审查Pull Request：
+
+1. 当创建或更新PR时自动触发
+2. 生成代码差异(diff)
+3. 发送请求到后端API进行分析
+4. 在PR中添加审查评论
+
+需要在仓库中配置以下Secrets：
+- `CODE_REVIEW_API_URL` - 后端API地址
+- `CODE_REVIEW_API_TOKEN` - API访问令牌
+
+## 开发指南
+
+### 代码规范
+
+- 前端遵循ESLint规则
+- 后端遵循Python PEP8规范
+- 提交前请运行相应的lint检查
+
+### 扩展功能
+
+1. **添加新的审查规则**：
+   - 在后端`codereview`路由中扩展分析逻辑
+   - 返回符合GitHub Actions期望格式的结果
+
+2. **添加新的API端点**：
+   - 在`backend/app/routers/`目录下创建新的路由文件
+   - 在`main.py`中注册新路由
+
+## 部署说明
+
+### 后端部署
+
+推荐使用以下方式部署：
+1. 使用Docker容器化部署
+2. 使用云服务（如Heroku、AWS、阿里云等）
+3. 使用Gunicorn作为WSGI服务器
+
+### 前端部署
+
+1. 构建生产版本：
+   ```bash
+   npm run build
+   ```
+2. 部署构建产物到静态文件服务器
+
+## 贡献指南
+
+欢迎提交Issue和Pull Request来改进这个项目！
+
+1. Fork项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启Pull Request
+
+## 许可证
+
+本项目采用MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情
+
+## 联系方式
+
+项目链接: [https://github.com/yourusername/CodeReviewSystem](https://github.com/yourusername/CodeReviewSystem)

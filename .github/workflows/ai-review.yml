@@ -4,29 +4,30 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   ai_review:
     runs-on: ubuntu-latest
 
     steps:
+      # 1) Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2) Normalize metadata
       - name: Normalize PR Metadata
         id: meta
         run: |
           echo "actor=${{ github.actor }}" >> $GITHUB_ENV
-          
-          # 如果 title 或 body 是 null，则替换为空字符串
+
           TITLE="${{ github.event.pull_request.title }}"
           BODY="${{ github.event.pull_request.body }}"
 
-          TITLE="${TITLE:-""}"
-          BODY="${BODY:-""}"
-
-          # Base64 encode 来保证 JSON 安全
           echo "title_b64=$(printf "%s" "$TITLE" | base64 -w0)" >> $GITHUB_ENV
           echo "body_b64=$(printf "%s" "$BODY" | base64 -w0)" >> $GITHUB_ENV
 
@@ -34,34 +35,28 @@ jobs:
           echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_ENV
           echo "repo_name=$(basename '${{ github.repository }}')" >> $GITHUB_ENV
 
+      # 3) Generate diff safely
       - name: Generate diff safely (Base64)
         id: diff
         run: |
-          # diff 基线（防止 fork 情况 base_ref 不存在）
           BASE="${{ github.base_ref }}"
-          if [ -z "$BASE" ]; then
-            BASE="origin/main"
-          fi
+          if [ -z "$BASE" ]; then BASE="origin/main"; fi
 
           DIFF_RAW=$(git diff "origin/$BASE"...HEAD)
-
-          echo "Diff line count: $(echo "$DIFF_RAW" | wc -l)"
-          echo "Diff size: $(echo "$DIFF_RAW" | wc -c) bytes"
-
-          # 超过 5MB 自动截断，避免 Runner 卡死
           DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)
           MAX_SIZE=5000000
+
           if [ "$DIFF_SIZE" -gt "$MAX_SIZE" ]; then
-            echo "Diff too large, truncating to 5MB..."
+            echo "Diff too large, truncating..."
             DIFF_RAW=$(echo "$DIFF_RAW" | head -c $MAX_SIZE)
           fi
 
-          DIFF_B64=$(printf "%s" "$DIFF_RAW" | base64 -w 0)
-          echo "diff_b64=$DIFF_B64" >> $GITHUB_ENV
+          echo "diff_b64=$(printf "%s" "$DIFF_RAW" | base64 -w0)" >> $GITHUB_ENV
 
+      # 4) Build JSON payload
       - name: Build JSON Payload
         run: |
-          cat << 'EOF' > payload.json
+          cat <<EOF > payload.json
           {
             "diff_base64": "${diff_b64}",
             "pr_number": "${pr_number}",
@@ -74,16 +69,47 @@ jobs:
           }
           EOF
 
+      # 5) Send to AI Review API
       - name: Send to AI Review API
         run: |
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data-binary @payload.json \
-            "${{ secrets.CODE_REVIEW_API_URL }}/review" \
+            "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
 
-      - name: Display AI Review Response
+      # 6) Format markdown
+      - name: Format review message
+        id: fm
         run: |
-          echo "===== AI REVIEW RESULT ====="
-          cat response.json
+          echo "生成评论 markdown..."
+
+          jq -r '
+            "## 🤖 AI Code Review\n" +
+            "**合并建议**: \(.conclusion)\n\n" +
+            "### 问题列表\n" +
+            (
+              .issues | map(
+                "- **文件**: " + .file +
+                " (行 " + (.line|tostring) + ")\n" +
+                "  - 严重程度: **" + .severity + "**\n" +
+                "  - 描述: " + .description + "\n" +
+                "  - 建议: " + .suggestion + "\n"
+              ) | join("\n")
+            )
+          ' response.json > comment.md
+
+          echo "Markdown 生成成功："
+          cat comment.md
+
+      # 7) Create or update PR comment
+      - name: Create or update PR comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ env.pr_number }}
+          body-file: comment.md
+          edit-mode: replace
+          # 用搜索方式找到旧评论并更新，无需 comment-identifier
+          search: "## 🤖 AI Code Review"

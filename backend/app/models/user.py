@@ -53,6 +53,8 @@ class UserInDB(UserBase):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     hashed_password: str
     apikeys: Optional[List[ApiKey]] = None
+    reputation_score: int = 60  # 默认信誉分为60
+    reputation_history: List[str] = []
 
     model_config = {
         "populate_by_name": True,
@@ -63,6 +65,8 @@ class UserInDB(UserBase):
 class UserResponse(UserBase):
     id: str = Field(alias="_id")
     apikeys: Optional[List[ApiKey]] = None
+    reputation_score: int = 60  # 默认信誉分为60
+    reputation_history: List[str] = []
 
     model_config = {
         "populate_by_name": True,
