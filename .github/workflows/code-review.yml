@@ -216,7 +216,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
             --data "@payload_temp.json" \
-            "$FULL_URL" \  # 改用处理后的完整 URL
+            "$FULL_URL" \  
             -o "$RESPONSE_FILE")
 
           # 后续状态检查、保存文件、清理逻辑不变...
