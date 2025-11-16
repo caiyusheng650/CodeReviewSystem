@@ -197,7 +197,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
             -d "$PAYLOAD" \
-            "${CODE_REVIEW_API_URL:-http://localhost:8000/api/codereview/review}" \
+            "${CODE_REVIEW_API_URL:-http://localhost:8000}/api/codereview/review" \
             -o "$RESPONSE_FILE")
           
           # 检查HTTP状态码
