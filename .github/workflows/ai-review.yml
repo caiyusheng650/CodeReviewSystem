@@ -4,10 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+
 permissions:
   pull-requests: write
   contents: read
-
+  
 jobs:
   ai_review:
     runs-on: ubuntu-latest
@@ -86,21 +87,19 @@ jobs:
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
 
-      # 6) Print Final Response
-      
       - name: Format review message
         id: fm
         run: |
           echo "生成评论 markdown..."
 
           BODY=$(cat response.json | jq -r '
-            "## 🤖 AI Code Review 结果\n" +
+            "## 🤖 AI Code Review\n" +
             "**信誉分**: \(.author_reputation)\n" +
             "**合并建议**: \(.conclusion)\n\n" +
             "### 问题列表\n" +
             ( .issues | map(
                 "- **文件**: " + .file +
-                " (行: " + (.line|tostring) + ")\n" +
+                " (行 " + (.line|tostring) + ")\n" +
                 "  - 严重程度: **" + .severity + "**\n" +
                 "  - 描述: " + .description + "\n" +
                 "  - 建议: " + .suggestion + "\n"
@@ -108,8 +107,10 @@ jobs:
             )
           ')
 
-          # 保存评论内容
-          printf "%s" "$BODY" > comment.md
+          # 输出到文件方便调试
+          echo "$BODY" > comment.md
+
+          # 写入多行环境变量（绝对安全格式）
           echo "COMMENT_BODY<<EOF" >> $GITHUB_ENV
           cat comment.md >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -122,3 +123,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           edit-mode: replace # 不重复刷屏，只更新
           comment-identifier: ai-review
+
