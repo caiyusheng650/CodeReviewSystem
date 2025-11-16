@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
-import json
 import logging
+import base64
+from app.services.reputation_service import reputation_service
+from app.schemas.reputation import ReputationUpdatePayload
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -10,115 +12,129 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+
+# ==============================
+# ⭐ 请求模型
+# ==============================
 class CodeReviewPayload(BaseModel):
-    diff: str
+    diff_base64: str
     pr_number: str
-    pr_title: str
-    pr_body: str
+
+    pr_title_b64: str
+    pr_body_b64: str
+
     repo_owner: str
     repo_name: str
+    author: Optional[str] = None
+
     comments: List[Dict[str, Any]]
 
-@router.post("/review", summary="接收GitHub Actions代码审查请求")
-async def receive_code_review(
-    payload: CodeReviewPayload,
-    authorization: str = Header(None)
-):
-    """
-    接收来自GitHub Actions的代码审查请求并打印到控制台
-    用于测试目的
-    """
-    # 记录收到的请求
-    logger.info("=== 收到代码审查请求 ===")
-    logger.info(f"PR编号: {payload.pr_number}")
-    logger.info(f"PR标题: {payload.pr_title}")
-    logger.info(f"仓库: {payload.repo_owner}/{payload.repo_name}")
-    logger.info(f"差异内容长度: {len(payload.diff)} 字符")
-    logger.info(f"评论数量: {len(payload.comments)}")
-    
-    # 如果有PR正文，记录前100个字符
-    if payload.pr_body:
-        logger.info(f"PR正文 (前100字符): {payload.pr_body[:100]}...")
-    
-    # 记录前500个字符的差异内容
-    logger.info(f"差异内容 (前500字符): {payload.diff[:500]}...")
-    
-    # 如果有评论，记录评论摘要
-    if payload.comments:
-        logger.info("评论摘要:")
-        for i, comment in enumerate(payload.comments[:3]):  # 只显示前3条评论
-            logger.info(f"  评论 {i+1}: {comment.get('body', '')[:100]}...")
-        if len(payload.comments) > 3:
-            logger.info(f"  ... 还有 {len(payload.comments) - 3} 条评论")
-    
-    # 验证授权头（简化版）
-    if authorization:
-        logger.info(f"授权头: {authorization[:20]}...")  # 只记录前20个字符
-    else:
-        logger.warning("缺少授权头")
-    
-    # 返回成功响应，包含模拟的代码审查结果
-    # 确保响应格式与GitHub Actions工作流期望的格式完全一致
-    issues = [
+    # ---- 自动 decode ----
+    @property
+    def pr_title(self) -> str:
+        return base64.b64decode(self.pr_title_b64).decode("utf-8", errors="ignore")
+
+    @property
+    def pr_body(self) -> str:
+        return base64.b64decode(self.pr_body_b64).decode("utf-8", errors="ignore")
+
+    @property
+    def diff(self) -> str:
+        return base64.b64decode(self.diff_base64).decode("utf-8", errors="ignore")
+
+
+
+# ==============================
+# ⭐ mock issue generator
+# ==============================
+def generate_review_issues(diff: str, strictness: float) -> List[Dict[str, Any]]:
+
+    base_issues = [
         {
-            "file": "frontend/README.md",
-            "line": 15,
-            "description": "检测到未使用的变量 'unusedVar'，建议移除以提高代码可读性。",
-            "suggestion": "移除未使用的变量声明",
-            "severity": "低",
-            "category": "静态缺陷"
+            "file": "index.js",
+            "line": 10,
+            "description": "变量命名不规范。",
+            "suggestion": "请使用更语义化的变量名。",
+            "severity": "低"
         },
         {
-            "file": "frontend/README.md",
-            "line": 23,
-            "description": "数据库查询缺少异常处理，可能导致程序崩溃。",
-            "suggestion": "添加 try-catch 块来处理可能的数据库异常",
-            "severity": "高",
-            "category": "逻辑缺陷"
+            "file": "index.js",
+            "line": 30,
+            "description": "异常未处理，可能导致程序崩溃。",
+            "suggestion": "建议增加 try/catch。",
+            "severity": "高"
         },
         {
-            "file": "frontend/README.md",
-            "line": 42,
-            "description": "使用了危险的 innerHTML 属性，可能存在 XSS 风险。",
-            "suggestion": "使用安全的 DOM 操作方法或确保内容已正确转义",
-            "severity": "中",
-            "category": "安全漏洞"
+            "file": "index.js",
+            "line": 60,
+            "description": "可能存在 XSS 风险。",
+            "suggestion": "应对输入进行转义。",
+            "severity": "中"
         }
     ]
-    
-    # 计算各类问题的数量
-    high_severity_count = sum(1 for issue in issues if issue["severity"] == "高")
-    medium_severity_count = sum(1 for issue in issues if issue["severity"] == "中")
-    low_severity_count = sum(1 for issue in issues if issue["severity"] == "低")
-    
-    # 按类别统计问题
-    category_counts = {}
-    for issue in issues:
-        category = issue.get("category", "其他")
-        category_counts[category] = category_counts.get(category, 0) + 1
-    
-    return {
-        "message": "代码审查请求已接收",
-        "status": "success",
-        "received_data": {
-            "pr_number": payload.pr_number,
-            "pr_title": payload.pr_title,
-            "repo": f"{payload.repo_owner}/{payload.repo_name}",
-            "diff_length": len(payload.diff),
-            "comments_count": len(payload.comments)
-        },
-        "issues": issues,
-        "summary": {
-            "total_issues": len(issues),
-            "high_severity": high_severity_count,
-            "medium_severity": medium_severity_count,
-            "low_severity": low_severity_count,
-            "by_category": category_counts,
-            "summary_comments": "本次代码审查发现了多个问题，包括静态缺陷、逻辑缺陷和安全漏洞，请及时修复。"
-        }
+
+    return base_issues
+
+
+# ==============================
+# ⭐ /review 主逻辑
+# ==============================
+@router.post("/review")
+async def review(payload: CodeReviewPayload, authorization: str = Header(None)):
+
+    logger.info("=== 收到代码审查请求 ===")
+    logger.info(f"PR {payload.pr_number} | {payload.repo_owner}/{payload.repo_name}")
+
+    author = payload.author or "unknown"
+    # 使用新的信誉服务获取用户信誉信息
+    reputation = await reputation_service.get_user_reputation(author)
+    score = reputation["score"]
+
+
+    logger.info(f"作者：{author} | 信誉分：{score} ")
+
+    diff_text = payload.diff
+    issues = generate_review_issues(diff_text)
+
+    summary = {
+        "total": len(issues),
+        "high": sum(1 for i in issues if i["severity"] == "高"),
+        "medium": sum(1 for i in issues if i["severity"] == "中"),
+        "low": sum(1 for i in issues if i["severity"] == "低"),
     }
 
-@router.get("/health", summary="健康检查")
-async def health_check():
-    """健康检查端点"""
-    return {"status": "healthy", "service": "code-review-receiver"}
+    return {
+        "status": "success",
+        "strictness": strictness,
+        "author_reputation": score,
+        "issues": issues,
+        "summary": summary,
+        "decoded_title": payload.pr_title,
+        "decoded_body": payload.pr_body,
+    }
+
+
+# ==============================
+# ⭐ 查询信誉
+# ==============================
+@router.get("/reputation/{author}")
+async def get_reputation(author: str):
+    # 使用新的信誉服务获取用户信誉信息
+    return await reputation_service.get_user_reputation(author)
+
+
+# ==============================
+# ⭐ 更新信誉
+# ==============================
+@router.post("/reputation/update")
+async def update_reputation(payload: ReputationUpdatePayload):
+    # 使用新的信誉服务更新用户信誉信息
+    return await reputation_service.update_user_reputation(payload.author, payload.event)
+
+
+# ==============================
+# 健康检查
+# ==============================
+@router.get("/health")
+async def health():
+    return {"status": "ok"}
