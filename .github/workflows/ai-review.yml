@@ -87,7 +87,6 @@ jobs:
 
           jq -r '
             "## 🤖 AI Code Review\n" +
-            "**信誉分**: \(.author_reputation)\n" +
             "**合并建议**: \(.conclusion)\n\n" +
             "### 问题列表\n" +
             (
