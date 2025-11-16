@@ -137,10 +137,50 @@ async def review(payload: CodeReviewPayload, authorization: str = Header(None)):
 
     return {
         "status": "success",
-        "author_reputation": score,
+        "author": author,
+        "reputation_before": score,
+        "reputation_change": delta_reputation,
+        "reputation_after": score + delta_reputation,
+
+        "risk_score": max(0, min(100, summary["高"] * 30 + summary["中"] * 10 + summary["低"] * 3)),
+        "confidence_index": max(0, 100 - (summary["高"] * 15 + summary["中"] * 8)),
+
+        "merge_recommendation": (
+            "merge"
+            if delta_reputation >= 0 else
+            "request_changes" if summary["高"] > 0 else
+            "caution"
+        ),
+
+        "recommendation_reason": (
+            "代码整体质量良好，未发现重大问题，适合合并。"
+            if delta_reputation >= 0
+            else "检测到关键性问题，可能影响系统稳定性，暂不建议合并。"
+        ),
+
         "issues": issues,
-        "summary": summary,
+
+        "summary": {
+            "total": summary["总计"],
+            "critical": summary["高"],
+            "medium": summary["中"],
+            "low": summary["低"],
+            "praise": summary["表扬"],
+        },
+
+        "overall_suggestion": (
+            "本次提交展现出良好的代码质量，但可进一步完善异常处理与安全边界。"
+            if delta_reputation >= 0
+            else "请重点关注高危险代码段，检查异常处理、依赖边界和输入校验逻辑。"
+        ),
+
+        "conclusion": (
+            "智能审查系统建议合并"
+            if delta_reputation >= 0
+            else "智能审查系统不建议合并"
+        )
     }
+
 
 
 # ==============================

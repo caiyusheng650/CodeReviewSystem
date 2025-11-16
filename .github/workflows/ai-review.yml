@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   ai_review:
     runs-on: ubuntu-latest
@@ -83,7 +87,38 @@ jobs:
             -o response.json
 
       # 6) Print Final Response
-      - name: Display AI Review Response
+      
+      - name: Format review message
+        id: fm
         run: |
-          echo "===== AI REVIEW RESULT ====="
-          cat response.json
+          echo "生成评论 markdown..."
+
+          BODY=$(cat response.json | jq -r '
+            "## 🤖 AI Code Review 结果\n" +
+            "**信誉分**: \(.author_reputation)\n" +
+            "**合并建议**: \(.conclusion)\n\n" +
+            "### 问题列表\n" +
+            ( .issues | map(
+                "- **文件**: " + .file +
+                " (行: " + (.line|tostring) + ")\n" +
+                "  - 严重程度: **" + .severity + "**\n" +
+                "  - 描述: " + .description + "\n" +
+                "  - 建议: " + .suggestion + "\n"
+              ) | join("\n")
+            )
+          ')
+
+          # 保存评论内容
+          printf "%s" "$BODY" > comment.md
+          echo "COMMENT_BODY<<EOF" >> $GITHUB_ENV
+          cat comment.md >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create or update PR comment
+        uses: peter-evans/create-or-update-comment@v3
+        with:
+          issue-number: ${{ env.PR_NUMBER }}
+          body: ${{ env.COMMENT_BODY }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          edit-mode: replace # 不重复刷屏，只更新
+          comment-identifier: ai-review

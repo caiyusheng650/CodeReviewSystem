@@ -42,7 +42,7 @@ class ReputationService:
         Args:
             username: 用户名
             event: 事件类型 (passed / minor_issue / severe_bug / rejected)
-            delta: 信誉分数的变化值
+            delta_reputation: 信誉分数的变化值
             
         Returns:
             更新后的信誉信息
@@ -52,7 +52,7 @@ class ReputationService:
         score = current_reputation["score"]
         history = current_reputation["history"]
         
-        score += delta
+        score += delta_reputation
 
         
         history.append(event)
@@ -69,7 +69,7 @@ class ReputationService:
             upsert=True
         )
         
-        logger.info(f"用户 {username} 的信誉分已更新: {score}, 事件: {event}, 变化值: {delta}")
+        logger.info(f"用户 {username} 的信誉分已更新: {score}, 事件: {event}, 变化值: {delta_reputation}")
         
         return {
             "status": "updated",
