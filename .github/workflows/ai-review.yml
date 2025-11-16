@@ -9,37 +9,67 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # 需要完整历史才能 diff
+          fetch-depth: 0
 
-      - name: Extract PR metadata
+      - name: Normalize PR Metadata
         id: meta
         run: |
-          echo "author=${{ github.actor }}" >> $GITHUB_ENV
-          echo "title=$(echo '${{ github.event.pull_request.title }}' | sed 's/"/\\"/g')" >> $GITHUB_ENV
-          echo "body=$(echo '${{ github.event.pull_request.body }}' | sed 's/"/\\"/g')" >> $GITHUB_ENV
+          echo "actor=${{ github.actor }}" >> $GITHUB_ENV
+          
+          # 如果 title 或 body 是 null，则替换为空字符串
+          TITLE="${{ github.event.pull_request.title }}"
+          BODY="${{ github.event.pull_request.body }}"
+
+          TITLE="${TITLE:-""}"
+          BODY="${BODY:-""}"
+
+          # Base64 encode 来保证 JSON 安全
+          echo "title_b64=$(printf "%s" "$TITLE" | base64 -w0)" >> $GITHUB_ENV
+          echo "body_b64=$(printf "%s" "$BODY" | base64 -w0)" >> $GITHUB_ENV
+
           echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
           echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "repo_name=$(basename ${{ github.repository }})" >> $GITHUB_ENV
+          echo "repo_name=$(basename '${{ github.repository }}')" >> $GITHUB_ENV
 
-      - name: Generate diff safely (Base64 encoded)
+      - name: Generate diff safely (Base64)
+        id: diff
         run: |
-          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD | base64 -w 0)
-          echo "diff_b64=$DIFF" >> $GITHUB_ENV
+          # diff 基线（防止 fork 情况 base_ref 不存在）
+          BASE="${{ github.base_ref }}"
+          if [ -z "$BASE" ]; then
+            BASE="origin/main"
+          fi
 
-      - name: Build JSON payload (no jq, 100% safe)
+          DIFF_RAW=$(git diff "origin/$BASE"...HEAD)
+
+          echo "Diff line count: $(echo "$DIFF_RAW" | wc -l)"
+          echo "Diff size: $(echo "$DIFF_RAW" | wc -c) bytes"
+
+          # 超过 5MB 自动截断，避免 Runner 卡死
+          DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)
+          MAX_SIZE=5000000
+          if [ "$DIFF_SIZE" -gt "$MAX_SIZE" ]; then
+            echo "Diff too large, truncating to 5MB..."
+            DIFF_RAW=$(echo "$DIFF_RAW" | head -c $MAX_SIZE)
+          fi
+
+          DIFF_B64=$(printf "%s" "$DIFF_RAW" | base64 -w 0)
+          echo "diff_b64=$DIFF_B64" >> $GITHUB_ENV
+
+      - name: Build JSON Payload
         run: |
-          cat <<EOF > payload.json
+          cat << 'EOF' > payload.json
           {
             "diff_base64": "${diff_b64}",
             "pr_number": "${pr_number}",
-            "pr_title": "${title}",
-            "pr_body": "${body}",
+            "pr_title_b64": "${title_b64}",
+            "pr_body_b64": "${body_b64}",
             "repo_owner": "${repo_owner}",
             "repo_name": "${repo_name}",
-            "author": "${author}",
+            "author": "${actor}",
             "comments": []
           }
           EOF
@@ -53,7 +83,7 @@ jobs:
             "${{ secrets.CODE_REVIEW_API_URL }}/review" \
             -o response.json
 
-      - name: Print AI review result
+      - name: Display AI Review Response
         run: |
           echo "===== AI REVIEW RESULT ====="
           cat response.json
