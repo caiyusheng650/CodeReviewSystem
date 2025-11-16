@@ -196,8 +196,6 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
             -d "$PAYLOAD" \
-              "${CODE_REVIEW_API_URL:-http://localhost:8000}/api/codereview/review" \
-              -o "$RESPONSE_FILE")
             "${CODE_REVIEW_API_URL:-http://localhost:8000}/api/codereview/review" \
             -o "$RESPONSE_FILE")
           
@@ -265,19 +263,34 @@ jobs:
                 }
                 
                 try {
-                  await github.rest.pulls.createReviewComment({
+                  // 验证文件是否在PR中存在且行号有效
+                  const { data: prFiles } = await github.rest.pulls.listFiles({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    pull_number: context.issue.number,
-                    body: commentBody,
-                    commit_id: context.payload.pull_request.head.sha,
-                    path: issue.file,
-                    line: issue.line
+                    pull_number: context.issue.number
                   });
+                  
+                  // 检查文件是否在PR变更中
+                  const fileInPR = prFiles.find(file => file.filename === issue.file);
+                  
+                  if (fileInPR) {
+                    await github.rest.pulls.createReviewComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: context.issue.number,
+                      body: commentBody,
+                      commit_id: context.payload.pull_request.head.sha,
+                      path: issue.file,
+                      line: issue.line
+                    });
+                  } else {
+                    // 如果文件不在PR中，则创建普通评论
+                    throw new Error(`文件 ${issue.file} 不在PR变更中`);
+                  }
                 } catch (error) {
-                  console.log(`无法为 ${issue.file}:${issue.line} 创建评论:`, error.message);
+                  console.log(`无法为 ${issue.file}:${issue.line} 创建行评论:`, error.message);
                   // 如果无法创建行评论，则创建普通评论
-                  github.rest.issues.createComment({
+                  await github.rest.issues.createComment({
                     issue_number: context.issue.number,
                     owner: context.repo.owner,
                     repo: context.repo.repo,

@@ -10,5 +10,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "yaml-validator": "^5.1.0"
   }
 }
