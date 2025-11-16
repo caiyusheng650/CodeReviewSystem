@@ -167,25 +167,25 @@ jobs:
         run: |
           # 将完整差异内容写入临时文件，避免参数过长问题
           cat pr_diff.patch > temp_diff.txt
-          
+
           # 将PR评论写入临时文件
-          echo '${{ steps.get_comments.outputs.comments }}' > temp_comments.txt
-          
+          echo '[{"url":"https://api.github.com/repos/caiyusheng650/CodeReviewSystem/issues/comments/3539137948","html_url":"https://github.com/caiyusheng650/CodeReviewSystem/pull/8#issuecomment-3539137948","issue_url":"https://api.github.com/repos/caiyusheng650/CodeReviewSystem/issues/8","id":3539137948,"node_id":"IC_kwDOQW0dzc7S8vWc","user":{"login":"github-actions[bot]","id":41898282,"node_id":"MDM6Qm90NDE4OTgyODI=","avatar_url":"https://avatars.githubusercontent.com/in/15368?v=4","gravatar_id":"","url":"https://api.github.com/users/github-actions%5Bbot%5D","html_url":"https://github.com/apps/github-actions","followers_url":"https://api.github.com/users/github-actions%5Bbot%5D/followers","following_url":"https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}","gists_url":"https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}","starred_url":"https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/github-actions%5Bbot%5D/subscriptions","organizations_url":"https://api.github.com/users/github-actions%5Bbot%5D/orgs","repos_url":"https://api.github.com/users/github-actions%5Bbot%5D/repos","events_url":"https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}","received_events_url":"https://api.github.com/users/github-actions%5Bbot%5D/received_events","type":"Bot","user_view_type":"public","site_admin":false},"created_at":"2025-11-16T19:00:50Z","updated_at":"2025-11-16T19:00:50Z","body":"✅ 代码审查完成！未发现潜在问题，代码符合规范。","author_association":"NONE","reactions":{"url":"https://api.github.com/repos/caiyusheng650/CodeReviewSystem/issues/comments/3539137948/reactions","total_count":0,"+1":0,"-1":0,"laugh":0,"hooray":0,"confused":0,"heart":0,"rocket":0,"eyes":0},"performed_via_github_app":{"id":15368,"client_id":"Iv1.05c79e9ad1f6bdfa","slug":"github-actions","node_id":"MDM6QXBwMTUzNjg=","owner":{"login":"github","id":9919,"node_id":"MDEyOk9yZ2FuaXphdGlvbjk5MTk=","avatar_url":"https://avatars.githubusercontent.com/u/9919?v=4","gravatar_id":"","url":"https://api.github.com/users/github","html_url":"https://github.com/github","followers_url":"https://api.github.com/users/github/followers","following_url":"https://api.github.com/users/github/following{/other_user}","gists_url":"https://api.github.com/users/github/gists{/gist_id}","starred_url":"https://api.github.com/users/github/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/github/subscriptions","organizations_url":"https://api.github.com/users/github/orgs","repos_url":"https://api.github.com/users/github/repos","events_url":"https://api.github.com/users/github/events{/privacy}","received_events_url":"https://api.github.com/users/github/received_events","type":"Organization","user_view_type":"public","site_admin":false},"name":"GitHub Actions","description":"Automate your workflow from idea to production","external_url":"https://help.github.com/en/actions","html_url":"https://github.com/apps/github-actions","created_at":"2018-07-30T09:30:17Z","updated_at":"2025-11-12T15:38:39Z","permissions":{"actions":"write","administration":"read","artifact_metadata":"write","attestations":"write","checks":"write","contents":"write","deployments":"write","discussions":"write","issues":"write","merge_queues":"write","metadata":"read","models":"read","packages":"write","pages":"write","pull_requests":"write","repository_hooks":"write","repository_projects":"write","security_events":"write","statuses":"write","vulnerability_alerts":"read"},"events":["branch_protection_rule","check_run","check_suite","create","delete","deployment","deployment_status","discussion","discussion_comment","fork","gollum","issues","issue_comment","label","merge_group","milestone","page_build","public","pull_request","pull_request_review","pull_request_review_comment","push","registry_package","release","repository","repository_dispatch","status","watch","workflow_dispatch","workflow_run"]}}]' > temp_comments.txt
+
           # 统计临时文件大小并打印到控制台
           DIFF_SIZE=$(stat -c %s temp_diff.txt 2>/dev/null || stat -f %z temp_diff.txt 2>/dev/null || echo "unknown")
           COMMENTS_SIZE=$(stat -c %s temp_comments.txt 2>/dev/null || stat -f %z temp_comments.txt 2>/dev/null || echo "unknown")
           echo "临时文件大小统计:"
           echo "  diff文件 (temp_diff.txt): $DIFF_SIZE 字节"
           echo "  comments文件 (temp_comments.txt): $COMMENTS_SIZE 字节"
-          
-          # 使用临时文件构建JSON数据，避免直接传递大变量给jq
-          PAYLOAD=$(jq -c -n \
+
+          # 使用临时文件构建JSON数据并直接写入临时文件
+          jq -c -n \
             --rawfile diff_content temp_diff.txt \
-            --arg pr_number "${{ steps.get_pr_info.outputs.pr_number }}" \
-            --arg pr_title "${{ steps.get_pr_info.outputs.pr_title }}" \
-            --arg pr_body "${{ steps.get_pr_info.outputs.pr_body }}" \
-            --arg repo_owner "${{ steps.get_pr_info.outputs.repo_owner }}" \
-            --arg repo_name "${{ steps.get_pr_info.outputs.repo_name }}" \
+            --arg pr_number "8" \
+            --arg pr_title "Code review enhancements" \
+            --arg pr_body "" \
+            --arg repo_owner "caiyusheng650" \
+            --arg repo_name "CodeReviewSystem" \
             --rawfile comments temp_comments.txt \
             '{
               diff: $diff_content,
@@ -195,39 +195,36 @@ jobs:
               repo_owner: $repo_owner,
               repo_name: $repo_name,
               comments: ($comments | fromjson)
-            }')
-          
-          # 发送到远程API并保存响应
+            }' > payload_temp.json
+
+          # 发送到远程API并保存响应（通过文件读取payload）
           RESPONSE_FILE="api_response.json"
           HTTP_STATUS=$(curl -s -w "%{http_code}" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
-            -d "$PAYLOAD" \
+            --data "@payload_temp.json"  # 关键：从文件读取payload
             "${CODE_REVIEW_API_URL:-http://localhost:8000}/api/codereview/review" \
             -o "$RESPONSE_FILE")
-          
+
           # 检查HTTP状态码
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
             echo "API调用成功，HTTP状态码: $HTTP_STATUS"
-            # 打印API返回内容到控制台用于调试
             echo "API返回内容:"
             cat "$RESPONSE_FILE"
           else
             echo "API调用失败，HTTP状态码: $HTTP_STATUS"
-            # 打印错误响应内容到控制台用于调试
             echo "错误响应内容:"
             cat "$RESPONSE_FILE"
-            # 即使API调用失败，也创建一个空的响应文件以避免后续步骤出错
             echo '{"issues": []}' > "$RESPONSE_FILE"
           fi
-          
+
           # 保存请求和响应信息
-          echo "$PAYLOAD" > api_request.json
+          cp payload_temp.json api_request.json  # 直接复制文件，避免变量传递
           echo "request_file=api_request.json" >> $GITHUB_OUTPUT
           echo "response_file=api_response.json" >> $GITHUB_OUTPUT
-          
+
           # 清理临时文件
-          rm -f temp_diff.txt temp_comments.txt
+          rm -f temp_diff.txt temp_comments.txt payload_temp.json
       
       - name: Post review comments
         uses: actions/github-script@v7
