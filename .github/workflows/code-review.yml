@@ -1,296 +1,148 @@
-name: Code Review
+name: AI Code Review with Reputation
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main, develop, master]
-  pull_request_target:
-    types: [opened, synchronize, reopened]
-    branches: [main, develop, master]
 
 jobs:
-  code-review:
+  ai-code-review:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
-    
+      
     steps:
-      - name: Checkout code
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - name: Install dependencies
+          fetch-depth: 50  # 为历史 commit 准备
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Collect PR Basic Info + Diff
+        id: pr
         run: |
-          npm ci
-          npm install
-      
-      - name: Get PR information
-        id: get_pr_info
-        run: |
-          # 安装 jq（用于解析 JSON）
-          if ! command -v jq &> /dev/null; then
-            sudo apt-get update && sudo apt-get install -y jq
-          fi
-          
-          # 获取PR的差异内容，包含更多上下文行(-U20表示20行上下文)
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            DIFF_OUTPUT=$(git diff -U20 ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
-          else
-            DIFF_OUTPUT=$(git diff -U20 ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
-          fi
-          echo "$DIFF_OUTPUT" > pr_diff.patch
-          echo "diff_file=pr_diff.patch" >> $GITHUB_OUTPUT
-          
-          # 获取PR基本信息
-          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
-          echo "pr_body=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
-          echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_OUTPUT
-          echo "repo_name=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
-          
-          # 获取PR作者信息
-          PR_AUTHOR="${{ github.event.pull_request.user.login }}"
-          PR_AUTHOR_ID="${{ github.event.pull_request.user.id }}"
-          PR_AUTHOR_NAME="${{ github.event.pull_request.user.name }}"
-          PR_AUTHOR_EMAIL="${{ github.event.pull_request.user.email }}"
-          echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
-          echo "pr_author_id=$PR_AUTHOR_ID" >> $GITHUB_OUTPUT
-          echo "pr_author_name=$PR_AUTHOR_NAME" >> $GITHUB_OUTPUT
-          echo "pr_author_email=$PR_AUTHOR_EMAIL" >> $GITHUB_OUTPUT
-          
-          # 获取PR时间信息
-          echo "pr_created_at=${{ github.event.pull_request.created_at }}" >> $GITHUB_OUTPUT
-          echo "pr_updated_at=${{ github.event.pull_request.updated_at }}" >> $GITHUB_OUTPUT
-          echo "pr_merged_at=${{ github.event.pull_request.merged_at }}" >> $GITHUB_OUTPUT
-          
-          # 获取分支信息
-          echo "pr_base_branch=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
-          echo "pr_head_branch=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
-          echo "pr_base_sha=${{ github.event.pull_request.base.sha }}" >> $GITHUB_OUTPUT
-          echo "pr_head_sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
-          
-          # 获取合并状态
-          echo "pr_is_merged=${{ github.event.pull_request.merged }}" >> $GITHUB_OUTPUT
-          echo "pr_mergeable=${{ github.event.pull_request.mergeable }}" >> $GITHUB_OUTPUT
-          
-          # 获取提交数
-          COMMITS_COUNT=$(git rev-list --count ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
-          echo "pr_commits_count=$COMMITS_COUNT" >> $GITHUB_OUTPUT
-          
-          # 获取修改的文件数
-          FILES_COUNT=$(git diff --name-only ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | wc -l)
-          echo "pr_files_count=$FILES_COUNT" >> $GITHUB_OUTPUT
-          
-          # 获取修改的行数统计
-          ADDITIONS=$(git diff --numstat ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | awk '{sum += $1} END {print sum}')
-          DELETIONS=$(git diff --numstat ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} | awk '{sum += $2} END {print sum}')
-          echo "pr_additions=$ADDITIONS" >> $GITHUB_OUTPUT
-          echo "pr_deletions=$DELETIONS" >> $GITHUB_OUTPUT
-          
-          # 获取PR历史提交信息
-          PR_COMMITS=$(git rev-list --pretty=format:"%H|%an|%ae|%ad|%s" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
-          echo "pr_commits<<EOF" >> $GITHUB_OUTPUT
-          echo "$PR_COMMITS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          # 调用GitHub API获取作者历史提交记录
-          AUTHOR_COMMITS_API="https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/commits?author=$PR_AUTHOR&per_page=10"
-          AUTHOR_COMMITS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$AUTHOR_COMMITS_API")
-          
-          # 提取提交摘要信息
-          AUTHOR_COMMITS_SUMMARY=$(echo "$AUTHOR_COMMITS" | jq -r '.[] | "SHA: \(.sha[0:8]) | 消息: \(.commit.message | split("\n")|first) | 时间: \(.commit.committer.date) | 作者: \(.commit.author.name)"' | head -n 10)
-          echo "author_commits_summary<<EOF" >> $GITHUB_OUTPUT
-          echo "$AUTHOR_COMMITS_SUMMARY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          # 调用GitHub API获取作者历史PR记录
-          AUTHOR_PRS_API="https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/pulls?state=all&creator=$PR_AUTHOR&per_page=10"
-          AUTHOR_PRS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$AUTHOR_PRS_API")
-          
-          # 解析历史PR的关键信息
-          AUTHOR_PRS_SUMMARY=$(echo "$AUTHOR_PRS" | jq -r '.[] | 
-            "PR #\(.number) | 状态: \(.state) | 合并: \(.merged) | 标题: \(.title) | 创建时间: \(.created_at)" + 
-            (if .state == "closed" and (.merged | not) then 
-              " | 关闭时间: \(.closed_at)"
-             else 
-              " | 备注: 正常状态"
-             end)'
-          )
-          echo "author_prs_summary<<EOF" >> $GITHUB_OUTPUT
-          echo "$AUTHOR_PRS_SUMMARY" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          
-          # 获取被关闭PR的详细拒绝原因（最近2个）
-          CLOSED_UNMERGED_PRS=$(echo "$AUTHOR_PRS" | jq -r '.[] | select(.state == "closed" and (.merged | not)) | .number' | head -n 2)
-          REJECT_REASONS=""
-          for pr_num in $CLOSED_UNMERGED_PRS; do
-            COMMENTS_API="https://api.github.com/repos/${{ github.repository_owner }}/${{ github.event.repository.name }}/pulls/$pr_num/comments"
-            PR_COMMENTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$COMMENTS_API")
-            # 提取评论摘要
-            COMMENTS_SUMMARY=$(echo "$PR_COMMENTS" | jq -r '.[] | "评论者: \(.user.login) | 内容: \(.body | split("\n")|first) | 时间: \(.created_at)"' | tail -n 3)
-            if [ -n "$COMMENTS_SUMMARY" ]; then
-              REJECT_REASONS+="PR #$pr_num 的拒绝相关评论:\n$COMMENTS_SUMMARY\n\n"
-            fi
-          done
-          echo "author_pr_reject_reasons<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$REJECT_REASONS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-      
-      - name: Get PR comments
-        id: get_comments
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          git diff -U20 "$BASE_SHA" "$HEAD_SHA" > diff.patch
+
+          echo "title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+          echo "body=${{ github.event.pull_request.body }}" >> $GITHUB_OUTPUT
+          echo "author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+
+      - name: Collect PR Comments (Simplified)
+        id: comments
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const { data: comments } = await github.rest.issues.listComments({
+            const { data: raw } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.payload.pull_request.number
+              issue_number: context.issue.number
             });
-            
-            // 将评论转换为JSON字符串并存储
-            const commentsJson = JSON.stringify(comments);
-            core.setOutput('comments', commentsJson);
 
-      - name: Send data to code review API
-        id: send_to_api
-        env:
-          CODE_REVIEW_API_URL: ${{ secrets.CODE_REVIEW_API_URL }}
-          CODE_REVIEW_API_TOKEN: ${{ secrets.CODE_REVIEW_API_TOKEN }}
-        run: |
-          # 读取差异文件内容
-          DIFF_CONTENT=$(cat pr_diff.patch)
-          
-          # 获取PR评论
-          COMMENTS='${{ steps.get_comments.outputs.comments }}'
-          
-          # 构建JSON数据
-          PAYLOAD=$(jq -n \
-            --arg diff_content "$DIFF_CONTENT" \
-            --arg pr_number "${{ steps.get_pr_info.outputs.pr_number }}" \
-            --arg pr_title "${{ steps.get_pr_info.outputs.pr_title }}" \
-            --arg pr_body "${{ steps.get_pr_info.outputs.pr_body }}" \
-            --arg repo_owner "${{ steps.get_pr_info.outputs.repo_owner }}" \
-            --arg repo_name "${{ steps.get_pr_info.outputs.repo_name }}" \
-            --arg comments "$COMMENTS" \
-            '{
-              diff: $diff_content,
-              pr_number: $pr_number,
-              pr_title: $pr_title,
-              pr_body: $pr_body,
-              repo_owner: $repo_owner,
-              repo_name: $repo_name,
-              comments: ($comments | fromjson)
-            }')
-          
-          # 发送到远程API并保存响应
-          RESPONSE_FILE="api_response.json"
-          HTTP_STATUS=$(curl -s -w "%{http_code}" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
-            -d "$PAYLOAD" \
-            "${CODE_REVIEW_API_URL:-http://localhost:8000}/api/codereview/review" \
-            -o "$RESPONSE_FILE")
-          
-          # 检查HTTP状态码
-          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
-            echo "API调用成功，HTTP状态码: $HTTP_STATUS"
-          else
-            echo "API调用失败，HTTP状态码: $HTTP_STATUS"
-            # 即使API调用失败，也创建一个空的响应文件以避免后续步骤出错
-            echo '{"issues": []}' > "$RESPONSE_FILE"
-          fi
-          
-          # 保存请求和响应信息
-          echo "$PAYLOAD" > api_request.json
-          echo "request_file=api_request.json" >> $GITHUB_OUTPUT
-          echo "response_file=api_response.json" >> $GITHUB_OUTPUT
-      
-      - name: Post review comments
+            const list = raw.map(c => ({
+              author: c.user?.login,
+              body: c.body,
+              created_at: c.created_at
+            }));
+
+            core.setOutput("comments", JSON.stringify(list));
+
+      - name: Collect Author Historical PRs (for Reputation System)
+        id: history
         uses: actions/github-script@v7
-        if: always()
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
-            
-            // 从API响应中读取审查结果
-            let reviewData;
-            try {
-              const responseContent = fs.readFileSync('./api_response.json', 'utf8');
-              reviewData = JSON.parse(responseContent);
-            } catch (error) {
-              console.log('无法解析API响应:', error.message);
-              // 如果无法获取API响应，则使用默认值
-              reviewData = { issues: [] };
-            }
-            
-            const issues = reviewData.issues || [];
-            
-            // 如果没有发现问题，发表正面评论
+            const username = "${{ steps.pr.outputs.author }}";
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const { data: prs } = await github.rest.pulls.list({
+              owner, repo, state: "all", per_page: 50
+            });
+
+            const filtered = prs
+              .filter(p => p.user?.login === username)
+              .map(p => ({
+                number: p.number,
+                state: p.state,
+                title: p.title,
+                created_at: p.created_at,
+                closed_at: p.closed_at,
+                mergeable: p.mergeable,
+                merged: p.merged,
+                additions: p.additions,
+                deletions: p.deletions
+              }));
+
+            core.setOutput("author_prs", JSON.stringify(filtered));
+
+      - name: Build payload for reputation-based review
+        id: payload
+        env:
+          API_URL: ${{ secrets.CODE_REVIEW_API_URL }}
+          API_TOKEN: ${{ secrets.CODE_REVIEW_API_TOKEN }}
+        run: |
+          jq -n \
+            --rawfile diff diff.patch \
+            --arg pr_title "${{ steps.pr.outputs.title }}" \
+            --arg pr_body "${{ steps.pr.outputs.body }}" \
+            --arg author "${{ steps.pr.outputs.author }}" \
+            --argjson comments "${{ steps.comments.outputs.comments }}" \
+            --argjson history "${{ steps.history.outputs.author_prs }}" \
+            '{
+              review_inputs: {
+                diff: $diff,
+                pr_title: $pr_title,
+                pr_body: $pr_body,
+                author: $author,
+                comments: $comments
+              },
+              reputation_inputs: {
+                author: $author,
+                past_prs: $history
+              }
+            }' > payload.json
+
+      - name: Call AI Review API
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d @payload.json \
+            "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
+            -o response.json
+
+      - name: Post AI Review Comments
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const res = JSON.parse(fs.readFileSync("response.json", "utf8"));
+            const issues = res.issues || [];
+
             if (issues.length === 0) {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
+              await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: '✅ 代码审查完成！未发现潜在问题，代码符合规范。'
-              });
-            } else {
-              // 为每个问题创建审查评论
-              for (const issue of issues) {
-                // 构建评论内容，包含更多详细信息
-                let commentBody = `⚠️ **代码审查发现问题**\n\n`;
-                commentBody += `${issue.description}\n\n`;
-                commentBody += `**建议:** ${issue.suggestion || '请根据描述进行相应修改'}\n\n`;
-                commentBody += `**严重程度:** ${issue.severity}\n`;
-                
-                // 如果存在分类信息，则添加到评论中
-                if (issue.category) {
-                  commentBody += `**问题类型:** ${issue.category}\n`;
-                }
-                
-                try {
-                  await github.rest.pulls.createReviewComment({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    pull_number: context.issue.number,
-                    body: commentBody,
-                    commit_id: context.payload.pull_request.head.sha,
-                    path: issue.file,
-                    line: issue.line
-                  });
-                } catch (error) {
-                  console.log(`无法为 ${issue.file}:${issue.line} 创建评论:`, error.message);
-                  // 如果无法创建行评论，则创建普通评论
-                  github.rest.issues.createComment({
-                    issue_number: context.issue.number,
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    body: `⚠️ **代码审查发现问题**\n\n文件: \`${issue.file}\` 第 ${issue.line} 行\n\n问题: ${issue.description}\n\n建议: ${issue.suggestion || '请根据描述进行相应修改'}\n\n严重程度: ${issue.severity}${issue.category ? `\n\n问题类型: ${issue.category}` : ''}`
-                  });
-                }
-              }
-              
-              // 添加总结评论
-              // 检查是否有summary_comments字段
-              let summaryComment = `📝 代码审查完成！共发现 ${issues.length} 个潜在问题。请查看上方的详细评论并进行相应修改。`;
-              
-              if (reviewData.summary && reviewData.summary.summary_comments) {
-                summaryComment = `📝 代码审查完成！共发现 ${issues.length} 个潜在问题。\n\n${reviewData.summary.summary_comments}\n\n请查看上方的详细评论并进行相应修改。`;
-              }
-              
-              github.rest.issues.createComment({
                 issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: summaryComment
+                body: "✔ AI 审查完成：未发现问题。"
               });
+              return;
             }
+
+            for (const issue of issues) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `### ⚠️ AI Code Review Issue  
+              **文件**: ${issue.file}  
+              **行号**: ${issue.line}  
+              **问题**: ${issue.description}  
+              **建议**: ${issue.suggestion}`
+                            });
+                          }
