@@ -181,8 +181,34 @@ jobs:
           echo "调试：最终请求 URL = [${FULL_URL}]"
 
           # 2. 后续步骤保持不变（仅 curl 中使用 $FULL_URL）
+          set -e
+
+          # 1. 关键：验证并处理 API 基础地址（核心修复）
+          echo "调试：原始 CODE_REVIEW_API_URL = [${CODE_REVIEW_API_URL}]"
+          # 若密钥未配置（为空），直接报错终止（避免后续无效执行）
+          if [ -z "${CODE_REVIEW_API_URL}" ] || [ "${CODE_REVIEW_API_URL}" = "***" ]; then
+            echo "错误：CODE_REVIEW_API_URL 密钥未正确配置（请替换占位符 *** 为真实 URL）"
+            exit 1
+          fi
+          # 移除基础地址末尾可能的 /，避免拼接出 //api/...
+          API_BASE="${CODE_REVIEW_API_URL%/}"
+          # 拼接完整 URL（基础地址 + 接口路径）
+          FULL_URL="${API_BASE}/api/codereview/review"
+          echo "调试：最终请求 URL = [${FULL_URL}]"
+
+          # 2. 后续步骤保持不变（仅 curl 中使用 $FULL_URL）
           cat pr_diff.patch > temp_diff.txt
           echo '${{ steps.get_comments.outputs.comments }}' > temp_comments.txt
+
+          # 统计文件大小（不变）
+          DIFF_SIZE=$(stat -c %s temp_diff.txt 2>/dev/null || stat -f %z temp_diff.txt 2>/dev/null || echo "unknown")
+          COMMENTS_SIZE=$(stat -c %s temp_comments.txt 2>/dev/null || stat -f %z temp_comments.txt 2>/dev/null || echo "unknown")
+          echo "临时文件大小统计:"
+          echo "  diff文件 (temp_diff.txt): $DIFF_SIZE 字节"
+          echo "  comments文件 (temp_comments.txt): $COMMENTS_SIZE 字节"
+
+          # 构建 payload（不变）
+          jq -n \
 
           # 统计文件大小（不变）
           DIFF_SIZE=$(stat -c %s temp_diff.txt 2>/dev/null || stat -f %z temp_diff.txt 2>/dev/null || echo "unknown")
@@ -211,13 +237,19 @@ jobs:
             }' > payload_temp.json
 
           # 3. curl 请求：使用加固后的 $FULL_URL（关键修改）
+            }' > payload_temp.json
+
+          # 3. curl 请求：使用加固后的 $FULL_URL（关键修改）
           RESPONSE_FILE="api_response.json"
+          HTTP_STATUS=$(curl -v -s -w "%{http_code}" \
           HTTP_STATUS=$(curl -v -s -w "%{http_code}" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
             --data "@payload_temp.json" \
             "$FULL_URL" \
             -o "$RESPONSE_FILE")
+
+          # 后续状态检查、保存文件、清理逻辑不变...
 
           # 后续状态检查、保存文件、清理逻辑不变...
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
@@ -230,8 +262,12 @@ jobs:
           fi
 
           cp payload_temp.json api_request.json
+
+          cp payload_temp.json api_request.json
           echo "request_file=api_request.json" >> $GITHUB_OUTPUT
           echo "response_file=api_response.json" >> $GITHUB_OUTPUT
+
+          rm -f temp_diff.txt temp_comments.txt payload_temp.json
 
           rm -f temp_diff.txt temp_comments.txt payload_temp.json
       
