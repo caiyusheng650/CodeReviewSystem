@@ -171,6 +171,13 @@ jobs:
           # 将PR评论写入临时文件
           echo '${{ steps.get_comments.outputs.comments }}' > temp_comments.txt
           
+          # 统计临时文件大小并打印到控制台
+          DIFF_SIZE=$(stat -c %s temp_diff.txt 2>/dev/null || stat -f %z temp_diff.txt 2>/dev/null || echo "unknown")
+          COMMENTS_SIZE=$(stat -c %s temp_comments.txt 2>/dev/null || stat -f %z temp_comments.txt 2>/dev/null || echo "unknown")
+          echo "临时文件大小统计:"
+          echo "  diff文件 (temp_diff.txt): $DIFF_SIZE 字节"
+          echo "  comments文件 (temp_comments.txt): $COMMENTS_SIZE 字节"
+          
           # 使用临时文件构建JSON数据，避免直接传递大变量给jq
           PAYLOAD=$(jq -c -n \
             --rawfile diff_content temp_diff.txt \
