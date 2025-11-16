@@ -196,14 +196,20 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
             -d "$PAYLOAD" \
-            "${CODE_REVIEW_API_URL:-http://localhost:8000/api/codereview/review}" \
+            "${CODE_REVIEW_API_URL:-http://localhost:8000}/api/codereview/review" \
             -o "$RESPONSE_FILE")
           
           # 检查HTTP状态码
           if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
             echo "API调用成功，HTTP状态码: $HTTP_STATUS"
+            # 打印API返回内容到控制台用于调试
+            echo "API返回内容:"
+            cat "$RESPONSE_FILE"
           else
             echo "API调用失败，HTTP状态码: $HTTP_STATUS"
+            # 打印错误响应内容到控制台用于调试
+            echo "错误响应内容:"
+            cat "$RESPONSE_FILE"
             # 即使API调用失败，也创建一个空的响应文件以避免后续步骤出错
             echo '{"issues": []}' > "$RESPONSE_FILE"
           fi
