@@ -172,7 +172,7 @@ jobs:
           echo '${{ steps.get_comments.outputs.comments }}' > temp_comments.txt
           
           # 使用临时文件构建JSON数据，避免直接传递大变量给jq
-          PAYLOAD=$(jq -n \
+          PAYLOAD=$(jq -c -n \
             --rawfile diff_content temp_diff.txt \
             --arg pr_number "${{ steps.get_pr_info.outputs.pr_number }}" \
             --arg pr_title "${{ steps.get_pr_info.outputs.pr_title }}" \
