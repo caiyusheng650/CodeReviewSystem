@@ -80,7 +80,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data-binary @payload.json \
-            "${{ secrets.CODE_REVIEW_API_URL }}/review" \
+            "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
 
       - name: Display AI Review Response
