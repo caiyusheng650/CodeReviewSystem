@@ -236,8 +236,6 @@ jobs:
               comments: ($comments | fromjson)
             }' > payload_temp.json
 
-          # 3. curl 请求：使用加固后的 $FULL_URL（关键修改）
-            }' > payload_temp.json
 
           # 3. curl 请求：使用加固后的 $FULL_URL（关键修改）
           RESPONSE_FILE="api_response.json"
