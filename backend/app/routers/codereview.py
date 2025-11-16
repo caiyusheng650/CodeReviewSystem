@@ -61,7 +61,7 @@ async def receive_code_review(
     # 确保响应格式与GitHub Actions工作流期望的格式完全一致
     issues = [
         {
-            "file": "frontend/README.md",
+            "file": "package.json",
             "line": 15,
             "description": "检测到未使用的变量 'unusedVar'，建议移除以提高代码可读性。",
             "suggestion": "移除未使用的变量声明",
@@ -69,7 +69,7 @@ async def receive_code_review(
             "category": "静态缺陷"
         },
         {
-            "file": "frontend/README.md",
+            "file": "package.json",
             "line": 23,
             "description": "数据库查询缺少异常处理，可能导致程序崩溃。",
             "suggestion": "添加 try-catch 块来处理可能的数据库异常",
@@ -77,7 +77,7 @@ async def receive_code_review(
             "category": "逻辑缺陷"
         },
         {
-            "file": "frontend/README.md",
+            "file": "package.json",
             "line": 42,
             "description": "使用了危险的 innerHTML 属性，可能存在 XSS 风险。",
             "suggestion": "使用安全的 DOM 操作方法或确保内容已正确转义",
