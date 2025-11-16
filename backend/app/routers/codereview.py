@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Header, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
-import json
 import logging
 
 # 配置日志
@@ -10,6 +9,24 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# ==============================
+# ⭐ 简单内存版信誉数据库（可换成 Redis/Mongo）
+# ==============================
+author_reputation_db = {}  
+"""
+结构如下：
+{
+    "alice": { "score": 82, "history": ["passed", "minor_issue"] },
+    "bob":   { "score": 45, "history": ["severe_bug", "rejected"] }
+}
+"""
+
+def get_default_reputation():
+    return {"score": 60, "history": []}
+
+# ==============================
+# ⭐ 请求模型
+# ==============================
 class CodeReviewPayload(BaseModel):
     diff: str
     pr_number: str
@@ -17,108 +34,156 @@ class CodeReviewPayload(BaseModel):
     pr_body: str
     repo_owner: str
     repo_name: str
+    author: Optional[str] = None      # GitHub Action 会传入这个
     comments: List[Dict[str, Any]]
 
-@router.post("/review", summary="接收GitHub Actions代码审查请求")
-async def receive_code_review(
-    payload: CodeReviewPayload,
-    authorization: str = Header(None)
-):
+class ReputationUpdatePayload(BaseModel):
+    author: str
+    event: str  # passed / minor_issue / severe_bug / rejected
+
+
+# ==============================
+# ⭐ 评论生成（按信誉动态调整严格程度）
+# ==============================
+def calculate_strictness(score: int) -> float:
     """
-    接收来自GitHub Actions的代码审查请求并打印到控制台
-    用于测试目的
+    信誉评分 0~100，转换为严格因子：
+    越低越严格，最严格 2.0，最宽松 0.5
     """
-    # 记录收到的请求
-    logger.info("=== 收到代码审查请求 ===")
-    logger.info(f"PR编号: {payload.pr_number}")
-    logger.info(f"PR标题: {payload.pr_title}")
-    logger.info(f"仓库: {payload.repo_owner}/{payload.repo_name}")
-    logger.info(f"差异内容长度: {len(payload.diff)} 字符")
-    logger.info(f"评论数量: {len(payload.comments)}")
-    
-    # 如果有PR正文，记录前100个字符
-    if payload.pr_body:
-        logger.info(f"PR正文 (前100字符): {payload.pr_body[:100]}...")
-    
-    # 记录前500个字符的差异内容
-    logger.info(f"差异内容 (前500字符): {payload.diff[:500]}...")
-    
-    # 如果有评论，记录评论摘要
-    if payload.comments:
-        logger.info("评论摘要:")
-        for i, comment in enumerate(payload.comments[:3]):  # 只显示前3条评论
-            logger.info(f"  评论 {i+1}: {comment.get('body', '')[:100]}...")
-        if len(payload.comments) > 3:
-            logger.info(f"  ... 还有 {len(payload.comments) - 3} 条评论")
-    
-    # 验证授权头（简化版）
-    if authorization:
-        logger.info(f"授权头: {authorization[:20]}...")  # 只记录前20个字符
-    else:
-        logger.warning("缺少授权头")
-    
-    # 返回成功响应，包含模拟的代码审查结果
-    # 确保响应格式与GitHub Actions工作流期望的格式完全一致
-    issues = [
+    strictness = max(0.5, min(2.0, (100 - score) / 50))
+    return round(strictness, 2)
+
+
+def generate_review_issues(diff: str, strictness: float) -> List[ Dict[str, Any] ]:
+    """
+    这里是 mock，你后续可以插入 LLM（DeepSeek / Qwen2 / GPT-4o）
+    strictness 会影响 issues 返回数量与严重程度
+    """
+
+    base_issues = [
         {
-            "file": "package.json",
-            "line": 15,
-            "description": "检测到未使用的变量 'unusedVar'，建议移除以提高代码可读性。",
-            "suggestion": "移除未使用的变量声明",
-            "severity": "低",
-            "category": "静态缺陷"
+            "file": "index.js",
+            "line": 10,
+            "description": "变量命名不规范。",
+            "suggestion": "请使用更具语义化的变量名。",
+            "severity": "低"
         },
         {
-            "file": "package.json",
-            "line": 23,
-            "description": "数据库查询缺少异常处理，可能导致程序崩溃。",
-            "suggestion": "添加 try-catch 块来处理可能的数据库异常",
-            "severity": "高",
-            "category": "逻辑缺陷"
+            "file": "index.js",
+            "line": 30,
+            "description": "异常未处理，可能导致程序崩溃。",
+            "suggestion": "建议增加 try/catch。",
+            "severity": "高"
         },
         {
-            "file": "package.json",
-            "line": 42,
-            "description": "使用了危险的 innerHTML 属性，可能存在 XSS 风险。",
-            "suggestion": "使用安全的 DOM 操作方法或确保内容已正确转义",
-            "severity": "中",
-            "category": "安全漏洞"
+            "file": "index.js",
+            "line": 60,
+            "description": "可能存在 XSS 风险。",
+            "suggestion": "对输入进行转义。",
+            "severity": "中"
         }
     ]
-    
-    # 计算各类问题的数量
-    high_severity_count = sum(1 for issue in issues if issue["severity"] == "高")
-    medium_severity_count = sum(1 for issue in issues if issue["severity"] == "中")
-    low_severity_count = sum(1 for issue in issues if issue["severity"] == "低")
-    
-    # 按类别统计问题
-    category_counts = {}
-    for issue in issues:
-        category = issue.get("category", "其他")
-        category_counts[category] = category_counts.get(category, 0) + 1
-    
-    return {
-        "message": "代码审查请求已接收",
-        "status": "success",
-        "received_data": {
-            "pr_number": payload.pr_number,
-            "pr_title": payload.pr_title,
-            "repo": f"{payload.repo_owner}/{payload.repo_name}",
-            "diff_length": len(payload.diff),
-            "comments_count": len(payload.comments)
-        },
-        "issues": issues,
-        "summary": {
-            "total_issues": len(issues),
-            "high_severity": high_severity_count,
-            "medium_severity": medium_severity_count,
-            "low_severity": low_severity_count,
-            "by_category": category_counts,
-            "summary_comments": "本次代码审查发现了多个问题，包括静态缺陷、逻辑缺陷和安全漏洞，请及时修复。"
-        }
+
+    # 根据严格程度裁剪问题数量 或 强化严重度
+    if strictness > 1.2:
+        # 严格：增加严重度
+        for issue in base_issues:
+            if issue["severity"] == "低":
+                issue["severity"] = "中"
+
+    if strictness > 1.5:
+        # 超级严格：再加两条 mock
+        base_issues.append({
+            "file": "index.js",
+            "line": 5,
+            "description": "疑似使用 magic number。",
+            "suggestion": "请使用常量替代。",
+            "severity": "低"
+        })
+
+    return base_issues
+
+
+# ==============================
+# ⭐ /review 主逻辑
+# ==============================
+@router.post("/review")
+async def review(payload: CodeReviewPayload, authorization: str = Header(None)):
+
+    logger.info("=== 收到代码审查请求 ===")
+    logger.info(f"PR {payload.pr_number} | {payload.repo_owner}/{payload.repo_name}")
+
+    author = payload.author or "unknown"
+    reputation = author_reputation_db.get(author, get_default_reputation())
+    score = reputation["score"]
+
+    strictness = calculate_strictness(score)
+
+    logger.info(f"作者：{author} | 信誉分：{score} | 严格度：{strictness}")
+
+    issues = generate_review_issues(payload.diff, strictness)
+
+    # 按严重度统计
+    summary = {
+        "total": len(issues),
+        "high": sum(1 for i in issues if i["severity"] == "高"),
+        "medium": sum(1 for i in issues if i["severity"] == "中"),
+        "low": sum(1 for i in issues if i["severity"] == "低"),
     }
 
-@router.get("/health", summary="健康检查")
-async def health_check():
-    """健康检查端点"""
-    return {"status": "healthy", "service": "code-review-receiver"}
+    return {
+        "status": "success",
+        "strictness": strictness,
+        "author_reputation": score,
+        "issues": issues,
+        "summary": summary
+    }
+
+
+# ==============================
+# ⭐ 查询信誉
+# ==============================
+@router.get("/reputation/{author}")
+async def get_reputation(author: str):
+    return author_reputation_db.get(author, get_default_reputation())
+
+
+# ==============================
+# ⭐ 更新信誉（AI/人工审查之后触发）
+# ==============================
+@router.post("/reputation/update")
+async def update_reputation(payload: ReputationUpdatePayload):
+
+    author = payload.author
+    event = payload.event
+
+    rep = author_reputation_db.get(author, get_default_reputation())
+
+    if event == "passed":
+        rep["score"] += 2
+    elif event == "minor_issue":
+        rep["score"] -= 3
+    elif event == "severe_bug":
+        rep["score"] -= 10
+    elif event == "rejected":
+        rep["score"] -= 15
+
+    rep["score"] = max(0, min(100, rep["score"]))
+    rep["history"].append(event)
+
+    author_reputation_db[author] = rep
+
+    return {
+        "status": "updated",
+        "author": author,
+        "new_score": rep["score"],
+        "history": rep["history"]
+    }
+
+
+# ==============================
+# 健康检查
+# ==============================
+@router.get("/health")
+async def health():
+    return {"status": "ok"}
