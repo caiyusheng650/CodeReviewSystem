@@ -1,0 +1,59 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  ai_review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要完整历史才能 diff
+
+      - name: Extract PR metadata
+        id: meta
+        run: |
+          echo "author=${{ github.actor }}" >> $GITHUB_ENV
+          echo "title=$(echo '${{ github.event.pull_request.title }}' | sed 's/"/\\"/g')" >> $GITHUB_ENV
+          echo "body=$(echo '${{ github.event.pull_request.body }}' | sed 's/"/\\"/g')" >> $GITHUB_ENV
+          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "repo_name=$(basename ${{ github.repository }})" >> $GITHUB_ENV
+
+      - name: Generate diff safely (Base64 encoded)
+        run: |
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD | base64 -w 0)
+          echo "diff_b64=$DIFF" >> $GITHUB_ENV
+
+      - name: Build JSON payload (no jq, 100% safe)
+        run: |
+          cat <<EOF > payload.json
+          {
+            "diff_base64": "${diff_b64}",
+            "pr_number": "${pr_number}",
+            "pr_title": "${title}",
+            "pr_body": "${body}",
+            "repo_owner": "${repo_owner}",
+            "repo_name": "${repo_name}",
+            "author": "${author}",
+            "comments": []
+          }
+          EOF
+
+      - name: Send to AI Review API
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-binary @payload.json \
+            "${{ secrets.CODE_REVIEW_API_URL }}/review" \
+            -o response.json
+
+      - name: Print AI review result
+        run: |
+          echo "===== AI REVIEW RESULT ====="
+          cat response.json
