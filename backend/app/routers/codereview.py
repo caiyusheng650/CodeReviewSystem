@@ -47,9 +47,10 @@ class CodeReviewPayload(BaseModel):
 # ==============================
 # ⭐ mock issue generator
 # ==============================
-def generate_review_issues(diff: str, strictness: float) -> List[Dict[str, Any]]:
+def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation_score: int) -> List[Dict[str, Any]]:
 
-    base_issues = [
+    # 问题列表
+    issues = [
         {
             "file": "index.js",
             "line": 10,
@@ -73,7 +74,29 @@ def generate_review_issues(diff: str, strictness: float) -> List[Dict[str, Any]]
         }
     ]
 
-    return base_issues
+    # 称赞列表
+    praises = [
+        {
+            "file": "utils.js",
+            "line": 15,
+            "description": "代码逻辑清晰，易于理解。",
+            "suggestion": "继续保持良好的编码习惯。",
+            "severity": "表扬"
+        },
+        {
+            "file": "api.js",
+            "line": 25,
+            "description": "API 调用封装得很好，便于维护。",
+            "suggestion": "这种模块化的设计值得推广。",
+            "severity": "表扬"
+        }
+    ]
+
+
+    # 合并问题和称赞
+    all_feedback = issues + praises
+
+    return all_feedback
 
 
 # ==============================
@@ -94,23 +117,29 @@ async def review(payload: CodeReviewPayload, authorization: str = Header(None)):
     logger.info(f"作者：{author} | 信誉分：{score} ")
 
     diff_text = payload.diff
-    issues = generate_review_issues(diff_text)
+    comments = payload.comments
+    issues = generate_review_issues(diff_text, comments,score)
 
     summary = {
-        "total": len(issues),
-        "high": sum(1 for i in issues if i["severity"] == "高"),
-        "medium": sum(1 for i in issues if i["severity"] == "中"),
-        "low": sum(1 for i in issues if i["severity"] == "低"),
+        "总计": len(issues),
+        "高": sum(1 for i in issues if i["severity"] == "高"),
+        "中": sum(1 for i in issues if i["severity"] == "中"),
+        "低": sum(1 for i in issues if i["severity"] == "低"),
+        "表扬": sum(1 for i in issues if i["severity"] == "表扬"),
     }
+
+    delta_reputation = summary["高"] * (-10) + summary["中"] * (-5) + summary["低"] * (-2) + summary["表扬"] * 3
+
+    event = ("passed" if delta_reputation >= 0 else "minor_issue" if delta_reputation < 0 else "severe_bug")+"_"+str(delta_reputation) + f"at {payload.pr_number}"
+
+    # update reputation
+    await reputation_service.update_user_reputation(author, event, delta_reputation=delta_reputation)
 
     return {
         "status": "success",
-        "strictness": strictness,
         "author_reputation": score,
         "issues": issues,
         "summary": summary,
-        "decoded_title": payload.pr_title,
-        "decoded_body": payload.pr_body,
     }
 
 

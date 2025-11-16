@@ -35,13 +35,14 @@ class ReputationService:
         }
     
     @staticmethod
-    async def update_user_reputation(username: str, event: str) -> Dict:
+    async def update_user_reputation(username: str, event: str = None, delta_reputation: int = None) -> Dict:
         """
-        根据事件更新用户的信誉分数
+        根据事件或数值变化更新用户的信誉分数
         
         Args:
             username: 用户名
             event: 事件类型 (passed / minor_issue / severe_bug / rejected)
+            delta: 信誉分数的变化值
             
         Returns:
             更新后的信誉信息
@@ -51,20 +52,9 @@ class ReputationService:
         score = current_reputation["score"]
         history = current_reputation["history"]
         
-        # 根据事件类型更新信誉分
-        if event == "passed":
-            score += 2
-        elif event == "minor_issue":
-            score -= 3
-        elif event == "severe_bug":
-            score -= 10
-        elif event == "rejected":
-            score -= 15
+        score += delta
+
         
-        # 确保信誉分在0-100范围内
-        score = max(0, min(100, score))
-        
-        # 更新历史记录
         history.append(event)
         
         # 更新数据库中的用户信誉信息
@@ -79,7 +69,7 @@ class ReputationService:
             upsert=True
         )
         
-        logger.info(f"用户 {username} 的信誉分已更新: {score}, 事件: {event}")
+        logger.info(f"用户 {username} 的信誉分已更新: {score}, 事件: {event}, 变化值: {delta}")
         
         return {
             "status": "updated",
