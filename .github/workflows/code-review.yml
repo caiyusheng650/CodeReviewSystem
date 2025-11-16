@@ -29,6 +29,7 @@ jobs:
       
       - name: Install dependencies
         run: |
+          cd .github/workflows
           npm ci
           npm install
       
