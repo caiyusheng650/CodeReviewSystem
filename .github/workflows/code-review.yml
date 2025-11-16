@@ -22,11 +22,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
       
-      - name: Install root dependencies
+      - name: Install dependencies
         run: |
+          pwd
+          cd .github/workflows
+          pwd
           npm ci
+          npm install
       
       - name: Get PR information
         id: get_pr_info
