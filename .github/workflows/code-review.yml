@@ -205,7 +205,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
             --data "@payload_temp.json" \  # 修正为--data
-            "${CODE_REVIEW_API_URL:-http://localhost:8000}/api/codereview/review" \
+            "https://e1dee4cfec0d.ngrok-free.app/api/codereview/review" \
             -o "$RESPONSE_FILE")
           
           # 检查HTTP状态码
