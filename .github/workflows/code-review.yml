@@ -198,7 +198,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${CODE_REVIEW_API_TOKEN}" \
             -d "$PAYLOAD" \
-            "${CODE_REVIEW_API_URL:-https://your-code-review-api.example.com/review}" \
+            "${CODE_REVIEW_API_URL:-http://localhost:8000/api/codereview/review}" \
             -o "$RESPONSE_FILE")
           
           # 检查HTTP状态码
@@ -247,12 +247,23 @@ jobs:
             } else {
               // 为每个问题创建审查评论
               for (const issue of issues) {
+                // 构建评论内容，包含更多详细信息
+                let commentBody = `⚠️ **代码审查发现问题**\n\n`;
+                commentBody += `${issue.description}\n\n`;
+                commentBody += `**建议:** ${issue.suggestion || '请根据描述进行相应修改'}\n\n`;
+                commentBody += `**严重程度:** ${issue.severity}\n`;
+                
+                // 如果存在分类信息，则添加到评论中
+                if (issue.category) {
+                  commentBody += `**问题类型:** ${issue.category}\n`;
+                }
+                
                 try {
                   await github.rest.pulls.createReviewComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     pull_number: context.issue.number,
-                    body: `⚠️ **代码审查发现问题**\n\n${issue.description}\n\n**建议:** ${issue.suggestion || '请根据描述进行相应修改'}\n\n严重程度: ${issue.severity}`,
+                    body: commentBody,
                     commit_id: context.payload.pull_request.head.sha,
                     path: issue.file,
                     line: issue.line
@@ -264,16 +275,23 @@ jobs:
                     issue_number: context.issue.number,
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    body: `⚠️ **代码审查发现问题**\n\n文件: \`${issue.file}\` 第 ${issue.line} 行\n\n问题: ${issue.description}\n\n建议: ${issue.suggestion || '请根据描述进行相应修改'}\n\n严重程度: ${issue.severity}`
+                    body: `⚠️ **代码审查发现问题**\n\n文件: \`${issue.file}\` 第 ${issue.line} 行\n\n问题: ${issue.description}\n\n建议: ${issue.suggestion || '请根据描述进行相应修改'}\n\n严重程度: ${issue.severity}${issue.category ? `\n\n问题类型: ${issue.category}` : ''}`
                   });
                 }
               }
               
               // 添加总结评论
+              // 检查是否有summary_comments字段
+              let summaryComment = `📝 代码审查完成！共发现 ${issues.length} 个潜在问题。请查看上方的详细评论并进行相应修改。`;
+              
+              if (reviewData.summary && reviewData.summary.summary_comments) {
+                summaryComment = `📝 代码审查完成！共发现 ${issues.length} 个潜在问题。\n\n${reviewData.summary.summary_comments}\n\n请查看上方的详细评论并进行相应修改。`;
+              }
+              
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `📝 代码审查完成！共发现 ${issues.length} 个潜在问题。请查看上方的详细评论并进行相应修改。`
+                body: summaryComment
               });
             }

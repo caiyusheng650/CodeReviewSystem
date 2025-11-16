@@ -191,7 +191,7 @@ const Settings = ({ isDarkMode }) => {
                             </TableCell>
                             <TableCell align="center">
                               <Chip
-                                label={apiKey.is_active ? '活跃' : '已禁用'}
+                                label={apiKey.is_active ? '已启用' : '已禁用'}
                                 color={apiKey.is_active ? 'success' : 'default'}
                                 size="small"
                                 icon={apiKey.is_active ? <CheckCircleIcon /> : <CancelIcon />}
