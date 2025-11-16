@@ -165,21 +165,21 @@ jobs:
           CODE_REVIEW_API_URL: ${{ secrets.CODE_REVIEW_API_URL }}
           CODE_REVIEW_API_TOKEN: ${{ secrets.CODE_REVIEW_API_TOKEN }}
         run: |
-          # 读取差异文件内容
-          DIFF_CONTENT=$(cat pr_diff.patch)
+          # 将完整差异内容写入临时文件，避免参数过长问题
+          cat pr_diff.patch > temp_diff.txt
           
-          # 获取PR评论
-          COMMENTS='${{ steps.get_comments.outputs.comments }}'
+          # 将PR评论写入临时文件
+          echo '${{ steps.get_comments.outputs.comments }}' > temp_comments.txt
           
-          # 构建JSON数据
+          # 使用临时文件构建JSON数据，避免直接传递大变量给jq
           PAYLOAD=$(jq -n \
-            --arg diff_content "$DIFF_CONTENT" \
+            --rawfile diff_content temp_diff.txt \
             --arg pr_number "${{ steps.get_pr_info.outputs.pr_number }}" \
             --arg pr_title "${{ steps.get_pr_info.outputs.pr_title }}" \
             --arg pr_body "${{ steps.get_pr_info.outputs.pr_body }}" \
             --arg repo_owner "${{ steps.get_pr_info.outputs.repo_owner }}" \
             --arg repo_name "${{ steps.get_pr_info.outputs.repo_name }}" \
-            --arg comments "$COMMENTS" \
+            --rawfile comments temp_comments.txt \
             '{
               diff: $diff_content,
               pr_number: $pr_number,
@@ -218,6 +218,9 @@ jobs:
           echo "$PAYLOAD" > api_request.json
           echo "request_file=api_request.json" >> $GITHUB_OUTPUT
           echo "response_file=api_response.json" >> $GITHUB_OUTPUT
+          
+          # 清理临时文件
+          rm -f temp_diff.txt temp_comments.txt
       
       - name: Post review comments
         uses: actions/github-script@v7
