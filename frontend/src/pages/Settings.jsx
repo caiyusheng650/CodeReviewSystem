@@ -4,257 +4,331 @@ import {
   Typography,
   Paper,
   Box,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
   Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Switch,
-  Divider,
-  Alert,
-  Snackbar,
-  CircularProgress,
-  Chip,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  CircularProgress,
+  Switch,
+  Chip,
+  Snackbar,
+  Alert
 } from '@mui/material';
-import {
-  VpnKey as VpnKeyIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon
-} from '@mui/icons-material';
+import { Add as AddIcon, Delete as DeleteIcon, VpnKey as VpnKeyIcon, CopyAll as CopyAllIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { apikeyAPI } from '../services/api';
 
 const Settings = ({ isDarkMode }) => {
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
   const [apiKeys, setApiKeys] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [apiKeyName, setApiKeyName] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [generatedApiKey, setGeneratedApiKey] = useState(null); // To show API key only once
 
-  // 获取用户的API密钥
+  // Fetch API keys when component mounts
+  useEffect(() => {
+    fetchApiKeys();
+  }, []);
+
+  // Fetch all API keys for the current user
   const fetchApiKeys = async () => {
     try {
       setLoading(true);
       const keys = await apikeyAPI.listApikeys();
-      // 按is_active排序，活跃的密钥在前面
+      // Sort keys with active ones first
       const sortedKeys = keys.sort((a, b) => b.is_active - a.is_active);
       setApiKeys(sortedKeys);
     } catch (error) {
-      showSnackbar('获取API密钥失败: ' + error.message, 'error');
+      console.error('Failed to fetch API keys:', error);
+      showSnackbar('获取 API 密钥失败', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // 显示提示消息
-  const showSnackbar = (message, severity = 'success') => {
+  // Handle generating a new API key
+  const handleGenerateApiKey = async () => {
+    try {
+      setLoading(true);
+      const newKey = await apikeyAPI.generateApiKey(apiKeyName || 'My API Key');
+      // Show the generated key only once
+      setGeneratedApiKey(newKey);
+      // Refresh the API keys list
+      fetchApiKeys();
+      // Reset the dialog form
+      setApiKeyName('');
+      showSnackbar('API 密钥生成成功', 'success');
+    } catch (error) {
+      console.error('Failed to generate API key:', error);
+      showSnackbar('API 密钥生成失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle toggling API key status
+  const handleToggleApiKeyStatus = async (apiKeyId, currentStatus) => {
+    try {
+      setLoading(true);
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      await apikeyAPI.updateApiKeyStatus(apiKeyId, newStatus);
+      // Update the local state
+      setApiKeys(apiKeys.map(key =>
+        key._id === apiKeyId ? { ...key, status: newStatus } : key
+      ));
+      showSnackbar('API 密钥状态更新成功', 'success');
+    } catch (error) {
+      console.error('Failed to update API key status:', error);
+      showSnackbar('API 密钥状态更新失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle copying API key to clipboard
+  const handleCopyApiKey = async () => {
+    try {
+      await navigator.clipboard.writeText(generatedApiKey.api_key);
+      showSnackbar('API 密钥已复制到剪贴板', 'success');
+    } catch (error) {
+      console.error('Failed to copy API key:', error);
+      showSnackbar('API 密钥复制失败', 'error');
+    }
+  };
+
+  // Handle deleting an API key
+  const handleDeleteApiKey = async (apiKeyId) => {
+    try {
+      setLoading(true);
+      await apikeyAPI.deleteApiKey(apiKeyId);
+      // Update the local state
+      setApiKeys(apiKeys.filter(key => key._id !== apiKeyId));
+      showSnackbar('API 密钥删除成功', 'success');
+    } catch (error) {
+      console.error('Failed to delete API key:', error);
+      showSnackbar('API 密钥删除失败', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Show snackbar message
+  const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });
   };
 
-  // 关闭提示消息
-  const handleCloseSnackbar = () => {
+  // Close snackbar
+  const handleSnackbarClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
     setSnackbar({ ...snackbar, open: false });
   };
 
-  // 生成新的API密钥
-  const handleGenerateApiKey = async () => {
-    try {
-      const updatedUser = await apikeyAPI.generateNewApikey();
-      showSnackbar('新的API密钥已生成');
-      fetchApiKeys(); // 重新获取API密钥列表
-    } catch (error) {
-      showSnackbar('生成API密钥失败: ' + error.message, 'error');
-    }
+  // Close dialog
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setApiKeyName('');
+    setGeneratedApiKey(null); // Clear generated key when dialog closes
   };
 
-
-
-  // 禁用API密钥
-  const handleDisableApiKey = async (apiKey) => {
-    try {
-      const updatedUser = await apikeyAPI.disableApikey(apiKey.key);
-      showSnackbar('API密钥已禁用');
-      fetchApiKeys(); // 重新获取API密钥列表
-    } catch (error) {
-      showSnackbar('禁用API密钥失败: ' + error.message, 'error');
-    }
-  };
-
-  // 启用API密钥
-  const handleEnableApiKey = async (apiKey) => {
-    try {
-      const updatedUser = await apikeyAPI.enableApikey(apiKey.key);
-      showSnackbar('API密钥已启用');
-      fetchApiKeys(); // 重新获取API密钥列表
-    } catch (error) {
-      showSnackbar('启用API密钥失败: ' + error.message, 'error');
-    }
-  };
-
-  // 组件挂载时获取API密钥
-  useEffect(() => {
-    if (user) {
-      fetchApiKeys();
-    }
-  }, [user]);
-
-  // 格式化日期显示
+  // Format date
   const formatDate = (dateString) => {
-    if (!dateString) return '无';
+    if (!dateString) return '从未';
     const date = new Date(dateString);
-    // 使用中文格式显示年月日时分秒
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    
-    return `${year}年${month}月${day}日`;
+    return date.toLocaleString();
   };
 
+  // Get status chip color
+  const getStatusColor = (status) => {
+    return status === 'active' ? 'success' : 'error';
+  };
+
+  // 将状态转换为中文显示
+  const getStatusText = (status) => {
+    return status === 'active' ? '已启用' : '已禁用';
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-          <CircularProgress size={60} />
-        </Box>
-      ) : (
-        <>
-          
-          {/* API密钥列表 */}
-          <Grid container spacing={3} sx={{ mt: 2 }}>
-            <Grid item xs={12}>
-              <Paper sx={{ p: 2 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="h6">
-                    我的API密钥
+    <Container maxWidth="1050">
+      <Box sx={{ mt: 4, mb: 4, height: 'calc(100vh - 200px)' }}>
+        <Paper sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6">
+              API 密钥
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setOpenDialog(true)}
+              disabled={loading}
+            >
+              生成新 API 密钥
+            </Button>
+          </Box>
+
+          <TableContainer>
+            <Table sx={{ minWidth: 1050 }} aria-label="API keys table">
+              <TableHead>
+                <TableRow>
+                  <TableCell>名称</TableCell>
+                  <TableCell>密钥预览</TableCell>
+                  <TableCell>状态</TableCell>
+                  <TableCell>使用次数</TableCell>
+                  <TableCell>速率限制</TableCell>
+                  <TableCell>创建时间</TableCell>
+                  <TableCell>最后使用</TableCell>
+                  <TableCell>操作</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {apiKeys.map((apiKey) => (
+                  <TableRow
+                    key={apiKey._id}
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  >
+                    <TableCell component="th" scope="row">
+                      {apiKey.name || '未命名'}
+                    </TableCell>
+                    <TableCell>{apiKey.key_preview}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getStatusText(apiKey.status)}
+                        color={getStatusColor(apiKey.status)}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>{apiKey.usage_count || 0}</TableCell>
+                    <TableCell>{apiKey.rate_limit || 1000}</TableCell>
+                    <TableCell>{formatDate(apiKey.created_at)}</TableCell>
+                    <TableCell>{formatDate(apiKey.last_used)}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Switch
+                          checked={apiKey.status === 'active'}
+                          onChange={() => handleToggleApiKeyStatus(apiKey._id, apiKey.status)}
+                          disabled={loading}
+                          color="primary"
+                        />
+                        <Button
+                          size="small"
+                          color="error"
+                          variant="contained"
+                          startIcon={<DeleteIcon />}
+                          onClick={() => handleDeleteApiKey(apiKey._id)}
+                          disabled={loading}
+                        >
+                          删除
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+        </Paper>
+      </Box>
+
+      {/* Generate API Key Dialog */}
+      <Dialog
+        open={openDialog}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>生成新 API 密钥</DialogTitle>
+        <DialogContent>
+          {!generatedApiKey && (
+            <TextField
+              autoFocus
+              margin="dense"
+              label={"API 密钥名称"}
+              type="text"
+              fullWidth
+              value={apiKeyName}
+              onChange={(e) => setApiKeyName(e.target.value)}
+              helperText="为您的 API 密钥输入一个描述性名称"
+            />
+          )}
+          {generatedApiKey && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                您的 API 密钥:（立即复制，您将不会再次看到它！请认真记住它！）
+              </Typography>
+              <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body1" sx={{ flex: 1, wordBreak: 'break-all' }}>
+                    {generatedApiKey.api_key}
                   </Typography>
                   <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleGenerateApiKey}
+                    size="small"
+                    variant="outlined"
+                    startIcon={<CopyAllIcon />}
+                    onClick={handleCopyApiKey}
+                    disabled={loading}
                   >
-                    生成新的API密钥
+                    复制
                   </Button>
                 </Box>
-                
-                {apiKeys.length === 0 ? (
-                  <Alert severity="info">
-                    您还没有API密钥。点击"生成新的API密钥"按钮创建一个。
-                  </Alert>
-                ) : (
-                  <TableContainer sx={{ 
-                    maxHeight: 400,
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    '@media (max-width: 768px)': {
-                      '& .MuiTableCell-root': {
-                        padding: '6px 8px',
-                        fontSize: '0.875rem'
-                      }
-                    }
-                  }}>
-                    <Table stickyHeader sx={{ 
-                      minWidth: 750,
-                      '@media (max-width: 768px)': {
-                        minWidth: 500
-                      }
-                    }} aria-label="API密钥表">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>API密钥</TableCell>
-                          <TableCell align="center">状态</TableCell>
-                          <TableCell align="center">创建时间</TableCell>
-                          <TableCell align="center">禁用时间</TableCell>
-                          <TableCell align="center">操作</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {apiKeys.map((apiKey) => (
-                          <TableRow
-                            key={apiKey.key}
-                            sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                          >
-                            <TableCell component="th" scope="row">
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <span>*************</span>
-                              </Box>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Chip
-                                label={apiKey.is_active ? '已启用' : '已禁用'}
-                                color={apiKey.is_active ? 'success' : 'default'}
-                                size="small"
-                                icon={apiKey.is_active ? <CheckCircleIcon /> : <CancelIcon />}
-                              />
-                            </TableCell>
-                            <TableCell align="center">{formatDate(apiKey.created_at)}</TableCell>
-                            <TableCell align="center">
-                              {apiKey.disabled_at ? formatDate(apiKey.disabled_at) : '无'}
-                            </TableCell>
-                            <TableCell align="center">
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="primary"
-                                sx={{ mr: 1 }}
-                                onClick={() => navigator.clipboard.writeText(apiKey.key).then(() => {
-                                  showSnackbar('API密钥已复制到剪贴板');
-                                })}
-                              >
-                                复制
-                              </Button>
-                              {apiKey.is_active ? (
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color="error"
-                                  startIcon={<DeleteIcon />}
-                                  onClick={() => handleDisableApiKey(apiKey)}
-                                >
-                                  禁用
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color="primary"
-                                  onClick={() => handleEnableApiKey(apiKey)}
-                                >
-                                  启用
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
               </Paper>
-            </Grid>
-          </Grid>
-        </>
-      )}
-      
-      {/* 提示消息 */}
+              <Alert severity="info" sx={{ mt: 2 }}>
+                这是您此生唯一一次机会来看到此 API 密钥。请安全存储！
+              </Alert>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} disabled={loading}>
+            取消
+          </Button>
+          {!generatedApiKey ? (
+            <Button
+              onClick={handleGenerateApiKey}
+              variant="contained"
+              disabled={loading}
+            >
+              生成
+            </Button>
+          ) : (
+            <Button
+              onClick={handleCloseDialog}
+              variant="contained"
+              disabled={loading}
+            >
+              完成
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
+        onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert
-          onClose={handleCloseSnackbar}
+          onClose={handleSnackbarClose}
           severity={snackbar.severity}
           sx={{ width: '100%' }}
         >

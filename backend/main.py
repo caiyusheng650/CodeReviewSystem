@@ -1,8 +1,9 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, protected, apikeys, codereview
+from app.routers import auth, protected, apikey, codereview
 from app.utils.database import connect_to_mongo, close_mongo_connection
+
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -29,10 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 注释掉API密钥中间件，改用依赖方式实现认证
+# app.middleware("http")(api_key_middleware)
+
 # 包含路由
 app.include_router(auth.router, prefix="/api/auth", tags=["认证"])
 app.include_router(protected.router, prefix="/api", tags=["受保护的路由"])
-app.include_router(apikeys.router, prefix="/api/apikeys", tags=["API密钥管理"])
+app.include_router(apikey.router, prefix="/api/apikeys", tags=["API密钥管理"])
 app.include_router(codereview.router, prefix="/api/codereview", tags=["代码审查"])
 
 @app.get("/")

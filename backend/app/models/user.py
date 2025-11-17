@@ -3,7 +3,6 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 from bson import ObjectId
 from pydantic_core import CoreSchema
-from typing import Any, Dict
 
 class PyObjectId(ObjectId):
     @classmethod
@@ -33,12 +32,18 @@ class PyObjectId(ObjectId):
         json_schema.update(type="string")
         return json_schema
 
-# API密钥模型
-class ApiKey(BaseModel):
-    key: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    is_active: bool = True
-    disabled_at: Optional[datetime] = None
+# API密钥引用模型 - 用于在用户模型中引用
+class ApiKeyReference(BaseModel):
+    id: str
+    name: str
+    status: str
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    usage_count: int = 0
+    
+    model_config = {
+        "from_attributes": True
+    }
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -52,9 +57,10 @@ class UserCreate(BaseModel):
 class UserInDB(UserBase):
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
     hashed_password: str
-    apikeys: Optional[List[ApiKey]] = None
-    reputation_score: int = 60  # 默认信誉分为60
-    reputation_history: List[str] = []
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # apikeys字段不再使用，实际存储在独立的apikeys集合中
 
     model_config = {
         "populate_by_name": True,
@@ -64,14 +70,18 @@ class UserInDB(UserBase):
 
 class UserResponse(UserBase):
     id: str = Field(alias="_id")
-    apikeys: Optional[List[ApiKey]] = None
+    created_at: datetime
+    updated_at: datetime
     reputation_score: int = 60  # 默认信誉分为60
     reputation_history: List[str] = []
+    # 可选的API密钥引用列表，在需要时可以通过额外查询填充
+    apikeys: Optional[List[ApiKeyReference]] = None
 
     model_config = {
         "populate_by_name": True,
         "json_encoders": {ObjectId: str},
-        "arbitrary_types_allowed": True
+        "arbitrary_types_allowed": True,
+        "ignore_extra": True  # 忽略数据库中可能存在的旧版API密钥字段
     }
 
 class UserInfoResponse(UserBase):

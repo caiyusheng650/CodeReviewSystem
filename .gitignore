@@ -76,3 +76,5 @@ backend/dist/
 backend/build/
 
 # Frontend directory (already has its own .gitignore)
+
+test

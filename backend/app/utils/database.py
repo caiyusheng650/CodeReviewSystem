@@ -15,6 +15,8 @@ database = client[DATABASE_NAME]
 
 # 获取集合
 users_collection = database["users"]
+apikeys_collection = database["apikeys"]
+programmers_collection = database["programmers"]
 
 async def connect_to_mongo():
     """连接到MongoDB"""

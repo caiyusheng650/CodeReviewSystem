@@ -13,78 +13,93 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1) Checkout
+      # 1) Checkout Repo
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Normalize metadata
+      # 2) Capture Metadata
       - name: Normalize PR Metadata
         id: meta
         run: |
-          echo "actor=${{ github.actor }}" >> $GITHUB_ENV
+          echo "PR_NUMBER=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
+          echo "REPO_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "REPO_NAME=${{ github.event.pull_request.head.repo.name }}" >> $GITHUB_ENV
+          echo "AUTHOR=${{ github.actor }}" >> $GITHUB_ENV
 
-          TITLE="${{ github.event.pull_request.title }}"
-          BODY="${{ github.event.pull_request.body }}"
+          # Base64 encoding of title/body
+          printf "%s" "${{ github.event.pull_request.title }}" | base64 -w0 > title.b64
+          printf "%s" "${{ github.event.pull_request.body }}" | base64 -w0 > body.b64
 
-          echo "title_b64=$(printf "%s" "$TITLE" | base64 -w0)" >> $GITHUB_ENV
-          echo "body_b64=$(printf "%s" "$BODY" | base64 -w0)" >> $GITHUB_ENV
+      # 3) Capture README Content
+      - name: Capture README Content
+        run: |
+          # 检查 README.md 是否存在，如果存在则进行编码，否则创建一个空文件
+          if [ -f "README.md" ]; then
+            echo "README.md found. Encoding content."
+            printf "%s" "$(cat README.md)" | base64 -w0 > readme.b64
+          else
+            echo "README.md not found. Creating empty placeholder file."
+            touch readme.b64
+          fi
 
-          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_ENV
-          echo "repo_owner=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "repo_name=$(basename '${{ github.repository }}')" >> $GITHUB_ENV
-
-      # 3) Generate diff safely
-      - name: Generate diff safely (Base64)
-        id: diff
+      # 4) Generate diff safely
+      - name: Generate diff safely
         run: |
           BASE="${{ github.base_ref }}"
           if [ -z "$BASE" ]; then BASE="origin/main"; fi
 
           DIFF_RAW=$(git diff "origin/$BASE"...HEAD)
-          DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)
-          MAX_SIZE=5000000
 
-          if [ "$DIFF_SIZE" -gt "$MAX_SIZE" ]; then
-            echo "Diff too large, truncating..."
-            DIFF_RAW=$(echo "$DIFF_RAW" | head -c $MAX_SIZE)
+          # Prevent oversize
+          DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)
+          MAX=5000000
+          if [ "$DIFF_SIZE" -gt "$MAX" ]; then
+            echo "⚠️ Diff >5MB, truncating."
+            DIFF_RAW=$(echo "$DIFF_RAW" | head -c $MAX)
           fi
 
-          echo "diff_b64=$(printf "%s" "$DIFF_RAW" | base64 -w0)" >> $GITHUB_ENV
+          printf "%s" "$DIFF_RAW" | base64 -w0 > diff.b64
 
-      # 4) Build JSON payload
+      # 5) Build JSON Payload
       - name: Build JSON Payload
         run: |
           cat <<EOF > payload.json
           {
-            "diff_base64": "${diff_b64}",
-            "pr_number": "${pr_number}",
-            "pr_title_b64": "${title_b64}",
-            "pr_body_b64": "${body_b64}",
-            "repo_owner": "${repo_owner}",
-            "repo_name": "${repo_name}",
-            "author": "${actor}",
+            "diff_base64": "$(cat diff.b64)",
+            "pr_number": "${{ env.PR_NUMBER }}",
+            "pr_title_b64": "$(cat title.b64)",
+            "pr_body_b64": "$(cat body.b64)",
+            "readme_b64": "$(cat readme.b64)",
+            "repo_owner": "${{ env.REPO_OWNER }}",
+            "repo_name": "${{ env.REPO_NAME }}",
+            "author": "${{ env.AUTHOR }}",
             "comments": []
           }
           EOF
+          
+          echo "=== API Payload (payload.json) ==="
+          cat payload.json
+          echo "=================================="
 
-      # 5) Send to AI Review API
-      - name: Send to AI Review API
+      # 6) Send to AI Review API
+      - name: Call AI Review API
         run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
+          curl -v -X POST \
+            -H "X-Api-Key: ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data-binary @payload.json \
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
 
-      # 6) Format markdown
-      - name: Format review message
-        id: fm
-        run: |
-          echo "生成评论 markdown..."
+          echo "=== API Response (response.json) ==="
+          cat response.json
+          echo "===================================="
 
+      # 7) Format markdown
+      - name: Generate Review Markdown
+        run: |
           jq -r '
             "## 🤖 AI Code Review\n" +
             "**合并建议**: \(.conclusion)\n\n" +
@@ -93,23 +108,57 @@ jobs:
               .issues | map(
                 "- **文件**: " + .file +
                 " (行 " + (.line|tostring) + ")\n" +
-                "  - 严重程度: **" + .severity + "**\n" +
-                "  - 描述: " + .description + "\n" +
-                "  - 建议: " + .suggestion + "\n"
+                "  - 程度: **" + .severity + "**\n" +
+                "  - 描述: " + .description + "\n" +
+                "  - 建议: " + .suggestion + "\n"
               ) | join("\n")
             )
           ' response.json > comment.md
 
-          echo "Markdown 生成成功："
+          echo "Markdown generated:"
           cat comment.md
 
-      # 7) Create or update PR comment
-      - name: Create or update PR comment
+      # 8) Add inline comments
+      - name: Add inline comments
+        run: |
+          HEAD_SHA=$(git rev-parse HEAD)
+          echo "HEAD_SHA=$HEAD_SHA"
+
+          jq -c '.issues[]' response.json | while read -r issue; do
+            file=$(echo "$issue" | jq -r '.file')
+            line=$(echo "$issue" | jq -r '.line')
+            desc=$(echo "$issue" | jq -r '.description')
+            sug=$(echo "$issue" | jq -r '.suggestion')
+            sev=$(echo "$issue" | jq -r '.severity')
+
+            # 使用 printf 确保评论正文的换行格式正确
+            body=$(printf "**AI 代码审查意见**\n**描述**: %s\n**建议**: %s\n**程度**: %s" "$desc" "$sug" "$sev")
+
+            echo "Attempting to add inline comment to $file:$line"
+
+            # 增加错误处理：如果 gh api 失败（返回 422），则静默失败并打印日志，而不是终止 loop
+            if ! gh api \
+              repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/comments \
+              -X POST \
+              -f body="$body" \
+              -f commit_id="$HEAD_SHA" \
+              -f path="$file" \
+              -F line="$line" > /dev/null 2>&1
+            then
+              echo "❌ ERROR: Failed to add inline comment to $file:$line. The file/line may not exist in the PR diff or the path is invalid."
+            else
+              echo "✅ Success: Added inline comment to $file:$line"
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 9) Create Summary Comment
+      - name: Create or update summary comment
         uses: peter-evans/create-or-update-comment@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ env.pr_number }}
+          issue-number: ${{ env.PR_NUMBER }}
           body-file: comment.md
           edit-mode: replace
-          # 用搜索方式找到旧评论并更新，无需 comment-identifier
           search: "## 🤖 AI Code Review"
