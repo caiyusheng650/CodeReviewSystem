@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict, Any, List
-from app.models.user import UserCreate, UserInDB, UserResponse, UserInfoResponse, ApiKey
+from app.models.user import UserCreate, UserInDB, UserResponse, UserInfoResponse
 from app.utils.auth import (
     authenticate_user,
     create_access_token,
     get_password_hash,
     get_current_active_user
 )
+from app.services.apikey_service import apikey_service
 from app.utils.database import users_collection
 from datetime import timedelta, datetime
 from bson import ObjectId
@@ -65,17 +66,23 @@ async def register_user(user_data: UserCreate):
     
     # 创建新用户
     hashed_password = get_password_hash(user_data.password)
-    apikey = generate_apikey()
-    apikey_obj = create_apikey_object(apikey)
     
     user_dict = {
         "email": user_data.email,
         "username": user_data.username,
         "hashed_password": hashed_password,
-        "apikeys": [apikey_obj.dict()]
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "reputation_score": 60,
+        "reputation_history": []
     }
     
     result = await users_collection.insert_one(user_dict)
+    user_id = str(result.inserted_id)
+    
+    # 为新用户生成API密钥
+    await apikey_service.create_api_key(user_id)
+    
     created_user = await users_collection.find_one({"_id": result.inserted_id})
     
     # 确保 ObjectId 被正确转换为字符串

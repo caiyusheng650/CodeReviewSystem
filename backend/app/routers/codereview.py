@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import logging
 import base64
 from app.services.reputation_service import reputation_service
 from app.schemas.reputation import ReputationUpdatePayload
+from app.models.user import UserResponse
+from app.utils.auth import get_current_user_optional
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -103,12 +105,25 @@ def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation
 # ⭐ /review 主逻辑
 # ==============================
 @router.post("/review")
-async def review(payload: CodeReviewPayload, authorization: str = Header(None)):
+async def review(
+    payload: CodeReviewPayload,
+    current_user: Optional[UserResponse] = Depends(get_current_user_optional)
+):
 
     logger.info("=== 收到代码审查请求 ===")
     logger.info(f"PR {payload.pr_number} | {payload.repo_owner}/{payload.repo_name}")
+    logger.info(f"Service User: {current_user.username if current_user else 'unknown'}")
+    # 检查认证类型
+    if current_user:
+        auth_type = getattr(current_user, 'auth_type', 'unknown')
+        logger.info(f"Authentication Type: {auth_type}")
 
+    # 使用payload中的author作为PR作者
     author = payload.author or "unknown"
+
+    print(author)
+
+
     # 使用新的信誉服务获取用户信誉信息
     reputation = await reputation_service.get_user_reputation(author)
     score = reputation["score"]

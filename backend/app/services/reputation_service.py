@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
-from app.utils.database import users_collection
-from app.models.user import UserInDB
+from app.utils.database import programmers_collection
+from app.models.programmer import ProgrammerInDB
 import logging
 
 # 配置日志
@@ -21,17 +21,17 @@ class ReputationService:
         Returns:
             包含信誉分数和历史记录的字典
         """
-        # 从数据库中查找用户
-        user_doc = await users_collection.find_one({"username": username})
+        # 从数据库中查找程序员
+        programmer_doc = await programmers_collection.find_one({"username": username})
         
-        if not user_doc:
-            # 如果用户不存在，返回默认信誉值
+        if not programmer_doc:
+            # 如果程序员不存在，返回默认信誉值
             return {"score": 60, "history": []}
         
-        # 返回用户的信誉信息
+        # 返回程序员的信誉信息
         return {
-            "score": user_doc.get("reputation_score", 60),
-            "history": user_doc.get("reputation_history", [])
+            "score": programmer_doc.get("reputation_score", 60),
+            "history": programmer_doc.get("reputation_history", [])
         }
     
     @staticmethod
@@ -57,14 +57,15 @@ class ReputationService:
         
         history.append(event)
         
-        # 更新数据库中的用户信誉信息
-        await users_collection.update_one(
+        # 更新数据库中的程序员信誉信息
+        await programmers_collection.update_one(
             {"username": username},
             {
                 "$set": {
                     "reputation_score": score,
                     "reputation_history": history
-                }
+                },
+                "$currentDate": {"updated_at": True}
             },
             upsert=True
         )

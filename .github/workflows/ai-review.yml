@@ -73,7 +73,7 @@ jobs:
       - name: Send to AI Review API
         run: |
           curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
+            -H "X-Api-Key: ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data-binary @payload.json \
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
@@ -103,7 +103,44 @@ jobs:
           echo "Markdown 生成成功："
           cat comment.md
 
-      # 7) Create or update PR comment
+      # 7) Add inline comments to PR
+      - name: Add inline comments to PR
+        run: |
+          # 确保GitHub CLI已安装并配置
+          gh --version
+          
+          # 解析AI响应JSON并提取所有反馈项（包括问题和称赞）
+          all_feedback=$(jq -c '.issues[]' response.json 2>/dev/null || jq -c '.[]' response.json 2>/dev/null || echo "[]")
+          
+          # 处理每个反馈项
+          for feedback in $all_feedback; do
+            if [ -z "$feedback" ]; then
+              continue
+            fi
+            
+            # 提取反馈信息
+            file=$(echo "$feedback" | jq -r '.file')
+            line=$(echo "$feedback" | jq -r '.line')
+            description=$(echo "$feedback" | jq -r '.description')
+            suggestion=$(echo "$feedback" | jq -r '.suggestion')
+            severity=$(echo "$feedback" | jq -r '.severity // ""')
+            
+            # 构建评论内容
+            comment_body="**AI代码审查意见**\n\n**描述**: $description" 
+            comment_body+="\n**建议**: $suggestion" 
+            [ -n "$severity" ] && comment_body+="\n**严重程度**: $severity" 
+            
+            # 添加行内评论
+            gh pr comment ${{ github.event.pull_request.number }} \
+              --repo ${{ github.repository }} \
+              --path "$file" \
+              --line "$line" \
+              --body "$comment_body"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # 8) Create or update PR comment
       - name: Create or update PR comment
         uses: peter-evans/create-or-update-comment@v3
         with:
@@ -113,3 +150,5 @@ jobs:
           edit-mode: replace
           # 用搜索方式找到旧评论并更新，无需 comment-identifier
           search: "## 🤖 AI Code Review"
+
+      
