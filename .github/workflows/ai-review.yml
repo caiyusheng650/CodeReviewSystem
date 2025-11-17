@@ -32,7 +32,7 @@ jobs:
           printf "%s" "${{ github.event.pull_request.title }}" | base64 -w0 > title.b64
           printf "%s" "${{ github.event.pull_request.body }}" | base64 -w0 > body.b64
 
-      # 3) Capture README Content (NEW STEP)
+      # 3) Capture README Content
       - name: Capture README Content
         run: |
           # 检查 README.md 是否存在，如果存在则进行编码，否则创建一个空文件
@@ -44,7 +44,7 @@ jobs:
             touch readme.b64
           fi
 
-      # 4) Generate diff safely (Original Step 3, Renumbered)
+      # 4) Generate diff safely
       - name: Generate diff safely
         run: |
           BASE="${{ github.base_ref }}"
@@ -62,7 +62,7 @@ jobs:
 
           printf "%s" "$DIFF_RAW" | base64 -w0 > diff.b64
 
-      # 5) Build JSON Payload (Original Step 4, Renumbered and Updated)
+      # 5) Build JSON Payload
       - name: Build JSON Payload
         run: |
           cat <<EOF > payload.json
@@ -71,15 +71,19 @@ jobs:
             "pr_number": "${{ env.PR_NUMBER }}",
             "pr_title_b64": "$(cat title.b64)",
             "pr_body_b64": "$(cat body.b64)",
-            "readme_b64": "$(cat readme.b64)",  // NEW FIELD
+            "readme_b64": "$(cat readme.b64)",
             "repo_owner": "${{ env.REPO_OWNER }}",
             "repo_name": "${{ env.REPO_NAME }}",
             "author": "${{ env.AUTHOR }}",
             "comments": []
           }
           EOF
+          
+          echo "=== API Payload (payload.json) ==="
+          cat payload.json
+          echo "=================================="
 
-      # 6) Send to AI Review API (Original Step 5, Renumbered)
+      # 6) Send to AI Review API
       - name: Call AI Review API
         run: |
           curl -v -X POST \
@@ -89,11 +93,11 @@ jobs:
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
 
-          echo "=== API Response ==="
+          echo "=== API Response (response.json) ==="
           cat response.json
-          echo "===================="
+          echo "===================================="
 
-      # 7) Format markdown (Original Step 6, Renumbered)
+      # 7) Format markdown
       - name: Generate Review Markdown
         run: |
           jq -r '
@@ -114,7 +118,7 @@ jobs:
           echo "Markdown generated:"
           cat comment.md
 
-      # 8) Add inline comments (Original Step 7, Renumbered)
+      # 8) Add inline comments
       - name: Add inline comments
         run: |
           HEAD_SHA=$(git rev-parse HEAD)
@@ -144,7 +148,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 9) Create Summary Comment (Original Step 8, Renumbered)
+      # 9) Create Summary Comment
       - name: Create or update summary comment
         uses: peter-evans/create-or-update-comment@v3
         with:
