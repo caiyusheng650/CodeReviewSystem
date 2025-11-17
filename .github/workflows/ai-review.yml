@@ -62,7 +62,22 @@ jobs:
 
           printf "%s" "$DIFF_RAW" | base64 -w0 > diff.b64
 
-      # 5) Build JSON Payload
+      # 5) Fetch Existing Comments
+      - name: Fetch Existing Comments
+        run: |
+          echo "Fetching existing PR review comments for context..."
+          # Fetch all review comments, keeping only relevant fields for the AI
+          COMMENTS_JSON=$(gh api \
+            repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/comments \
+            --jq '[.[] | {id: .id, user: .user.login, body: .body, path: .path, line: .line}]')
+          
+          # Base64 encode the comments JSON
+          printf "%s" "$COMMENTS_JSON" | base64 -w0 > comments.b64
+          echo "Comments JSON encoded into comments.b64."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用内置的 GITHUB_TOKEN 进行 API 访问
+
+      # 6) Build JSON Payload
       - name: Build JSON Payload
         run: |
           cat <<EOF > payload.json
@@ -75,7 +90,7 @@ jobs:
             "repo_owner": "${{ env.REPO_OWNER }}",
             "repo_name": "${{ env.REPO_NAME }}",
             "author": "${{ env.AUTHOR }}",
-            "comments": []
+            "comments_b64": "$(cat comments.b64)"
           }
           EOF
           
@@ -83,7 +98,7 @@ jobs:
           cat payload.json
           echo "=================================="
 
-      # 6) Send to AI Review API
+      # 7) Send to AI Review API
       - name: Call AI Review API
         run: |
           curl -v -X POST \
@@ -93,11 +108,11 @@ jobs:
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
 
-          echo "=== API Response (response.json) ==="
+          echo "=== API Response (response.json) ==-"
           cat response.json
           echo "===================================="
 
-      # 7) Format markdown
+      # 8) Format markdown
       - name: Generate Review Markdown
         run: |
           jq -r '
@@ -118,7 +133,7 @@ jobs:
           echo "Markdown generated:"
           cat comment.md
 
-      # 8) Add inline comments
+      # 9) Add inline comments
       - name: Add inline comments
         run: |
           HEAD_SHA=$(git rev-parse HEAD)
@@ -153,7 +168,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 9) Create Summary Comment
+      # 10) Create Summary Comment
       - name: Create or update summary comment
         uses: peter-evans/create-or-update-comment@v3
         with:

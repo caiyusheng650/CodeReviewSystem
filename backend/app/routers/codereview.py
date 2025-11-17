@@ -31,12 +31,12 @@ class CodeReviewPayload(BaseModel):
     pr_title_b64: str
     pr_body_b64: str
     readme_b64: Optional[str] = None
+    comments_b64: List[Dict[str, Any]]
 
     repo_owner: str
     repo_name: str
     author: Optional[str] = None
 
-    comments: List[Dict[str, Any]]
 
     # ---- 自动 decode ----
     @property
@@ -47,6 +47,9 @@ class CodeReviewPayload(BaseModel):
     def pr_body(self) -> str:
         return base64.b64decode(self.pr_body_b64).decode("utf-8", errors="ignore")
 
+    @property
+    def comments(self) -> List[Dict[str, Any]]:
+        return [base64.b64decode(comment_b64).decode("utf-8", errors="ignore") for comment_b64 in self.comments_b64]
     @property
     def diff(self) -> str:
         return base64.b64decode(self.diff_base64).decode("utf-8", errors="ignore")
@@ -234,11 +237,11 @@ async def review(
 
     logger.info("=== 收到代码审查请求 ===")
     logger.info(f"PR diff {len(diff_text)}")
-    logger.info(f"PR comments {comments}")
+    logger.info(f"PR comments {len(comments)}")
     logger.info(f"PR reputation score {reputation_score}")
     logger.info(f"PR history {reputation_history}")
-    logger.info(f"PR readme {readme_content}")
-    logger.info(f"Service User: {current_user.username if current_user else 'unknown'}")
+    logger.info(f"PR readme {len(readme_content)}")
+    logger.info(f"Service User: {current_user.username}")
     logger.info(f"=== 以上是审查请求 ===")
 
 
