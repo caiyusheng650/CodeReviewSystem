@@ -161,4 +161,3 @@ jobs:
           issue-number: ${{ env.PR_NUMBER }}
           body-file: comment.md
           edit-mode: replace
-          search: "## 🤖 AI Code Review"
