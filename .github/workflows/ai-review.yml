@@ -131,19 +131,24 @@ jobs:
             sug=$(echo "$issue" | jq -r '.suggestion')
             sev=$(echo "$issue" | jq -r '.severity')
 
-            body="**AI 代码审查意见** **描述**: $desc  
-                    **建议**: $sug  
-                    **程度**: $sev"
+            # 使用 printf 确保评论正文的换行格式正确
+            body=$(printf "**AI 代码审查意见**\n**描述**: %s\n**建议**: %s\n**程度**: %s" "$desc" "$sug" "$sev")
 
-            echo "Adding inline comment to $file:$line"
+            echo "Attempting to add inline comment to $file:$line"
 
-            gh api \
+            # 增加错误处理：如果 gh api 失败（返回 422），则静默失败并打印日志，而不是终止 loop
+            if ! gh api \
               repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/comments \
               -X POST \
               -f body="$body" \
               -f commit_id="$HEAD_SHA" \
               -f path="$file" \
-              -F line="$line"
+              -F line="$line" > /dev/null 2>&1
+            then
+              echo "❌ ERROR: Failed to add inline comment to $file:$line. The file/line may not exist in the PR diff or the path is invalid."
+            else
+              echo "✅ Success: Added inline comment to $file:$line"
+            fi
           done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
