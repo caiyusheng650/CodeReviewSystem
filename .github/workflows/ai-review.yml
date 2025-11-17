@@ -78,6 +78,7 @@ jobs:
             --data-binary @payload.json \
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
+          cat response.json
 
       # 6) Format markdown
       - name: Format review message
