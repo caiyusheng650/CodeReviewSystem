@@ -1,13 +1,13 @@
 from typing import Dict, List, Optional, Any
 import os
-import autogen
 import json
 import re
 from fastapi import HTTPException
+from autogen import AssistantAgent, UserProxyAgent
 
 class CodeReviewService:
     @staticmethod
-    def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation_score: int, programmer_reputation_history: List[str], readme: Optional[str] = None) -> List[Dict[str, Any]]:
+    def __call__(diff: str, comments: List[Dict[str, Any]], reputation_score: int, programmer_reputation_history: List[str], readme: Optional[str] = None) -> List[Dict[str, Any]]:
         # 配置autogen
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not openai_api_key:
@@ -21,7 +21,7 @@ class CodeReviewService:
         ]
 
         # 创建代理
-        assistant = autogen.AssistantAgent(
+        assistant = AssistantAgent(
             name="assistant",
             llm_config={
                 "config_list": config_list,
@@ -31,7 +31,7 @@ class CodeReviewService:
             }
         )
 
-        user_proxy = autogen.UserProxyAgent(
+        user_proxy = UserProxyAgent(
             name="user_proxy",
             code_execution_config=False,
             human_input_mode="NEVER"

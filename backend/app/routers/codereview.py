@@ -1,10 +1,11 @@
+import code
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List, Tuple
 import logging
 import base64
 from app.services.reputation_service import reputation_service
-from app.services.codereview_service import codereview_service
+#from app.services.codereview_service import codereview_service
 from app.schemas.reputation import ReputationUpdatePayload
 from app.models.user import UserResponse
 from app.utils.auth import get_current_user_optional
@@ -207,10 +208,7 @@ async def review(
     payload: CodeReviewPayload,
     current_user: Optional[UserResponse] = Depends(get_current_user_optional)
 ):
-    logger.info("=== 收到代码审查请求 ===")
-    logger.info(f"PR {payload.pr_number} | {payload.repo_owner}/{payload.repo_name}")
-    logger.info(f"PR diff {payload.diff_base64}")
-    logger.info(f"Service User: {current_user.username if current_user else 'unknown'}")
+
     # 检查认证类型
     if current_user:
         auth_type = getattr(current_user, 'auth_type', 'unknown')
@@ -222,14 +220,27 @@ async def review(
     # 使用新的信誉服务获取用户信誉信息
     reputation = await reputation_service.get_programmer_reputation(author)
     score = reputation["score"]
-    history = reputation["history"]
+    reputation_history = reputation["history"]
 
     logger.info(f"作者：{author} | 信誉分：{score} ")
 
     diff_text = payload.diff
     comments = payload.comments
     readme_content = payload.readme
-    issues = generate_review_issues(diff_text, comments, score, history, readme_content)
+
+    logger.info("=== 收到代码审查请求 ===")
+    logger.info(f"PR diff {diff_text}")
+    logger.info(f"PR comments {comments}")
+    logger.info(f"PR score {score}")
+    logger.info(f"PR history {reputation_history}")
+    logger.info(f"PR readme {readme_content}")
+    logger.info(f"Service User: {current_user.username if current_user else 'unknown'}")
+    logger.info(f"=== 以上是审查请求 ===")
+
+
+
+    issues = generate_review_issues(diff_text, comments, score, reputation_history, readme_content)
+    # issues = codereview_service(diff_text, comments, score, reputation_history, readme_content)
 
     # Calculate review summary and defect types
     summary, defect_types = calculate_review_summary(issues)
