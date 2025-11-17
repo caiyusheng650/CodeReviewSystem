@@ -4,6 +4,7 @@ from typing import Optional, Dict, Any, List, Tuple
 import logging
 import base64
 from app.services.reputation_service import reputation_service
+from app.services.codereview_service import codereview_service
 from app.schemas.reputation import ReputationUpdatePayload
 from app.models.user import UserResponse
 from app.utils.auth import get_current_user_optional
@@ -208,6 +209,7 @@ async def review(
 ):
     logger.info("=== 收到代码审查请求 ===")
     logger.info(f"PR {payload.pr_number} | {payload.repo_owner}/{payload.repo_name}")
+    logger.info(f"PR diff {payload.diff_base64}")
     logger.info(f"Service User: {current_user.username if current_user else 'unknown'}")
     # 检查认证类型
     if current_user:
@@ -233,7 +235,7 @@ async def review(
     summary, defect_types = calculate_review_summary(issues)
 
     # Calculate reputation delta
-    delta_reputation = summary["高"] * (-10) + summary["中"] * (-5) + summary["低"] * (-2) + summary["表扬"] * 3
+    delta_reputation = summary["高"] * (-10) + summary["中"] * (-5) + summary["低"] * (-2) + summary["表扬"] * 3 + 5
 
     # Build event description
     event = build_event_description(summary, defect_types, delta_reputation, payload.pr_number)
