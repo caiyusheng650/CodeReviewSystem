@@ -62,7 +62,7 @@ def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation
     # 问题列表
     issues = [
         {
-            "file": "index.js",
+            "file": "README.md",
             "line": 10,
             "bug_type": "static_defect",
             "description": "变量命名不规范。",
@@ -70,7 +70,7 @@ def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation
             "severity": "低"
         },
         {
-            "file": "index.js",
+            "file": "README.md",
             "line": 30,
             "bug_type": "logical_defect",    
             "description": "异常未处理，可能导致程序崩溃。",
@@ -78,7 +78,7 @@ def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation
             "severity": "高"
         },
         {
-            "file": "index.js",
+            "file": "README.md",
             "line": 60,
             "bug_type": "security_vulnerability",
             "description": "可能存在 XSS 风险。",
@@ -90,7 +90,7 @@ def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation
     # 称赞列表
     praises = [
         {
-            "file": "utils.js",
+            "file": "README.md",
             "line": 15,
             "bug_type":"praise",
             "description": "代码逻辑清晰，易于理解。",
@@ -98,7 +98,7 @@ def generate_review_issues(diff: str, comments: List[Dict[str, Any]], reputation
             "severity": "表扬"
         },
         {
-            "file": "api.js",
+            "file": "README.md",
             "line": 25,
             "bug_type":"praise",
             "description": "API 调用封装得很好，便于维护。",

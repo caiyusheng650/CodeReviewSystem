@@ -108,7 +108,7 @@ jobs:
               .issues | map(
                 "- **文件**: " + .file +
                 " (行 " + (.line|tostring) + ")\n" +
-                "  - 严重程度: **" + .severity + "**\n" +
+                "  - 程度: **" + .severity + "**\n" +
                 "  - 描述: " + .description + "\n" +
                 "  - 建议: " + .suggestion + "\n"
               ) | join("\n")
@@ -133,7 +133,7 @@ jobs:
 
             body="**AI 代码审查意见** **描述**: $desc  
                     **建议**: $sug  
-                    **严重程度**: $sev"
+                    **程度**: $sev"
 
             echo "Adding inline comment to $file:$line"
 
