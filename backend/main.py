@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth, protected, apikey, codereview
 from app.utils.database import connect_to_mongo, close_mongo_connection
-from app.utils.middleware import api_key_middleware
+
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
@@ -30,8 +30,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 添加API密钥认证中间件
-app.middleware("http")(api_key_middleware)
+# 注释掉API密钥中间件，改用依赖方式实现认证
+# app.middleware("http")(api_key_middleware)
 
 # 包含路由
 app.include_router(auth.router, prefix="/api/auth", tags=["认证"])

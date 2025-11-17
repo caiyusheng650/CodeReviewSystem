@@ -11,9 +11,9 @@ class ReputationService:
     """信誉服务类，用于处理用户信誉分的计算和更新"""
     
     @staticmethod
-    async def get_user_reputation(username: str) -> Dict:
+    async def get_programmer_reputation(username: str) -> Dict:
         """
-        获取用户的信誉信息
+        获取程序员的信誉信息
         
         Args:
             username: 用户名
@@ -35,9 +35,9 @@ class ReputationService:
         }
     
     @staticmethod
-    async def update_user_reputation(username: str, event: str = None, delta_reputation: int = None) -> Dict:
+    async def update_programmer_reputation(username: str, event: str = None, delta_reputation: int = None) -> Dict:
         """
-        根据事件或数值变化更新用户的信誉分数
+        根据事件或数值变化更新程序员的信誉分数
         
         Args:
             username: 用户名
@@ -48,7 +48,7 @@ class ReputationService:
             更新后的信誉信息
         """
         # 获取当前用户信誉
-        current_reputation = await ReputationService.get_user_reputation(username)
+        current_reputation = await ReputationService.get_programmer_reputation(username)
         score = current_reputation["score"]
         history = current_reputation["history"]
         
