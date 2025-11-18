@@ -16,6 +16,8 @@ from app.models.codereview import (
 )
 from app.utils.auth import get_current_user_optional
 from app.utils.database import get_database
+from app.services.codereview import get_ai_code_review_service
+
 
 
 # 配置日志
@@ -99,115 +101,56 @@ class CodeReviewPayload(BaseModel):
 # ==============================
 # ⭐ 辅助函数
 # ==============================
-
-def parse_ai_output(ai_output: str) -> tuple[list, dict, dict]:
+def parse_ai_output(final_ai_output: str) -> tuple[list, dict, dict]:
     """
     解析AI输出的代码审查结果
-    
-    Args:
-        ai_output: AI代理的输出内容
-        
-    Returns:
-        tuple: (issues列表, summary统计, defect_types缺陷类型统计)
     """
     issues = []
-    summary = {"总计": 0, "严重": 0, "中等": 0, "轻度": 0, "表扬": 0}
+    summary = {}
     defect_types = {}
-    
-    if not ai_output:
+
+    if not final_ai_output:
         return issues, summary, defect_types
-        
+
     try:
-        import json
-        ai_data = json.loads(ai_output)
-        
-        # 如果是数组格式（通常的AI输出格式）
-        if isinstance(ai_data, list):
-            for issue in ai_data:
-                if isinstance(issue, dict) and 'severity' in issue:
-                    issues.append(issue)
-                    
-                    # 计算统计信息
-                    severity = issue.get('severity', '轻度')
-                    if severity in summary:
-                        summary[severity] += 1
-                    summary["总计"] += 1
-                    
-                    # 记录缺陷类型
-                    defect_type = issue.get('bug_type', 'unknown')
-                    if defect_type in defect_types:
-                        defect_types[defect_type] += 1
-                    else:
-                        defect_types[defect_type] = 1
-        
-        # 如果是对象格式
-        elif isinstance(ai_data, dict):
-            # 尝试从不同字段提取issues
-            issues_list = (
-                ai_data.get('issues') or 
-                ai_data.get('static_issues') or 
-                ai_data.get('issues_list') or 
-                []
-            )
-            
-            if isinstance(issues_list, list):
-                for issue in issues_list:
-                    if isinstance(issue, dict) and 'severity' in issue:
-                        issues.append(issue)
-                        
-                        # 计算统计信息
-                        severity = issue.get('severity', '轻度')
-                        if severity in summary:
-                            summary[severity] += 1
-                        summary["总计"] += 1
-                        
-                        # 记录缺陷类型
-                        defect_type = issue.get('bug_type', 'unknown')
-                        if defect_type in defect_types:
-                            defect_types[defect_type] += 1
-                        else:
-                            defect_types[defect_type] = 1
-            
-            # 如果没有明确的issues字段，则将整个对象视为一个结果
-            elif 'severity' in ai_data:
-                issues.append(ai_data)
-                severity = ai_data.get('severity', '轻度')
-                if severity in summary:
-                    summary[severity] += 1
-                summary["总计"] += 1
-                defect_type = ai_data.get('bug_type', 'unknown')
-                if defect_type in defect_types:
-                    defect_types[defect_type] += 1
-                else:
-                    defect_types[defect_type] = 1
-                    
-    except json.JSONDecodeError:
-        # 如果AI输出不是有效的JSON，记录为文本结果
-        print(f"⚠️ AI输出不是有效的JSON格式，将作为文本处理")
-        issues.append({
-            "description": f"AI分析结果：{ai_output[:500]}...",
-            "severity": "中等",
-            "bug_type": "ai_analysis_result",
-            "suggestion": "请查看AI分析输出的详细内容"
-        })
-        summary["中等"] = 1
-        summary["总计"] = 1
-        defect_types = {"ai_analysis_result": 1}
+        data = json.loads(final_ai_output)  # 可能是 list[str] 或 list[dict]
     except Exception as e:
-        print(f"⚠️ 处理AI输出时出现错误: {str(e)}")
-        issues.append({
-            "description": f"AI处理过程中出现问题: {str(e)}",
-            "severity": "中等",
-            "bug_type": "ai_processing_error",
-            "suggestion": "请重新运行AI审查"
-        })
-        summary["中等"] = 1
-        summary["总计"] = 1
-        defect_types = {"ai_processing_error": 1}
-    
+        logger.error(f"AI输出JSON解析失败: {e}")
+        return issues, summary, defect_types
+
+    # 如果是 list[str]，需要二次解析
+    if isinstance(data, list) and len(data) > 0 and isinstance(data[0], str):
+        parsed = []
+        for idx, item in enumerate(data):
+            try:
+                parsed.append(json.loads(item))  # 二次解析
+            except Exception as e:
+                logger.error(f"AI输出内部JSON解析失败 index={idx}: {e}")
+        issues = parsed
+
+    # 如果是 list[dict]，直接使用
+    elif isinstance(data, list) and (len(data) == 0 or isinstance(data[0], dict)):
+        issues = data
+
+    else:
+        logger.error("AI输出格式不符合预期，应为 list[str] 或 list[dict]")
+        return issues, summary, defect_types
+
+    # ---- 统计部分 ----
+    for bug in issues:
+        if not isinstance(bug, dict):
+            continue
+        
+        severity = bug.get("severity", "")
+        bug_type = bug.get("bug_type", "")
+
+        summary[severity] = summary.get(severity, 0) + 1
+        defect_types[bug_type] = defect_types.get(bug_type, 0) + 1
+
     return issues, summary, defect_types
 
 
+                    
 def calculate_reputation_delta(summary: dict) -> int:
     """
     根据审查结果计算信誉值变化
@@ -218,10 +161,21 @@ def calculate_reputation_delta(summary: dict) -> int:
     Returns:
         int: 信誉值变化量
     """
-    return (summary["严重"] * (-10) + 
-            summary["中等"] * (-5) + 
-            summary["表扬"] * 10 + 
-            5)
+    # 兼容中英文字段，使用get方法避免KeyError
+    critical_count = summary.get("严重", 0) + summary.get("critical", 0)
+    high_count = summary.get("中等", 0) + summary.get("medium", 0) + summary.get("high", 0)
+    low_count = summary.get("轻度", 0) + summary.get("minor", 0)
+    praise_count = summary.get("表扬", 0) + summary.get("praise", 0)
+    
+    # 计算信誉变化量
+    delta = (
+        critical_count * (-10) + 
+        high_count * (-5) + 
+        praise_count * 10 + 
+        5  # 基础分
+    )
+    
+    return delta
 
 
 def build_final_result(issues: list, summary: dict, defect_types: dict, 
@@ -248,28 +202,15 @@ def build_final_result(issues: list, summary: dict, defect_types: dict,
         "reputation_before": reputation_score,
         "reputation_change": delta_reputation,
         "reputation_after": reputation_score + delta_reputation,
-        "risk_score": max(0, min(100, summary["严重"] * 30 + summary["中等"] * 10 + summary["轻度"] * 3)),
-        "confidence_index": max(0, 100 - (summary["严重"] * 15 + summary["中等"] * 8)),
-        "merge_recommendation": (
-            "merge"
-            if delta_reputation >= 0 else
-            "request_changes" if summary["严重"] > 0 else
-            "caution"
-        ),
         "recommendation_reason": (
             "代码整体质量良好，未发现严重问题，适合合并。"
             if delta_reputation >= 0
             else "检测到严重问题，可能影响系统稳定性，暂不建议合并。"
         ),
-        "overall_suggestion": (
-            "本次提交展现出良好的代码质量，但可进一步完善异常处理与安全边界。"
-            if delta_reputation >= 0
-            else "请重点关注高危险代码段，检查异常处理、依赖边界和输入校验逻辑。"
-        ),
         "conclusion": (
             "智能审查系统建议合并"
             if delta_reputation >= 0
-            else "智能审查系统不建议合并"
+            else f"存在{summary.get('严重', 0)+summary.get('critical', 0)+summary.get('中等', 0)+summary.get('medium', 0)+summary.get('high', 0)}个严重问题，建议谨慎合并"
         ),
         "agent_outputs_count": agent_outputs_count
     }
@@ -324,98 +265,44 @@ def calculate_review_summary(issues: List[Dict[str, Any]]) -> Tuple[Dict[str, in
 
 def build_event_description(summary: Dict[str, int], defect_types: Dict[str, int], delta_reputation: int, pr_number: str) -> str:
     """Build natural language event description for reputation update"""
-    # 构建自然语言事件描述
-    change_type = "提高" if delta_reputation > 0 else "降低" if delta_reputation < 0 else "保持不变"
-
-    # 构建问题描述部分
-    issue_parts = []
-    severity_map = {
-        "严重": "严重问题",
-        "中等": "中等问题",
-        "轻度": "轻度问题",
-        "表扬": "表扬"
-    }
-
-    for severity, count in summary.items():
-        if count <= 0 or severity == "总计":
-            continue
-        severity_name = severity_map.get(severity, severity)
-        
-        # 处理单复数
-        if count == 1:
-            issue_parts.append(f"1个{severity_name}")
-        else:
-            issue_parts.append(f"{count}个{severity_name}")
-
-    # 构建缺陷类型描述部分
-    defect_parts = []
-    # 预定义常见缺陷类型的中文名称映射
-    defect_type_map = {
-        "static_defect": "静态缺陷",
-        "logical_defect": "逻辑缺陷",
-        "memory_issue": "内存问题",
-        "security_vulnerability": "安全漏洞",
-        "performance_issue": "性能问题",
-        "code_style": "代码风格",
-        "documentation": "文档问题",
-        "testing": "测试问题",
-        "error_handling": "错误处理",
-        "api_design": "API设计",
-        "data_structure": "数据结构",
-        "algorithm": "算法问题"
-    }
-
-    for defect_type, count in defect_types.items():
-        if count <= 0:
-            continue
-        # 使用预定义映射，如果不存在则使用原始名称
-        defect_name = defect_type_map.get(defect_type, defect_type)
-        
-        # 处理单复数
-        if count == 1:
-            defect_parts.append(f"1个{defect_name}")
-        else:
-            defect_parts.append(f"{count}个{defect_name}")
-
-    # 合并问题描述部分和缺陷类型描述部分
-    if not issue_parts and not defect_parts:
+    # 简化版本的事件描述构建函数
+    
+    # 计算总问题数
+    total_issues = sum(count for severity, count in summary.items() if severity != "总计" and count > 0)
+    
+    if total_issues == 0:
         issue_desc = "无问题或表扬"
-    elif len(issue_parts) == 1 and not defect_parts:
-        issue_desc = issue_parts[0]
-    elif len(defect_parts) == 1 and not issue_parts:
-        issue_desc = defect_parts[0]
-    elif issue_parts and defect_parts:
-        # 合并两个描述
-        if len(issue_parts) > 1:
-            issue_desc = ", ".join(issue_parts[:-1]) + "和" + issue_parts[-1]
-        else:
-            issue_desc = issue_parts[0]
-        
-        if len(defect_parts) > 1:
-            defect_desc = ", ".join(defect_parts[:-1]) + "和" + defect_parts[-1]
-        else:
-            defect_desc = defect_parts[0]
-        
-        issue_desc = f"{issue_desc}，包括{defect_desc}"
-    elif issue_parts:
-        # 只有问题描述部分
-        if len(issue_parts) > 1:
-            issue_desc = ", ".join(issue_parts[:-1]) + "和" + issue_parts[-1]
-        else:
-            issue_desc = issue_parts[0]
-    elif defect_parts:
-        # 只有缺陷类型描述部分
-        if len(defect_parts) > 1:
-            issue_desc = ", ".join(defect_parts[:-1]) + "和" + defect_parts[-1]
-        else:
-            issue_desc = defect_parts[0]
     else:
-        issue_desc = "无问题或表扬"
+        # 简化的描述，只显示问题总数
+        issue_desc = f"发现{total_issues}个问题"
+        
+        # 如果有缺陷类型信息，添加主要缺陷类型
+        if defect_types:
+            # 找出最常见的缺陷类型
+            main_defect = max(defect_types.items(), key=lambda x: x[1]) if defect_types else None
+            if main_defect and main_defect[1] > 0:
+                defect_type_map = {
+                    "static_defect": "静态缺陷",
+                    "logical_defect": "逻辑缺陷",
+                    "memory_issue": "内存问题",
+                    "security_vulnerability": "安全漏洞",
+                    "performance_issue": "性能问题",
+                    "code_style": "代码风格",
+                    "documentation": "文档问题",
+                    "testing": "测试问题",
+                    "error_handling": "错误处理",
+                    "api_design": "API设计",
+                    "data_structure": "数据结构",
+                    "algorithm": "算法问题"
+                }
+                defect_name = defect_type_map.get(main_defect[0], main_defect[0])
+                issue_desc += f"，主要是{defect_name}"
 
-    # 构建最终事件字符串
+    # 构建信誉变化描述
     if delta_reputation == 0:
         return f"在PR #{pr_number}中，由于{issue_desc}，用户信誉保持不变"
     else:
+        change_type = "提高" if delta_reputation > 0 else "降低"
         return f"在PR #{pr_number}中，由于{issue_desc}，用户信誉{change_type}了{abs(delta_reputation)}分"
 
 @router.post("/review")
@@ -468,14 +355,13 @@ async def review(
         pr_body=pr_body,
         readme_content=readme_content,
         comments=comments,
-        user_name=current_user.username if current_user else "anonymous"  # 请求头API token所属的用户名
+        user_name=current_user.username
     )
     
     review_id = await code_review_service.create_review(review_data, user_id)
     logger.info(f"创建代码审查记录: {review_id}")
 
     # 导入AI代码审查服务
-    from app.services.codereview import get_ai_code_review_service
     
     # 启动AI代码审查流程
     ai_service = get_ai_code_review_service(code_review_service)
@@ -503,7 +389,7 @@ async def review(
     
     # 获取AI审查结果
     agent_outputs = ai_result.get("agent_outputs", {})
-    final_ai_output = ai_result.get("final_result", "")
+    final_ai_output = ai_result.get("final_result", {})
     
     # 解析AI输出
     issues, summary, defect_types = parse_ai_output(final_ai_output)
@@ -529,49 +415,14 @@ async def review(
     await code_review_service.complete_review(review_id, final_result)
     
     logger.info(f"代码审查完成，总耗时: {total_processing_time:.2f}秒")
+    logger.info(f"summary: {summary}")
 
-    return {
-        "status": "success",
-        "review_id": review_id,
-        "github_action_id": payload.githubactionid,
-        "author": author,
-        "reputation_before": reputation_score,
-        "reputation_change": delta_reputation,
-        "reputation_after": reputation_score + delta_reputation,
-
-        "risk_score": max(0, min(100, summary["严重"] * 30 + summary["中等"] * 10 + summary["轻度"] * 3)),
-        "confidence_index": max(0, 100 - (summary["严重"] * 15 + summary["中等"] * 8)),
-
-        "merge_recommendation": (
-            "merge"
-            if delta_reputation >= 0 else
-            "request_changes" if summary["严重"] > 0 else
-            "caution"
-        ),
-
-        "recommendation_reason": (
-            "代码整体质量良好，未发现严重问题，适合合并。"
-            if delta_reputation >= 0
-            else "检测到严重问题，可能影响系统稳定性，暂不建议合并。"
-        ),
-
+    return { 
         "issues": issues,
-
-        "summary": {
-            "total": summary["总计"],
-            "critical": summary["严重"],
-            "medium": summary["中等"],
-            "low": summary["轻度"],
-            "praise": summary["表扬"],
-        },
-
-        "agent_outputs_count": len(agent_outputs),
-        "processing_time": round(total_processing_time, 2),
-
         "conclusion": (
             "智能审查系统建议合并"
-            if summary["中等"] + summary["轻度"] == 0
-            else "需要人工审核"
+            if (summary.get("critical", 0) + summary.get("high", 0)+ summary.get("medium", 0)) == 0
+            else f"存在{summary.get('critical', 0)+summary.get('high', 0)+summary.get('medium', 0)}个问题，建议谨慎合并"
         )
     }
 

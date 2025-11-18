@@ -4,6 +4,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
 import time
+import json
 
 @dataclass
 class AgentBuffer:
@@ -30,6 +31,14 @@ class AgentBuffer:
         if self.first_ts is None or self.last_ts is None:
             return 0.0
         return max(0.0, self.last_ts - self.first_ts)
+
+    def to_json(self) -> str:
+        """转换为JSON字符串"""
+        try:
+            return json.dumps(self.messages, ensure_ascii=False)
+        except Exception as e:
+            # 如果JSON序列化失败，返回错误信息
+            return json.dumps({"result": "fail to code review"}, ensure_ascii=False)
 
 @dataclass
 class ReviewResult:

@@ -74,9 +74,7 @@ class AICodeReviewService:
             agent_outputs = await self.collect_agent_outputs(request.review_id, task)
 
             # 5. 格式化最终结果
-            final_result = ResultFormatter.format_final_result(
-                agent_outputs.get("FinalReviewAggregatorAgent", "")
-            )
+            final_result = agent_outputs.get("FinalReviewAggregatorAgent", "")
 
             logger.info("最终结果: %s", final_result)
 
@@ -141,7 +139,7 @@ class AICodeReviewService:
 
         # 收集所有buffer的最终文本
         for agent_name, buf in agent_buffers.items():
-            agent_outputs[agent_name] = buf.full_text()
+            agent_outputs[agent_name] = buf.to_json()
 
         logger.info("AI代码审查完成，收集到 %d 个agent输出", len(agent_outputs))
         return agent_outputs
@@ -215,7 +213,14 @@ class AICodeReviewService:
                 # 尝试解析为JSON，否则作为字符串处理
                 try:
                     import json
-                    output_content = json.loads(content)
+                    parsed_content = json.loads(content)
+                    # 如果解析结果是列表，将其包装在字典中
+                    if isinstance(parsed_content, list):
+                        output_content = {"content": parsed_content}
+                    elif isinstance(parsed_content, dict):
+                        output_content = parsed_content
+                    else:
+                        output_content = {"raw_output": str(parsed_content)}
                 except:
                     output_content = {"raw_output": content}
                 
@@ -273,10 +278,17 @@ class AICodeReviewService:
                 # 解析agent类型（从agent_name推断）
                 agent_type = "reviewer" if "reviewer" in buf.agent_name.lower() else "aggregator" if "aggregator" in buf.agent_name.lower() else "assessor" if "assess" in buf.agent_name.lower() else "dispatcher" if "dispatch" in buf.agent_name.lower() else "general"
                 
-                # 尝试解析output_content为字典，如果失败则作为字符串处理
+                # 尝试解析output_content为字典或列表，如果失败则作为字符串处理
                 try:
                     import json
-                    output_content = json.loads(full_content)
+                    parsed_content = json.loads(full_content)
+                    # 如果解析结果是列表，将其包装在字典中
+                    if isinstance(parsed_content, list):
+                        output_content = {"content": parsed_content}
+                    elif isinstance(parsed_content, dict):
+                        output_content = parsed_content
+                    else:
+                        output_content = {"raw_output": str(parsed_content)}
                 except:
                     output_content = {"raw_output": full_content}
                 

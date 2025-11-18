@@ -53,7 +53,6 @@ class CodeReviewService:
             "agent_outputs": [],
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "user_username": review_data.user_username,
             "user_name": review_data.user_name
         }
         
