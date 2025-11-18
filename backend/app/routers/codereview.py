@@ -19,7 +19,6 @@ from app.utils.database import get_database
 from app.services.codereview import get_ai_code_review_service
 
 
-
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -104,6 +103,7 @@ class CodeReviewPayload(BaseModel):
 def parse_ai_output(final_ai_output: str) -> tuple[list, dict, dict]:
     """
     解析AI输出的代码审查结果
+    现在直接处理原始JSON字符串，无需额外解析步骤
     """
     issues = []
     summary = {}
@@ -112,32 +112,10 @@ def parse_ai_output(final_ai_output: str) -> tuple[list, dict, dict]:
     if not final_ai_output:
         return issues, summary, defect_types
 
-    try:
-        data = json.loads(final_ai_output)  # 可能是 list[str] 或 list[dict]
-    except Exception as e:
-        logger.error(f"AI输出JSON解析失败: {e}")
-        return issues, summary, defect_types
-
-    # 如果是 list[str]，需要二次解析
-    if isinstance(data, list) and len(data) > 0 and isinstance(data[0], str):
-        parsed = []
-        for idx, item in enumerate(data):
-            try:
-                parsed.append(json.loads(item))  # 二次解析
-            except Exception as e:
-                logger.error(f"AI输出内部JSON解析失败 index={idx}: {e}")
-        issues = parsed
-
-    # 如果是 list[dict]，直接使用
-    elif isinstance(data, list) and (len(data) == 0 or isinstance(data[0], dict)):
-        issues = data
-
-    else:
-        logger.error("AI输出格式不符合预期，应为 list[str] 或 list[dict]")
-        return issues, summary, defect_types
+    issues = json.loads(final_ai_output)
 
     # ---- 统计部分 ----
-    for bug in issues:
+    for bug in issues.values():
         if not isinstance(bug, dict):
             continue
         
@@ -146,6 +124,8 @@ def parse_ai_output(final_ai_output: str) -> tuple[list, dict, dict]:
 
         summary[severity] = summary.get(severity, 0) + 1
         defect_types[bug_type] = defect_types.get(bug_type, 0) + 1
+
+    logger.info(f"解析出 {len(issues)} 个问题，{summary}，{defect_types}")
 
     return issues, summary, defect_types
 
@@ -388,8 +368,7 @@ async def review(
     ai_result = await ai_service.run_ai_code_review(review_data)
     
     # 获取AI审查结果
-    agent_outputs = ai_result.get("agent_outputs", {})
-    final_ai_output = ai_result.get("final_result", {})
+    final_ai_output = ai_result.get("final_result", "")
     
     # 解析AI输出
     issues, summary, defect_types = parse_ai_output(final_ai_output)
@@ -398,32 +377,14 @@ async def review(
 
     # 计算信誉值变化
     delta_reputation = calculate_reputation_delta(summary)
-
-    # Build event description
     event = build_event_description(summary, defect_types, delta_reputation, payload.pr_number)
-
-    # Update reputation
     await reputation_service.update_programmer_reputation(author, event, delta_reputation=delta_reputation)
 
-    # 构建最终结果
-    final_result = build_final_result(
-        issues, summary, defect_types, 
-        reputation_score, delta_reputation, len(agent_outputs)
-    )
     
-    total_processing_time = time.time() - start_time
-    await code_review_service.complete_review(review_id, final_result)
-    
-    logger.info(f"代码审查完成，总耗时: {total_processing_time:.2f}秒")
     logger.info(f"summary: {summary}")
 
     return { 
-        "issues": issues,
-        "conclusion": (
-            "智能审查系统建议合并"
-            if (summary.get("critical", 0) + summary.get("high", 0)+ summary.get("medium", 0)) == 0
-            else f"存在{summary.get('critical', 0)+summary.get('high', 0)+summary.get('medium', 0)}个问题，建议谨慎合并"
-        )
+        "issues": issues
     }
 
 

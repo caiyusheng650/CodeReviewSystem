@@ -119,17 +119,29 @@ jobs:
       # 8) Format markdown
       - name: Generate Review Markdown
         run: |
+          # 首先根据严重程度生成conclusion
+          jq '
+            .conclusion = (
+              if (.issues | to_entries | map(.value.severity) | any(. == "严重" or . == "中等")) 
+              then "不建议合并" 
+              else "建议合并" 
+              end
+            )
+          ' response.json > temp.json && mv temp.json response.json
+          
+          # 然后生成Markdown
           jq -r '
             "## 🤖 AI Code Review\n" +
             "**合并建议**: \(.conclusion)\n\n" +
             "### 问题列表\n" +
             (
-              .issues | map(
-                "- **文件**: " + .file +
-                " (行 " + (.line|tostring) + ")\n" +
-                "  - 程度: **" + .severity + "**\n" +
-                "  - 描述: " + .description + "\n" +
-                "  - 建议: " + .suggestion + "\n"
+              .issues | to_entries | map(
+                "- **文件**: " + .value.file +
+                " (行 " + (.value.line|tostring) + ")\n" +
+                "  - 类型: **" + .value.bug_type + "**\n" +
+                "  - 程度: **" + .value.severity + "**\n" +
+                "  - 描述: " + .value.description + "\n" +
+                "  - 建议: " + .value.suggestion + "\n"
               ) | join("\n")
             )
           ' response.json > comment.md

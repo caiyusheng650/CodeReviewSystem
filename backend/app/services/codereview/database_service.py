@@ -142,28 +142,6 @@ class CodeReviewService:
             
         return result.modified_count > 0
     
-    async def complete_review(self, review_id: str, final_result: Dict[str, Any]) -> bool:
-        """完成审查，设置最终结果"""
-        logger.info("开始完成代码审查，审查ID: %s", review_id)
-        logger.debug("最终结果字段: %s", list(final_result.keys()))
-        
-        result = await self.collection.update_one(
-            {"_id": ObjectId(review_id)},
-            {
-                "$set": {
-                    "final_result": final_result,
-                    "status": ReviewStatus.COMPLETED,
-                    "updated_at": datetime.utcnow()
-                }
-            }
-        )
-        
-        if result.modified_count > 0:
-            logger.info("成功完成代码审查，审查ID: %s，状态已更新为COMPLETED", review_id)
-        else:
-            logger.warning("未找到需要完成的审查记录，审查ID: %s", review_id)
-            
-        return result.modified_count > 0
     
     async def list_reviews(
         self, 

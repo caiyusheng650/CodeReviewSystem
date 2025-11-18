@@ -33,11 +33,11 @@ class CodeReviewInDB(CodeReviewBase):
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="更新时间")
     status: ReviewStatus = Field(default=ReviewStatus.PENDING, description="审查状态")
     
-    # 存储各个agent的输出结果
-    agent_outputs: List[Dict[str, Any]] = Field(default_factory=list, description="各agent的输出结果列表")
+    # 存储各个agent的输出结果（原始JSON字符串）
+    agent_outputs: List[str] = Field(default_factory=list, description="各agent的输出结果列表（JSON字符串）")
     
-    # 存储最终的聚合结果
-    final_result: Optional[Dict[str, Any]] = Field(default=None, description="最终聚合结果")
+    # 存储最终的聚合结果（原始JSON字符串）
+    final_result: Optional[str] = Field(default=None, description="最终聚合结果（JSON字符串）")
     
     # 性能统计
     agent_count: int = Field(default=0, description="参与审查的agent数量")
@@ -57,8 +57,8 @@ class CodeReviewResponse(CodeReviewBase):
     created_at: datetime
     updated_at: datetime
     status: ReviewStatus
-    agent_outputs: List[Dict[str, Any]] = []
-    final_result: Optional[Dict[str, Any]] = None
+    agent_outputs: List[str] = []
+    final_result: Optional[str] = None
     agent_count: int = 0
     user_name: str = Field(..., description="请求头API token所属的用户名")
 
@@ -71,11 +71,16 @@ class CodeReviewResponse(CodeReviewBase):
 class AgentOutput(BaseModel):
     """单个Agent输出模型"""
     agent_name: str = Field(..., description="Agent名称")
-    agent_type: str = Field(..., description="Agent类型")
-    output_content: Dict[str, Any] = Field(..., description="输出内容")
-    status: str = Field(..., description="执行状态: success, failed, timeout")
-    error_message: Optional[str] = Field(default=None, description="错误信息")
+    output_content: str = Field(..., description="输出内容（JSON字符串）")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="创建时间")
+
+    def to_dict(self) -> dict:
+        """转换为字典格式"""
+        return {
+            "agent": self.agent_name,
+            "content": self.output_content,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
 
 class CodeReviewCreate(BaseModel):
     """创建代码审查请求模型"""
@@ -94,8 +99,8 @@ class CodeReviewCreate(BaseModel):
 class CodeReviewUpdate(BaseModel):
     """更新代码审查模型"""
     status: Optional[ReviewStatus] = None
-    agent_outputs: Optional[List[Dict[str, Any]]] = None
-    final_result: Optional[Dict[str, Any]] = None
+    agent_outputs: Optional[List[Dict]] = None
+    final_result: Optional[str] = None
 
 class CodeReviewStats(BaseModel):
     """代码审查统计模型"""

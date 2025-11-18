@@ -44,20 +44,16 @@ class AgentBuffer:
 class ReviewResult:
     """审查结果数据模型"""
     review_id: str
-    status: str  # success | error
     agent_outputs: dict
     final_result: str
-    author: str
     timestamp: str
     
     def to_dict(self) -> dict:
         """转换为字典格式"""
         return {
             "review_id": self.review_id,
-            "status": self.status,
             "agent_outputs": self.agent_outputs,
             "final_result": self.final_result,
-            "author": self.author,
             "timestamp": self.timestamp
         }
 
