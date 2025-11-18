@@ -27,6 +27,9 @@ jobs:
           echo "REPO_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
           echo "REPO_NAME=${{ github.event.pull_request.head.repo.name }}" >> $GITHUB_ENV
           echo "AUTHOR=${{ github.actor }}" >> $GITHUB_ENV
+          echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+          echo "RUN_ATTEMPT=${{ github.run_attempt }}" >> $GITHUB_ENV
+          echo "RUN_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
 
           # Base64 encoding of title/body
           printf "%s" "${{ github.event.pull_request.title }}" | base64 -w0 > title.b64
@@ -82,6 +85,7 @@ jobs:
         run: |
           cat <<EOF > payload.json
           {
+            "githubactionid" : "${{ env.RUN_ID }}",
             "diff_base64": "$(cat diff.b64)",
             "pr_number": "${{ env.PR_NUMBER }}",
             "pr_title_b64": "$(cat title.b64)",
