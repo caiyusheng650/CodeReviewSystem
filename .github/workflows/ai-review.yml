@@ -27,6 +27,9 @@ jobs:
           echo "REPO_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
           echo "REPO_NAME=${{ github.event.pull_request.head.repo.name }}" >> $GITHUB_ENV
           echo "AUTHOR=${{ github.actor }}" >> $GITHUB_ENV
+          echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
+          echo "RUN_ATTEMPT=${{ github.run_attempt }}" >> $GITHUB_ENV
+          echo "RUN_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
 
           # Base64 encoding of title/body
           printf "%s" "${{ github.event.pull_request.title }}" | base64 -w0 > title.b64
@@ -62,11 +65,27 @@ jobs:
 
           printf "%s" "$DIFF_RAW" | base64 -w0 > diff.b64
 
-      # 5) Build JSON Payload
+      # 5) Fetch Existing Comments
+      - name: Fetch Existing Comments
+        run: |
+          echo "Fetching existing PR review comments for context..."
+          # Fetch all review comments, keeping only relevant fields for the AI
+          COMMENTS_JSON=$(gh api \
+            repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/comments \
+            --jq '[.[] | {id: .id, user: .user.login, body: .body, path: .path, line: .line}]')
+          
+          # Base64 encode the comments JSON
+          printf "%s" "$COMMENTS_JSON" | base64 -w0 > comments.b64
+          echo "Comments JSON encoded into comments.b64."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 使用内置的 GITHUB_TOKEN 进行 API 访问
+
+      # 6) Build JSON Payload
       - name: Build JSON Payload
         run: |
           cat <<EOF > payload.json
           {
+            "githubactionid" : "${{ env.RUN_ID }}",
             "diff_base64": "$(cat diff.b64)",
             "pr_number": "${{ env.PR_NUMBER }}",
             "pr_title_b64": "$(cat title.b64)",
@@ -75,7 +94,7 @@ jobs:
             "repo_owner": "${{ env.REPO_OWNER }}",
             "repo_name": "${{ env.REPO_NAME }}",
             "author": "${{ env.AUTHOR }}",
-            "comments": []
+            "comments_b64": "$(cat comments.b64)"
           }
           EOF
           
@@ -83,7 +102,7 @@ jobs:
           cat payload.json
           echo "=================================="
 
-      # 6) Send to AI Review API
+      # 7) Send to AI Review API
       - name: Call AI Review API
         run: |
           curl -v -X POST \
@@ -93,24 +112,36 @@ jobs:
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
 
-          echo "=== API Response (response.json) ==="
+          echo "=== API Response (response.json) ==-"
           cat response.json
           echo "===================================="
 
-      # 7) Format markdown
+      # 8) Format markdown
       - name: Generate Review Markdown
         run: |
+          # 首先根据严重程度生成conclusion
+          jq '
+            .conclusion = (
+              if (.issues | to_entries | map(.value.severity) | any(. == "严重" or . == "中等")) 
+              then "不建议合并" 
+              else "建议合并" 
+              end
+            )
+          ' response.json > temp.json && mv temp.json response.json
+          
+          # 然后生成Markdown
           jq -r '
             "## 🤖 AI Code Review\n" +
             "**合并建议**: \(.conclusion)\n\n" +
             "### 问题列表\n" +
             (
-              .issues | map(
-                "- **文件**: " + .file +
-                " (行 " + (.line|tostring) + ")\n" +
-                "  - 程度: **" + .severity + "**\n" +
-                "  - 描述: " + .description + "\n" +
-                "  - 建议: " + .suggestion + "\n"
+              .issues | to_entries | map(
+                "- **文件**: " + .value.file +
+                " (行 " + (.value.line|tostring) + ")\n" +
+                "  - 类型: **" + .value.bug_type + "**\n" +
+                "  - 程度: **" + .value.severity + "**\n" +
+                "  - 描述: " + .value.description + "\n" +
+                "  - 建议: " + .value.suggestion + "\n"
               ) | join("\n")
             )
           ' response.json > comment.md
@@ -118,7 +149,7 @@ jobs:
           echo "Markdown generated:"
           cat comment.md
 
-      # 8) Add inline comments
+      # 9) Add inline comments
       - name: Add inline comments
         run: |
           HEAD_SHA=$(git rev-parse HEAD)
@@ -153,7 +184,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 9) Create Summary Comment
+      # 10) Create Summary Comment
       - name: Create or update summary comment
         uses: peter-evans/create-or-update-comment@v3
         with:
@@ -161,4 +192,3 @@ jobs:
           issue-number: ${{ env.PR_NUMBER }}
           body-file: comment.md
           edit-mode: replace
-          search: "## 🤖 AI Code Review"

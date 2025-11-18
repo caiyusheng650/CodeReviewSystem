@@ -8,7 +8,7 @@ from app.utils.auth import (
     get_password_hash,
     get_current_active_user
 )
-from app.services.apikey_service import apikey_service
+from app.services.apikey import apikey_service
 from app.utils.database import users_collection
 from datetime import timedelta, datetime
 from bson import ObjectId
@@ -57,8 +57,8 @@ async def register_user(user_data: UserCreate):
             detail="Email already registered"
         )
         
-    existing_user_username = await users_collection.find_one({"username": user_data.username})
-    if existing_user_username:
+    existing_user_name = await users_collection.find_one({"username": user_data.username})
+    if existing_user_name:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already taken"

@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer
 from fastapi.security.utils import get_authorization_scheme_param
-from app.services.apikey_service import apikey_service
+from app.services.apikey import apikey_service
 
 # API密钥使用Bearer令牌方式
 apikey_bearer = HTTPBearer(auto_error=False)

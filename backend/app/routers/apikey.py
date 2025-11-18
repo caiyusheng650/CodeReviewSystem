@@ -9,7 +9,7 @@ from app.models.apikey import (
     ApiKeyUsageStats,
     ApiKeyStatus
 )
-from app.services.apikey_service import apikey_service
+from app.services.apikey import apikey_service
 from app.utils.auth import get_current_active_user
 import logging
 

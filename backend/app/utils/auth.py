@@ -26,7 +26,7 @@ from app.utils.apikey import (
 
 # 保持兼容性：实现同时支持两种认证方式的复合依赖
 from app.utils.userauth import get_current_user as _get_current_user
-from app.services.apikey_service import apikey_service
+from app.services.apikey import apikey_service
 from app.utils.database import users_collection
 from bson import ObjectId
 from fastapi import Depends, HTTPException, status

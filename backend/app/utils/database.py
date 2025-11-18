@@ -17,6 +17,7 @@ database = client[DATABASE_NAME]
 users_collection = database["users"]
 apikeys_collection = database["apikeys"]
 programmers_collection = database["programmers"]
+codereviews_collection = database["codereviews"]
 
 async def connect_to_mongo():
     """连接到MongoDB"""
@@ -33,3 +34,9 @@ async def close_mongo_connection():
     """关闭MongoDB连接"""
     client.close()
     print("MongoDB连接已关闭")
+
+
+# FastAPI依赖函数
+def get_database():
+    """FastAPI依赖函数：获取数据库实例"""
+    return database
