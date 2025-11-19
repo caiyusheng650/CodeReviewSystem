@@ -28,7 +28,6 @@ class CodeReviewBase(BaseModel):
 class CodeReviewInDB(CodeReviewBase):
     """数据库中的代码审查模型"""
     id: Optional[PyObjectId] = Field(default_factory=PyObjectId, alias="_id")
-    created_by: PyObjectId = Field(..., description="发起审查的用户ID")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="创建时间")
     updated_at: datetime = Field(default_factory=datetime.utcnow, description="更新时间")
     status: ReviewStatus = Field(default=ReviewStatus.PENDING, description="审查状态")
@@ -42,7 +41,7 @@ class CodeReviewInDB(CodeReviewBase):
     # 性能统计
     agent_count: int = Field(default=0, description="参与审查的agent数量")
 
-    user_name: str = Field(..., description="请求头API token所属的用户名")
+    username: str = Field(..., description="请求头API token所属的用户名")
     
     model_config = {
         "populate_by_name": True,
@@ -52,15 +51,13 @@ class CodeReviewInDB(CodeReviewBase):
 
 class CodeReviewResponse(CodeReviewBase):
     """API响应中的代码审查模型"""
-    id: str = Field(alias="_id")
-    created_by: str = Field(..., description="发起审查的用户ID")
     created_at: datetime
     updated_at: datetime
     status: ReviewStatus
-    agent_outputs: List[str] = []
+    agent_outputs: List[Dict] = []
     final_result: Optional[str] = None
     agent_count: int = 0
-    user_name: str = Field(..., description="请求头API token所属的用户名")
+    username: str = Field(..., description="请求头API token所属的用户名")
 
     model_config = {
         "populate_by_name": True,
@@ -94,7 +91,7 @@ class CodeReviewCreate(BaseModel):
     pr_body: str = Field(..., description="PR正文")
     readme_content: str = Field(..., description="README内容")
     comments: List[Dict[str, Any]] = Field(..., description="评论列表")
-    user_name: str = Field(..., description="请求头API token所属的用户名")
+    username: str = Field(..., description="请求头API token所属的用户名")
 
 class CodeReviewUpdate(BaseModel):
     """更新代码审查模型"""

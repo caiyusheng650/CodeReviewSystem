@@ -24,7 +24,7 @@ import {
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon, VpnKey as VpnKeyIcon, CopyAll as CopyAllIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-import { apikeyAPI } from '../services/api';
+import { apikeyAPI } from '../services/api/apikeyAPI';
 
 const Settings = ({ isDarkMode }) => {
   const { user } = useAuth();

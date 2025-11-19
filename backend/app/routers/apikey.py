@@ -10,7 +10,7 @@ from app.models.apikey import (
     ApiKeyStatus
 )
 from app.services.apikey import apikey_service
-from app.utils.auth import get_current_active_user
+from app.utils.userauth import require_bearer
 import logging
 
 # 配置日志
@@ -23,7 +23,7 @@ router = APIRouter()
 async def create_api_key(
     name: Optional[str] = Query(None, description="API密钥名称/描述"),
     expires_in: Optional[int] = Query(None, ge=1, le=365, description="过期时间（天）"),
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer)
 ):
     """
     创建新的API密钥
@@ -32,7 +32,7 @@ async def create_api_key(
     """
     try:
         api_key = await apikey_service.create_api_key(
-            user_id=current_user.id,
+            username=username,
             name=name,
             expires_in=expires_in
         )
@@ -45,9 +45,8 @@ async def create_api_key(
         )
 
 @router.get("/list", response_model=List[ApiKeyResponse])
-@router.get("/", response_model=List[ApiKeyResponse])
 async def list_api_keys(
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer)
 ):
     """
     获取当前用户的所有API密钥
@@ -55,7 +54,7 @@ async def list_api_keys(
     返回的API密钥不包含完整密钥，仅包含密钥预览。
     """
     try:
-        api_keys = await apikey_service.get_user_api_keys(user_id=current_user.id)
+        api_keys = await apikey_service.get_user_api_keys(username=username)
         return api_keys
     except Exception as e:
         logger.error(f"获取API密钥列表失败: {str(e)}")
@@ -67,7 +66,7 @@ async def list_api_keys(
 @router.get("/{apikey_id}", response_model=ApiKeyResponse)
 async def get_api_key(
     apikey_id: str,
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer)
 ):
     """
     获取单个API密钥的详细信息
@@ -83,7 +82,7 @@ async def get_api_key(
             )
         
         # 验证所有权
-        if api_key.user_id != current_user.id:
+        if api_key.username != username:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="无权访问此API密钥"
@@ -103,7 +102,7 @@ async def get_api_key(
 async def update_api_key_status(
     apikey_id: str,
     status_update: ApiKeyStatusUpdate,
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer) 
 ):
     """
     更新API密钥状态
@@ -120,7 +119,7 @@ async def update_api_key_status(
             )
         
         # 验证所有权
-        if api_key.user_id != current_user.id:
+        if api_key.username != username:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="无权修改此API密钥"
@@ -152,7 +151,7 @@ async def update_api_key_status(
 async def delete_api_key(
     apikey_id: str,
     confirm: ApiKeyDelete = Body(...),
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer) 
 ):
     """
     删除API密钥
@@ -176,7 +175,7 @@ async def delete_api_key(
             )
         
         # 验证所有权
-        if api_key.user_id != current_user.id:
+        if api_key.username != username:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="无权删除此API密钥"
@@ -185,7 +184,7 @@ async def delete_api_key(
         # 删除API密钥
         success = await apikey_service.delete_api_key(
             apikey_id=apikey_id,
-            user_id=current_user.id
+            username=username
         )
         
         if not success:
@@ -207,7 +206,7 @@ async def delete_api_key(
 @router.post("/activate/{apikey_id}", response_model=ApiKeyResponse)
 async def activate_api_key(
     apikey_id: str,
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer) 
 ):
     """
     激活API密钥
@@ -217,13 +216,13 @@ async def activate_api_key(
     return await update_api_key_status(
         apikey_id=apikey_id,
         status_update=ApiKeyStatusUpdate(status=ApiKeyStatus.ACTIVE),
-        current_user=current_user
+        username=username
     )
 
 @router.post("/deactivate/{apikey_id}", response_model=ApiKeyResponse)
 async def deactivate_api_key(
     apikey_id: str,
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer) 
 ):
     """
     停用API密钥
@@ -233,13 +232,13 @@ async def deactivate_api_key(
     return await update_api_key_status(
         apikey_id=apikey_id,
         status_update=ApiKeyStatusUpdate(status=ApiKeyStatus.INACTIVE),
-        current_user=current_user
+        username=username
     )
 
 @router.post("/revoke/{apikey_id}", response_model=ApiKeyResponse)
 async def revoke_api_key(
     apikey_id: str,
-    current_user: UserResponse = Depends(get_current_active_user)
+    username: str = Depends(require_bearer) 
 ):
     """
     撤销API密钥
@@ -249,5 +248,5 @@ async def revoke_api_key(
     return await update_api_key_status(
         apikey_id=apikey_id,
         status_update=ApiKeyStatusUpdate(status=ApiKeyStatus.REVOKED),
-        current_user=current_user
+        username=username
     )

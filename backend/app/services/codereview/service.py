@@ -81,8 +81,6 @@ class AICodeReviewService:
             # 5. 格式化最终结果
             final_result = agent_outputs.get("FinalReviewAggregatorAgent", "")
 
-            logger.info(f"最终结果: {type(final_result)} {final_result}")
-
             # 6. 一次性保存完整结果
             await self._save_complete_review_result(request.review_id, agent_outputs, final_result)
             

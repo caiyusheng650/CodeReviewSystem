@@ -12,7 +12,7 @@ class ApiKeyStatus(str, Enum):
 
 class ApiKeyBase(BaseModel):
     """API密钥基础模型"""
-    user_id: str  # 关联的用户ID
+    username: str  # 关联的用户
     name: Optional[str] = Field(default=None, description="API密钥名称/描述")
     status: ApiKeyStatus = Field(default=ApiKeyStatus.ACTIVE, description="密钥状态")
     permissions: Dict[str, Any] = Field(default_factory=dict, description="权限配置")

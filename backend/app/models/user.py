@@ -60,8 +60,6 @@ class UserInDB(UserBase):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # apikeys字段不再使用，实际存储在独立的apikeys集合中
-
     model_config = {
         "populate_by_name": True,
         "json_encoders": {ObjectId: str},
@@ -70,18 +68,12 @@ class UserInDB(UserBase):
 
 class UserResponse(UserBase):
     id: str = Field(alias="_id")
-    created_at: datetime
-    updated_at: datetime
-    reputation_score: int = 60  # 默认信誉分为60
-    reputation_history: List[str] = []
-    # 可选的API密钥引用列表，在需要时可以通过额外查询填充
-    apikeys: Optional[List[ApiKeyReference]] = None
-
+   
     model_config = {
         "populate_by_name": True,
         "json_encoders": {ObjectId: str},
         "arbitrary_types_allowed": True,
-        "ignore_extra": True  # 忽略数据库中可能存在的旧版API密钥字段
+        "ignore_extra": True  
     }
 
 class UserInfoResponse(UserBase):
@@ -92,3 +84,6 @@ class UserInfoResponse(UserBase):
         "json_encoders": {ObjectId: str},
         "arbitrary_types_allowed": True
     }
+
+class UserMeResponse(BaseModel):
+    username: str

@@ -122,7 +122,7 @@
 - **认证要求**: 需要Bearer Token或API密钥
 - **输出内容**: 代码审查记录列表
 
-#### 3. GET `/api/codereview/reviews/latest`
+#### 3. GET `/api/codereview/review-latest`
 - **功能**: 获取当前授权用户的最近一条代码审查记录
 - **认证要求**: 需要Bearer Token
 - **输入参数**: 无（自动从认证信息中获取当前用户）

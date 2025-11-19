@@ -131,7 +131,7 @@ jobs:
           
           # 然后生成Markdown
           jq -r '
-            "## 🤖 AI Code Review\n" +
+            "## 🤖 AI 代码审查意见\n" +
             "**合并建议**: \(.conclusion)\n\n" +
             "### 问题列表\n" +
             (
