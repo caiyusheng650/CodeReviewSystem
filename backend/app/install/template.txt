@@ -131,7 +131,7 @@ jobs:
           
           # 然后生成Markdown
           jq -r '
-            "## 🤖 AI 代码审查意见\n" +
+            "## 🤖 AI Code Review\n" +
             "**合并建议**: \(.conclusion)\n\n" +
             "### 问题列表\n" +
             (
@@ -158,15 +158,15 @@ jobs:
           jq -c '.issues[]' response.json | while read -r issue; do
             file=$(echo "$issue" | jq -r '.file')
             line=$(echo "$issue" | jq -r '.line')
-            type=$(echo "$issue" | jq -r '.bug_type')
+            bug_type=$(echo "$issue" | jq -r '.bug_type')
             desc=$(echo "$issue" | jq -r '.description')
             sug=$(echo "$issue" | jq -r '.suggestion')
             sev=$(echo "$issue" | jq -r '.severity')
 
             # 使用 printf 确保评论正文的换行格式正确
-            body=$(printf "**AI 代码审查意见**\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s" "$type" "$desc" "$sug" "$sev")
+            body=$(printf "**AI 代码审查意见**\n**文件**: %s\n**行号**: %s\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s" "$file" "$line" "$bug_type" "$desc" "$sug" "$sev")
 
-            echo "Attempting to add inline comment to $file:$line"
+            echo "Attempting to add inline comment to $file:$line (类型: $bug_type, 严重程度: $sev)"
 
             # 增加错误处理：如果 gh api 失败（返回 422），则静默失败并打印日志，而不是终止 loop
             if ! gh api \

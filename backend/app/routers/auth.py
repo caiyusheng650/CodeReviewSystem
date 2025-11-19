@@ -1,13 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict, Any, List
-from app.models.user import UserCreate, UserInDB, UserResponse, UserInfoResponse
-from app.utils.auth import (
-    authenticate_user,
-    create_access_token,
-    get_password_hash,
-    get_current_active_user
-)
+from app.models.user import UserCreate, UserMeResponse, UserInfoResponse
+from app.utils.apikey import require_api_key
+from app.utils.userauth import require_bearer, create_access_token, authenticate_user,get_password_hash
 from app.services.apikey import apikey_service
 from app.utils.database import users_collection
 from datetime import timedelta, datetime
@@ -29,10 +25,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    identifier = form_data.username
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": identifier}, expires_delta=access_token_expires
     )
     
     # 登录时只返回用户基本信息，不包含敏感的API密钥
@@ -57,8 +55,8 @@ async def register_user(user_data: UserCreate):
             detail="Email already registered"
         )
         
-    existing_user_name = await users_collection.find_one({"username": user_data.username})
-    if existing_user_name:
+    existing_username = await users_collection.find_one({"username": user_data.username})
+    if existing_username:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already taken"
@@ -78,26 +76,18 @@ async def register_user(user_data: UserCreate):
     }
     
     result = await users_collection.insert_one(user_dict)
-    user_id = str(result.inserted_id)
     
     # 为新用户生成API密钥
-    await apikey_service.create_api_key(user_id)
+    await apikey_service.create_api_key(user_data.username)
     
     created_user = await users_collection.find_one({"_id": result.inserted_id})
     
-    # 确保 ObjectId 被正确转换为字符串
-    if created_user and "_id" in created_user:
-        created_user["_id"] = str(created_user["_id"])
-    
-    # 注册时只返回用户基本信息，不包含敏感的API密钥
     return UserInfoResponse(**created_user)
 
-@router.get("/me", response_model=UserInfoResponse)
-async def read_users_me(current_user: UserResponse = Depends(get_current_active_user)):
+@router.get("/me", response_model=UserMeResponse)
+async def read_users_me(username: str = Depends(require_bearer)):
     """获取当前用户信息"""
     # 只返回基本信息，不包含敏感的API密钥
-    return UserInfoResponse(
-        _id=current_user.id,
-        username=current_user.username,
-        email=current_user.email
+    return UserMeResponse(
+        username=username,
     )

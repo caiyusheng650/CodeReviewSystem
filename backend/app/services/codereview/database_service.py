@@ -24,17 +24,17 @@ class CodeReviewService:
     def __init__(self, collection):
         self.collection = collection
     
-    async def create_review(self, review_data: CodeReviewCreate, user_id: str) -> str:
+    async def create_review(self, review_data: CodeReviewCreate, username: str) -> str:
         """创建新的代码审查记录
         
         Args:
             review_data: 审查数据
-            user_id: 用户ID（有效的ObjectId字符串）
+            username: 用户ID（有效的ObjectId字符串）
             
         Returns:
             str: 创建的审查记录ID
         """
-        logger.info("开始创建新的代码审查记录，用户ID: %s", user_id)
+        logger.info("开始创建新的代码审查记录，用户ID: %s", username)
         logger.debug("审查数据字段: %s", list(review_data.dict().keys()))
         
         review_doc = {
@@ -48,12 +48,11 @@ class CodeReviewService:
             "pr_body": review_data.pr_body,
             "readme_content": review_data.readme_content,
             "comments": review_data.comments,
-            "created_by": ObjectId(user_id),
             "status": ReviewStatus.PENDING,
             "agent_outputs": [],
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "user_name": review_data.user_name
+            "username": review_data.username
         }
         
         logger.debug("准备插入的文档内容: %s", {k: v for k, v in review_doc.items() if k not in ['diff_base64', 'pr_title_b64', 'pr_body_b64', 'readme_b64', 'comments_b64']})
@@ -74,9 +73,9 @@ class CodeReviewService:
         except Exception:
             return None
     
-    async def get_review_by_github_action_id(self, github_action_id: str) -> Optional[CodeReviewResponse]:
+    async def get_review_by_github_action_id(self, github_action_id: str, username: str) -> Optional[CodeReviewResponse]:
         """根据GitHub Action ID获取代码审查记录"""
-        doc = await self.collection.find_one({"github_action_id": github_action_id})
+        doc = await self.collection.find_one({"github_action_id": github_action_id, "username": username})
         if doc:
             return self._convert_to_response(doc)
         return None
@@ -145,24 +144,13 @@ class CodeReviewService:
     
     async def list_reviews(
         self, 
-        user_id: Optional[str] = None,
-        status: Optional[ReviewStatus] = None,
-        repo_owner: Optional[str] = None,
-        repo_name: Optional[str] = None,
+        username: Optional[str] = None,
         skip: int = 0,
         limit: int = 20
     ) -> CodeReviewListResponse:
         """获取代码审查记录列表"""
-        query = {}
-        
-        if user_id:
-            query["created_by"] = ObjectId(user_id)
-        if status:
-            query["status"] = status
-        if repo_owner:
-            query["repo_owner"] = repo_owner
-        if repo_name:
-            query["repo_name"] = repo_name
+        query = {'username': username}
+
         
         # 获取总数
         total = await self.collection.count_documents(query)
@@ -183,11 +171,11 @@ class CodeReviewService:
             has_next=has_next
         )
     
-    async def get_review_stats(self, user_id: Optional[str] = None) -> CodeReviewStats:
+    async def get_review_stats(self, username: Optional[str] = None) -> CodeReviewStats:
         """获取审查统计信息"""
         query = {}
-        if user_id:
-            query["created_by"] = ObjectId(user_id)
+        if username:
+            query["created_by"] = ObjectId(username)
         
         # 获取各种状态的统计
         total_reviews = await self.collection.count_documents(query)
@@ -314,6 +302,34 @@ class CodeReviewService:
             logger.warning("未找到需要删除的审查记录，审查ID: %s", review_id)
             
         return result.deleted_count > 0
+
+    async def get_latest_review_by_username(self, username: str) -> Optional[CodeReviewResponse]:
+        """根据用户名获取最近一条代码审查记录
+        
+        Args:
+            username: 用户名（邮箱或用户名）
+            
+        Returns:
+            Optional[CodeReviewResponse]: 最近一条审查记录，如果没有则返回None
+        """
+        logger.info("开始查询用户最近一条代码审查记录，用户名: %s", username)
+        
+        try:
+            # 查询该用户的最新一条记录，按创建时间倒序排列
+            cursor = self.collection.find({"username": username}).sort("created_at", -1).limit(1)
+            docs = await cursor.to_list(length=1)
+            
+            if docs:
+                review = self._convert_to_response(docs[0])
+                logger.info("成功找到用户最近一条代码审查记录，审查ID: %s", review.github_action_id)
+                return review
+            else:
+                logger.info("用户没有代码审查记录，用户名: %s", username)
+                return None
+                
+        except Exception as e:
+            logger.exception("查询用户最近一条代码审查记录时出错: %s", e)
+            return None
     
     def _convert_to_response(self, doc: Dict[str, Any]) -> CodeReviewResponse:
         """将数据库文档转换为响应模型"""

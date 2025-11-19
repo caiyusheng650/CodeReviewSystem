@@ -75,13 +75,13 @@ class ApiKeyService:
         return f"{api_key[:8]}...{api_key[-4:]}"
     
     @staticmethod
-    async def create_api_key(user_id: str, name: Optional[str] = None, 
+    async def create_api_key(username: str, name: Optional[str] = None, 
                            expires_in: Optional[int] = None) -> ApiKeyGenerated:
         """
         创建新的API密钥
         
         Args:
-            user_id: 用户ID
+            username: 用户名
             name: API密钥名称/描述
             expires_in: 过期时间（天）
             
@@ -100,7 +100,7 @@ class ApiKeyService:
         
         # 创建API密钥对象
         apikey_doc = {
-            "user_id": user_id,
+            "username": username,
             "name": name,
             "api_key_hash": api_key_hash,
             "key_preview": key_preview,
@@ -122,7 +122,7 @@ class ApiKeyService:
         result = await apikeys_collection.insert_one(apikey_doc)
         apikey_doc["_id"] = result.inserted_id
         
-        logger.info(f"为用户 {user_id} 创建了新的API密钥: {key_preview}")
+        logger.info(f"为用户 {username} 创建了新的API密钥: {key_preview}")
         
         # 返回生成的API密钥（仅在创建时返回完整密钥）
         return ApiKeyGenerated(
@@ -154,17 +154,17 @@ class ApiKeyService:
         return ApiKeyResponse(**apikey_doc)
     
     @staticmethod
-    async def get_user_api_keys(user_id: str) -> List[ApiKeyResponse]:
+    async def get_user_api_keys(username: str) -> List[ApiKeyResponse]:
         """
         获取用户的所有API密钥
         
         Args:
-            user_id: 用户ID
+            username: 用户名
             
         Returns:
             List[ApiKeyResponse]: API密钥列表
         """
-        apikey_docs = await apikeys_collection.find({"user_id": user_id}).to_list(100)
+        apikey_docs = await apikeys_collection.find({"username": username}).to_list(100)
         
         # 转换ObjectId为字符串
         for doc in apikey_docs:
@@ -196,23 +196,23 @@ class ApiKeyService:
         return await ApiKeyService.get_api_key_by_id(apikey_id)
     
     @staticmethod
-    async def delete_api_key(apikey_id: str, user_id: str) -> bool:
+    async def delete_api_key(apikey_id: str, username: str) -> bool:
         """
         删除API密钥
         
         Args:
             apikey_id: API密钥ID
-            user_id: 用户ID（用于验证所有权）
+            username: 用户名（用于验证所有权）
             
         Returns:
             bool: 删除结果
         """
         result = await apikeys_collection.delete_one(
-            {"_id": ObjectId(apikey_id), "user_id": user_id}
+            {"_id": ObjectId(apikey_id), "username": username}
         )
         
         if result.deleted_count > 0:
-            logger.info(f"用户 {user_id} 删除了API密钥: {apikey_id}")
+            logger.info(f"用户 {username} 删除了API密钥: {apikey_id}")
             return True
         
         return False
@@ -243,15 +243,15 @@ class ApiKeyService:
             return False
 
     @staticmethod
-    async def validate_api_key(api_key: str) -> Optional[Dict[str, Any]]:
+    async def validate_api_key(api_key: str) -> str:
         """
-        验证API密钥并返回相关信息
+        验证API密钥并返回用户名
         
         Args:
             api_key: API密钥
             
         Returns:
-            Optional[Dict[str, Any]]: 包含用户ID和密钥信息的字典，如果验证失败则返回None
+            Optional[Dict[str, Any]]: 包含用户名和密钥信息的字典，如果验证失败则返回None
         """
         # 遍历所有API密钥进行验证（在实际应用中，可能需要优化查询方式）
         async for apikey_doc in apikeys_collection.find({"status": ApiKeyStatus.ACTIVE.value}):
@@ -265,11 +265,7 @@ class ApiKeyService:
                     )
                     return None
                 
-                return {
-                    "user_id": apikey_doc["user_id"],
-                    "apikey_id": str(apikey_doc["_id"]),
-                    "permissions": apikey_doc.get("permissions", {})
-                }
+                return apikey_doc["username"]
         
         return None
 

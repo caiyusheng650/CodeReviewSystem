@@ -3,11 +3,14 @@ from typing import Optional, Union
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 import os
 from app.models.user import UserInDB, UserResponse
 from app.utils.database import users_collection
 from bson import ObjectId
+import logging
+logger = logging.getLogger(__name__)
+
 
 # 密码哈希上下文
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -19,6 +22,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+
+# HTTPBearer for simpler Bearer token authentication
+http_bearer = HTTPBearer(auto_error=False)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """验证密码"""
@@ -61,49 +67,50 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-import logging
 
-logger = logging.getLogger(__name__)
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserResponse:
-    """获取当前用户"""
+async def require_bearer(token: str = Depends(oauth2_scheme)) -> str:
+    """
+    使用FastAPI的OAuth2PasswordBearer依赖获取当前用户
+    
+    Args:
+        token: 从Authorization头提取的Bearer令牌
+        
+    Returns:
+        UserResponse: 认证成功的用户信息
+        
+    Raises:
+        HTTPException: 认证失败时抛出401错误
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
     try:
-        logger.info(f"Bearer令牌验证: 解码JWT令牌 - {token[:20]}...")
+        # 使用FastAPI推荐的JWT解码方式
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            logger.error(f"Bearer令牌验证失败: JWT payload中没有sub字段")
+        identifier: str = payload.get("sub")
+        if identifier is None:
+            logger.error("Bearer令牌验证失败: JWT payload中没有sub字段")
             raise credentials_exception
-        logger.info(f"Bearer令牌验证: 从JWT获取到email - {email}")
     except JWTError as e:
         logger.error(f"Bearer令牌验证失败: JWT解码错误 - {str(e)}")
         raise credentials_exception
     
-    user_dict = await users_collection.find_one({"email": email})
+    # 使用email或username查找用户（与authenticate_user保持一致）
+    user_dict = await users_collection.find_one({
+        "$or": [
+            {"email": identifier},
+            {"username": identifier}
+        ]
+    })
     if user_dict is None:
-        logger.error(f"Bearer令牌验证失败: 未找到用户 (email: {email})")
+        logger.error(f"Bearer令牌验证失败: 未找到用户 (identifier: {identifier})")
         raise credentials_exception
+    return user_dict['username']
     
-    # 确保 ObjectId 被正确转换为字符串
-    if user_dict and "_id" in user_dict:
-        user_dict["_id"] = str(user_dict["_id"])
-    
-    # 移除旧的apikeys字段（已不再使用，API密钥现在存储在独立集合中）
-    user_dict.pop("apikeys", None)
-    
-    # 创建UserResponse对象并添加认证类型信息
-    user_response = UserResponse(**user_dict)
-    # 使用属性扩展UserResponse，记录认证方式
-    user_response.__dict__.setdefault("auth_type", "bearer")
-    logger.info(f"Bearer令牌验证成功: 用户ID - {user_dict['_id']}, email - {email}")
-    return user_response
 
-async def get_current_active_user(current_user: UserResponse = Depends(get_current_user)) -> UserResponse:
-    """获取当前活跃用户"""
-    # 这里可以添加额外的用户活跃状态检查
-    return current_user
+
+
