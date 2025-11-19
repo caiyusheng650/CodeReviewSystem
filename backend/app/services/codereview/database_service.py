@@ -314,6 +314,34 @@ class CodeReviewService:
             logger.warning("未找到需要删除的审查记录，审查ID: %s", review_id)
             
         return result.deleted_count > 0
+
+    async def get_latest_review_by_user_name(self, user_name: str) -> Optional[CodeReviewResponse]:
+        """根据用户名获取最近一条代码审查记录
+        
+        Args:
+            user_name: 用户名（邮箱或用户名）
+            
+        Returns:
+            Optional[CodeReviewResponse]: 最近一条审查记录，如果没有则返回None
+        """
+        logger.info("开始查询用户最近一条代码审查记录，用户名: %s", user_name)
+        
+        try:
+            # 查询该用户的最新一条记录，按创建时间倒序排列
+            cursor = self.collection.find({"user_name": user_name}).sort("created_at", -1).limit(1)
+            docs = await cursor.to_list(length=1)
+            
+            if docs:
+                review = self._convert_to_response(docs[0])
+                logger.info("成功找到用户最近一条代码审查记录，审查ID: %s", review._id)
+                return review
+            else:
+                logger.info("用户没有代码审查记录，用户名: %s", user_name)
+                return None
+                
+        except Exception as e:
+            logger.exception("查询用户最近一条代码审查记录时出错: %s", e)
+            return None
     
     def _convert_to_response(self, doc: Dict[str, Any]) -> CodeReviewResponse:
         """将数据库文档转换为响应模型"""

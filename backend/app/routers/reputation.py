@@ -4,7 +4,7 @@ from app.services.reputation import reputation_service
 from app.models.user import UserResponse
 from app.utils.auth import get_current_user_optional
 
-router = APIRouter(prefix="/reputation", tags=["reputation"])
+router = APIRouter(prefix="/reputation")
 
 
 @router.get("/{username}")

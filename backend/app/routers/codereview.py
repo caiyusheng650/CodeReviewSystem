@@ -509,6 +509,56 @@ async def add_agent_output(
     return {"status": "success", "message": f"已添加 {agent_name} 的输出"}
 
 
+
+
+# ==============================
+# ⭐ 获取当前用户最近一条审查记录
+# ==============================
+@router.get("/reviews/latest", response_model=CodeReviewResponse)
+async def get_latest_review_by_current_user(
+    current_user: UserResponse = Depends(get_current_user_optional),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """
+    获取当前授权用户的最近一条代码审查记录
+    
+    Args:
+        current_user: 当前授权用户
+        code_review_service: 代码审查服务
+        
+    Returns:
+        CodeReviewResponse: 最近一条审查记录的详细信息
+    """
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="需要认证才能查询个人审查记录"
+        )
+    
+    try:
+        # 获取当前用户的最近一条审查记录（使用用户名查询）
+        latest_review = await code_review_service.get_latest_review_by_user_name(
+            user_name=current_user.username
+        )
+        
+        if not latest_review:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="当前用户暂无审查记录"
+            )
+        
+        return latest_review
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取最近审查记录失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取最近审查记录失败，请稍后重试"
+        )
+
+
 # ==============================
 # ⭐ 健康检查
 # ==============================

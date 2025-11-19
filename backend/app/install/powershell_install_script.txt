@@ -1,0 +1,67 @@
+# PowerShell AI代码审查工作流安装脚本
+
+Write-Host "🚀 开始安装 AI 代码审查工作流..." -ForegroundColor Green
+
+# 检查是否在Git仓库中
+if (!(Test-Path ".git")) {
+    Write-Host "❌ 错误：当前目录不是Git仓库" -ForegroundColor Red
+    exit 1
+}
+
+# 检查是否在GitHub仓库中
+$remoteUrl = git remote get-url origin 2>$null
+if (!$remoteUrl -or $remoteUrl -notmatch "github.com") {
+    Write-Host "❌ 错误：当前仓库不是GitHub仓库" -ForegroundColor Red
+    exit 1
+}
+
+# 创建.github/workflows目录
+if (!(Test-Path ".github/workflows")) {
+    New-Item -ItemType Directory -Path ".github/workflows" -Force | Out-Null
+}
+
+# 下载AI代码审查工作流文件（处理ngrok警告页面）
+try {
+    $headers = @{
+        "ngrok-skip-browser-warning" = "true"
+    }
+    
+    $response = Invoke-WebRequest -Uri "$API_URL/api/install/workflow" -Headers $headers
+    
+    # 检查是否是ngrok警告页面
+    if ($response.Content -match "ERR_NGROK_6024") {
+        Write-Host "⚠️  检测到ngrok安全警告页面，正在使用备用方法..." -ForegroundColor Yellow
+        
+        # 使用curl作为备用方法
+        if (Get-Command "curl" -ErrorAction SilentlyContinue) {
+            curl -s -H "ngrok-skip-browser-warning: true" -o ".github/workflows/ai-review.yml" "$API_URL/api/install/workflow"
+        } else {
+            # 如果curl也不可用，尝试直接下载
+            Invoke-WebRequest -Uri "$API_URL/api/install/workflow" -OutFile ".github/workflows/ai-review.yml"
+        }
+    } else {
+        # 正常保存文件
+        $response.Content | Out-File -FilePath ".github/workflows/ai-review.yml" -Encoding UTF8
+    }
+    
+    Write-Host "✅ AI代码审查工作流文件已下载到 .github/workflows/ai-review.yml" -ForegroundColor Green
+} catch {
+    Write-Host "❌ 下载工作流文件失败: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
+
+# 显示下一步操作说明
+Write-Host ""
+Write-Host "📋 下一步操作：" -ForegroundColor Cyan
+Write-Host "1. 在GitHub仓库的Settings -> Secrets and variables -> Actions中设置以下secrets："
+Write-Host "   - CODE_REVIEW_API_TOKEN: 您的API密钥"
+Write-Host "   - CODE_REVIEW_API_URL: API服务地址（例如：$API_URL）"
+Write-Host ""
+Write-Host "2. 提交并推送更改："
+Write-Host "   git add .github/workflows/ai-review.yml"
+Write-Host "   git commit -m 'feat: 添加AI代码审查工作流'"
+Write-Host "   git push origin main"
+Write-Host ""
+Write-Host "3. 创建Pull Request测试功能"
+Write-Host ""
+Write-Host "🎉 AI代码审查系统安装完成！" -ForegroundColor Green

@@ -17,7 +17,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["API Keys"])
+router = APIRouter()
 
 @router.post("/create", response_model=ApiKeyGenerated)
 async def create_api_key(

@@ -83,7 +83,7 @@ jobs:
       # 6) Build JSON Payload
       - name: Build JSON Payload
         run: |
-          cat < payload.json
+          cat <<EOF > payload.json
           {
             "githubactionid" : "${{ env.RUN_ID }}",
             "diff_base64": "$(cat diff.b64)",
@@ -138,10 +138,10 @@ jobs:
               .issues | to_entries | map(
                 "- **文件**: " + .value.file +
                 " (行 " + (.value.line|tostring) + ")\n" +
-                "  - 类型: **" + .value.bug_type + "**\n" +
-                "  - 程度: **" + .value.severity + "**\n" +
-                "  - 描述: " + .value.description + "\n" +
-                "  - 建议: " + .value.suggestion + "\n"
+                "  - 类型: **" + .value.bug_type + "**\n" +
+                "  - 程度: **" + .value.severity + "**\n" +
+                "  - 描述: " + .value.description + "\n" +
+                "  - 建议: " + .value.suggestion + "\n"
               ) | join("\n")
             )
           ' response.json > comment.md
