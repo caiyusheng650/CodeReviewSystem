@@ -53,6 +53,47 @@ class ContentAnalyzer:
         return False
     
     @staticmethod
+    def analyze_historical_comments(pr_comments: list) -> dict:
+        """分析历史评论，识别重复提及但未修复的问题"""
+        historical_issues = {}
+        
+        # 分析评论内容，识别重复问题
+        for comment in pr_comments:
+            body = comment.get('body', '').lower()
+            
+            # 识别常见问题类型
+            issue_types = {
+                'memory_leak': ['内存泄漏', 'memory leak', 'leak'],
+                'security': ['安全', 'security', 'vulnerability', '漏洞'],
+                'performance': ['性能', 'performance', 'slow', '慢'],
+                'logic': ['逻辑', 'logic', '错误', 'bug'],
+                'maintainability': ['维护', 'maintainability', '可读性', 'readability']
+            }
+            
+            for issue_type, keywords in issue_types.items():
+                if any(keyword in body for keyword in keywords):
+                    if issue_type not in historical_issues:
+                        historical_issues[issue_type] = {
+                            'count': 0,
+                            'comments': [],
+                            'first_mentioned': comment.get('created_at', 'unknown')
+                        }
+                    historical_issues[issue_type]['count'] += 1
+                    historical_issues[issue_type]['comments'].append({
+                        'body': comment.get('body', ''),
+                        'line': comment.get('line', None),
+                        'file': comment.get('path', '')
+                    })
+        
+        # 过滤出重复提及的问题（出现2次以上）
+        repeated_issues = {}
+        for issue_type, data in historical_issues.items():
+            if data['count'] >= 2:  # 至少出现2次
+                repeated_issues[issue_type] = data
+        
+        return repeated_issues
+    
+    @staticmethod
     def build_prompt(
         code_diff: str,
         pr_comments: list,
@@ -63,6 +104,9 @@ class ContentAnalyzer:
         """构建审查提示词"""
         comments_preview = pr_comments[:20]
         history_preview = developer_reputation_history[:10]
+        
+        # 分析历史评论，识别重复问题
+        historical_issues = ContentAnalyzer.analyze_historical_comments(pr_comments)
         
         if developer_reputation_score >= 80:
             rep_label = "high"
@@ -75,6 +119,7 @@ class ContentAnalyzer:
             "metadata": {
                 "developer_reputation_label": rep_label,
                 "developer_reputation_history": history_preview,
+                "historical_issues_analysis": historical_issues
             },
             "repository_readme_excerpt": repository_readme[:4000],
             "pr_comments": comments_preview,

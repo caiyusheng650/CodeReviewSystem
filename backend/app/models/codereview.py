@@ -38,9 +38,6 @@ class CodeReviewInDB(CodeReviewBase):
     # 存储最终的聚合结果（原始JSON字符串）
     final_result: Optional[str] = Field(default=None, description="最终聚合结果（JSON字符串）")
     
-    # 性能统计
-    agent_count: int = Field(default=0, description="参与审查的agent数量")
-
     username: str = Field(..., description="请求头API token所属的用户名")
     
     model_config = {
@@ -55,8 +52,7 @@ class CodeReviewResponse(CodeReviewBase):
     updated_at: datetime
     status: ReviewStatus
     agent_outputs: List[Dict] = []
-    final_result: Optional[str] = None
-    agent_count: int = 0
+    final_result: Optional[Dict] = None
     username: str = Field(..., description="请求头API token所属的用户名")
 
     model_config = {
@@ -97,7 +93,7 @@ class CodeReviewUpdate(BaseModel):
     """更新代码审查模型"""
     status: Optional[ReviewStatus] = None
     agent_outputs: Optional[List[Dict]] = None
-    final_result: Optional[str] = None
+    final_result: Optional[Dict] = None
 
 class CodeReviewStats(BaseModel):
     """代码审查统计模型"""

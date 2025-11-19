@@ -167,7 +167,7 @@ class AICodeReviewService:
             # 构建更新数据（直接存储原始final_result字符串）
             update_data = CodeReviewUpdate(
                 agent_outputs=agent_output_list,
-                final_result=json.dumps(final_result),
+                final_result=json.loads(final_result),
                 status="completed"
             )
             

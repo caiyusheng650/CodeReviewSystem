@@ -103,7 +103,7 @@ function AppContent() {
               path="/" 
               element={
                 isAuthenticated ? 
-                <Home onThemeToggle={handleThemeToggle} isDarkMode={isDarkMode} user={user} /> : 
+                <Home isDarkMode={isDarkMode} user={user} /> : 
                 <Navigate to="/login" replace />
               } 
             />

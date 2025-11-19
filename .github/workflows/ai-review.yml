@@ -129,25 +129,30 @@ jobs:
             )
           ' response.json > temp.json && mv temp.json response.json
           
-          # 然后生成Markdown
+          # 然后生成Markdown（重点处理历史未修复问题）
           jq -r '
             "## 🤖 AI 代码审查意见\n" +
             "**合并建议**: \(.conclusion)\n\n" +
             "### 问题列表\n" +
             (
               .issues | to_entries | map(
+                # 对历史未修复问题添加醒目标识
+                (if .value.historical_mention == true then "⚠️ **[历史未修复问题]**\n" else "" end) +
                 "- **文件**: " + .value.file +
                 " (行 " + (.value.line|tostring) + ")\n" +
-                "  - 类型: **" + .value.bug_type + "**\n" +
-                "  - 程度: **" + .value.severity + "**\n" +
-                "  - 描述: " + .value.description + "\n" +
-                "  - 建议: " + .value.suggestion + "\n"
+                "  - 类型: **" + .value.bug_type + "**\n" +
+                "  - 程度: **" + .value.severity + "**\n" +
+                # 历史问题补充提示文字
+                (if .value.historical_mention == true then "  - ⚠️ 提示: 此问题已在历史审查中多次提及，请优先修复\n" else "" end) +
+                "  - 描述: " + .value.description + "\n" +
+                "  - 建议: " + .value.suggestion + "\n"
               ) | join("\n")
             )
           ' response.json > comment.md
 
           echo "Markdown generated:"
           cat comment.md
+
 
       # 9) Add inline comments
       - name: Add inline comments
@@ -162,13 +167,25 @@ jobs:
             desc=$(echo "$issue" | jq -r '.description')
             sug=$(echo "$issue" | jq -r '.suggestion')
             sev=$(echo "$issue" | jq -r '.severity')
+            # 提取历史未修复标记
+            historical=$(echo "$issue" | jq -r '.historical_mention')
 
-            # 使用 printf 确保评论正文的换行格式正确
-            body=$(printf "**AI 代码审查意见**\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s" "$type" "$desc" "$sug" "$sev")
+            # 对历史未修复问题添加特殊前缀和提示
+            if [ "$historical" = "true" ]; then
+              header="**⚠️ [历史未修复问题] ⚠️**\n"
+              extra_note="\n**提示**: 此问题已在历史审查中多次提及，请优先处理"
+            else
+              header="**AI 代码审查意见**\n"
+              extra_note=""
+            fi
+
+            # 拼接评论内容（包含历史问题标识）
+            body=$(printf "%s**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s%s" \
+              "$header" "$type" "$desc" "$sug" "$sev" "$extra_note")
 
             echo "Attempting to add inline comment to $file:$line"
 
-            # 增加错误处理：如果 gh api 失败（返回 422），则静默失败并打印日志，而不是终止 loop
+            # 保留原有的错误处理逻辑
             if ! gh api \
               repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/comments \
               -X POST \
@@ -177,7 +194,7 @@ jobs:
               -f path="$file" \
               -F line="$line" > /dev/null 2>&1
             then
-              echo "❌ ERROR: Failed to add inline comment to $file:$line. The file/line may not exist in the PR diff or the path is invalid."
+              echo "❌ ERROR: Failed to add inline comment to $file:$line"
             else
               echo "✅ Success: Added inline comment to $file:$line"
             fi
