@@ -1,30 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'
 import {
   Container,
   Typography,
   Paper,
-  Box,
-  Button,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Button,
+  Box,
+  Switch,
+  Chip,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
-  CircularProgress,
-  Switch,
-  Chip,
+  Alert,
   Snackbar,
-  Alert
-} from '@mui/material';
-import { Add as AddIcon, Delete as DeleteIcon, VpnKey as VpnKeyIcon, CopyAll as CopyAllIcon } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import { apikeyAPI } from '../services/api/apikeyAPI';
+  CircularProgress,
+  Breadcrumbs
+} from '@mui/material'
+import {
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  CopyAll as CopyAllIcon
+} from '@mui/icons-material'
+import { authAPI } from '../services/api/authAPI'
+import { formatSmartTime } from '../utils/dateUtils'
+import { useAuth } from '../contexts/AuthContext'
+import { apikeyAPI } from '../services/api/apikeyAPI'
 
 const Settings = ({ isDarkMode }) => {
   const { user } = useAuth();
@@ -137,22 +144,15 @@ const Settings = ({ isDarkMode }) => {
 
   // Close dialog
   const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setApiKeyName('');
-    setGeneratedApiKey(null); // Clear generated key when dialog closes
-  };
-
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return '从未';
-    const date = new Date(dateString);
-    return date.toLocaleString();
-  };
+    setOpenDialog(false)
+    setApiKeyName('')
+    setGeneratedApiKey(null) // Clear generated key when dialog closes
+  }
 
   // Get status chip color
   const getStatusColor = (status) => {
-    return status === 'active' ? 'success' : 'error';
-  };
+    return status === 'active' ? 'success' : 'error'
+  }
 
   // 将状态转换为中文显示
   const getStatusText = (status) => {
@@ -169,6 +169,13 @@ const Settings = ({ isDarkMode }) => {
   return (
     <Container maxWidth="1050">
       <Box sx={{ mt: 4, mb: 4, height: 'calc(100vh - 200px)' }}>
+        {/* 面包屑导航 */}
+        <Breadcrumbs sx={{ mb: 3 }}>
+          <Typography>设置</Typography>
+        </Breadcrumbs>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
+          设置
+        </Typography>
         <Paper sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Typography variant="h6">
@@ -191,11 +198,8 @@ const Settings = ({ isDarkMode }) => {
                   <TableCell>名称</TableCell>
                   <TableCell>密钥预览</TableCell>
                   <TableCell>状态</TableCell>
-                  <TableCell>使用次数</TableCell>
-                  <TableCell>速率限制</TableCell>
                   <TableCell>创建时间</TableCell>
-                  <TableCell>最后使用</TableCell>
-                  <TableCell>操作</TableCell>
+                  <TableCell>启用/禁用和删除</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -215,10 +219,7 @@ const Settings = ({ isDarkMode }) => {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>{apiKey.usage_count || 0}</TableCell>
-                    <TableCell>{apiKey.rate_limit || 1000}</TableCell>
-                    <TableCell>{formatDate(apiKey.created_at)}</TableCell>
-                    <TableCell>{formatDate(apiKey.last_used)}</TableCell>
+                    <TableCell>{formatSmartTime(apiKey.created_at)}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Switch

@@ -46,6 +46,6 @@ def read_root():
     return {"message": "智能代码审查系统API"}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app",  port=8000, reload=True, host="0.0.0.0")
 
 
