@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { codeReviewAPI } from '../services/api/codeReviewAPI';
+import { useTranslation } from 'react-i18next';
 import {
   Box, Breadcrumbs, Button, Card, CardContent, Chip, CircularProgress,
   Tabs, Tab, Typography, Alert, Divider, IconButton, Tooltip, TextField,
@@ -31,6 +32,7 @@ const ReviewDetail = ({ isDarkMode }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [markedIssues, setMarkedIssues] = useState([]);
+  const { t, i18n } = useTranslation();
 
   // 检测屏幕宽度是否小于1300px
   const isSmallScreen = useMediaQuery('(max-width:1299px)');
@@ -42,7 +44,7 @@ const ReviewDetail = ({ isDarkMode }) => {
   useEffect(() => {
     const fetchReviewDetail = async () => {
       if (!reviewId) {
-        setError('无效的审查ID');
+        setError(t('reviewDetail.invalidReviewId'));
         setLoading(false);
         return;
       }
@@ -54,7 +56,7 @@ const ReviewDetail = ({ isDarkMode }) => {
         setReview(reviewDetail);
       } catch (err) {
         console.error('获取审查详情失败:', err);
-        setError('获取审查详情失败：' + (err.response?.data?.message || err.message));
+        setError(t('reviewDetail.fetchFailed') + ': ' + (err.response?.data?.message || err.message));
       } finally {
         setLoading(false);
       }
@@ -118,32 +120,35 @@ const ReviewDetail = ({ isDarkMode }) => {
 
     issues.forEach((issue, index) => {
       // 按文件分组
-      if (!groupedByFile[issue.file]) {
-        groupedByFile[issue.file] = [];
+      const fileKey = issue.file || t('utils.unknownFile');
+      if (!groupedByFile[fileKey]) {
+        groupedByFile[fileKey] = [];
       }
-      groupedByFile[issue.file].push({ ...issue, index });
+      groupedByFile[fileKey].push({ ...issue, index });
 
       // 按类型分组
-      if (!groupedByType[issue.bug_type]) {
-        groupedByType[issue.bug_type] = [];
+      const typeKey = issue.bug_type || t('utils.unknownType');
+      if (!groupedByType[typeKey]) {
+        groupedByType[typeKey] = [];
       }
-      groupedByType[issue.bug_type].push({ ...issue, index });
+      groupedByType[typeKey].push({ ...issue, index });
 
       // 按严重程度分组
-      if (!groupedBySeverity[issue.severity]) {
-        groupedBySeverity[issue.severity] = [];
+      const severityKey = issue.severity || t('utils.unknownSeverity');
+      if (!groupedBySeverity[severityKey]) {
+        groupedBySeverity[severityKey] = [];
       }
-      groupedBySeverity[issue.severity].push({ ...issue, index });
+      groupedBySeverity[severityKey].push({ ...issue, index });
 
       // 按标记状态分组
-      const markedStatus = issue.marked ? '已标记' : '未标记';
+      const markedStatus = issue.marked ? t('utils.marked') : t('utils.unmarked');
       if (!groupedByMarked[markedStatus]) {
         groupedByMarked[markedStatus] = [];
       }
       groupedByMarked[markedStatus].push({ ...issue, index });
 
       // 按历史状态分组
-      const historicalStatus = issue.historical_mention ? '顽固问题' : '普通问题';
+      const historicalStatus = issue.historical_mention ? t('utils.persistentIssue') : t('utils.normalIssue');
       if (!groupedByHistorical[historicalStatus]) {
         groupedByHistorical[historicalStatus] = [];
       }
@@ -193,7 +198,7 @@ const ReviewDetail = ({ isDarkMode }) => {
           onClick={() => navigate('/reviews')}
           sx={{ mt: 2 }}
         >
-          返回审查列表
+          {t('common.back')} {t('reviews.reviewRecords')}
         </Button>
       </Box>
     );
@@ -204,14 +209,14 @@ const ReviewDetail = ({ isDarkMode }) => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="warning">
-          审查记录不存在
+          {t('reviewDetail.reviewNotFound')}
         </Alert>
         <Button
           variant="contained"
           onClick={() => navigate('/reviews')}
           sx={{ mt: 2 }}
         >
-          返回审查列表
+          {t('common.back')} {t('reviews.reviewRecords')}
         </Button>
       </Box>
     );
@@ -228,7 +233,7 @@ const ReviewDetail = ({ isDarkMode }) => {
       <Breadcrumbs sx={{ mb: 3 }}>
         
         <Typography linkComponent="button" onClick={() => navigate('/reviews')} sx={{ cursor: 'pointer' }}>
-          审查
+          {t('reviewDetail.reviews')}
         </Typography>
         <Typography>PR #{review.pr_number}</Typography>
       </Breadcrumbs>
@@ -236,16 +241,16 @@ const ReviewDetail = ({ isDarkMode }) => {
       {/* 页面标题+操作按钮 */}
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          PR #{review.pr_number} 智能代码审查结果
+          PR #{review.pr_number} {t('reviewDetail.intelligentCodeReview')} {t('reviewDetail.reviewResults')}
         </Typography>
         <Box display="flex" gap={2}>
-          <Tooltip title="导出审查报告">
+          <Tooltip title={t('reviewDetail.exportReport')}>
             <Button
               variant="outlined"
               startIcon={<DownloadIcon />}
               onClick={() => handleExportReport(review)}
             >
-              导出报告
+              {t('reviewDetail.exportReport')}
             </Button>
           </Tooltip>
         </Box>
@@ -272,7 +277,7 @@ const ReviewDetail = ({ isDarkMode }) => {
           <Box sx={{ mb: 3, width: '100%' }}>
             <TextField
               fullWidth
-              placeholder="搜索文件/问题描述/建议..."
+              placeholder={t('reviewDetail.searchPlaceholder')}
               variant="outlined"
               size="small"
               value={searchText}
@@ -286,11 +291,11 @@ const ReviewDetail = ({ isDarkMode }) => {
           {/* 问题详情标签页 */}
           <Box sx={{ mb: 4 }}>
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-              <Tab label="按类型分类" />
-              <Tab label="按文件分类" />
-              <Tab label="按程度分类" />
-              <Tab label="顽固问题" />
-              <Tab label="已标记问题" />
+              <Tab label={t('reviewDetail.byType')} />
+              <Tab label={t('reviewDetail.byFile')} />
+              <Tab label={t('reviewDetail.bySeverity')} />
+              <Tab label={t('reviewDetail.persistentIssues')} />
+              <Tab label={t('reviewDetail.markedIssues')} />
             </Tabs>
             <Divider sx={{ mb: 2 }} />
 

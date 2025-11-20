@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { codeReviewAPI } from '../services/api/codeReviewAPI';
+import { formatDateTime } from '../utils/dateUtils';
+import { useTranslation } from 'react-i18next';
 import {
   Box, Breadcrumbs, Card, CardContent, Chip, CircularProgress,
   Typography, Alert, Divider, TextField, Table, TableBody,
@@ -13,10 +15,10 @@ import {
 
 // 状态映射
 const StatusMap = {
-  待审查: { color: 'default', label: '待审查' },
-  审查中: { color: 'warning', label: '审查中' },
-  已完成: { color: 'success', label: '已完成' },
-  失败: { color: 'error', label: '失败' }
+  待审查: { color: 'default', label: 'reviews.pending' },
+  审查中: { color: 'warning', label: 'reviews.inProgress' },
+  已完成: { color: 'success', label: 'reviews.completed' },
+  失败: { color: 'error', label: 'reviews.failed' }
 };
 
 const Reviews = ({ isDarkMode }) => {
@@ -26,6 +28,7 @@ const Reviews = ({ isDarkMode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const { t, i18n } = useTranslation();
 
   // 获取用户的所有审查记录
   useEffect(() => {
@@ -41,7 +44,7 @@ const Reviews = ({ isDarkMode }) => {
         if (err.response?.status === 404) {
           setReviews([]);
         } else {
-          setError('获取审查记录失败：' + (err.response?.data?.message || err.message));
+          setError(t('reviews.fetchFailed') + ': ' + (err.response?.data?.message || err.message));
         }
       } finally {
         setLoading(false);
@@ -90,7 +93,7 @@ const Reviews = ({ isDarkMode }) => {
           onClick={() => window.location.reload()}
           sx={{ mt: 2 }}
         >
-          重试
+          {t('common.retry')}
         </Button>
       </Box>
     );
@@ -102,20 +105,20 @@ const Reviews = ({ isDarkMode }) => {
       <Box sx={{ p: 3, minWidth: 1200, mx: 'auto' }}>
         <Breadcrumbs sx={{ mb: 2 }}>
           <Typography linkComponent="button" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-            首页
+            {t('navigation.home')}
           </Typography>
-          <Typography>审查记录</Typography>
-          <Typography>暂无记录</Typography>
+          <Typography>{t('reviews.reviewRecords')}</Typography>
+          <Typography>{t('reviews.noRecords')}</Typography>
         </Breadcrumbs>
         <Card sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
-            暂无代码审查记录
+            {t('reviews.noReviewRecords')}
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            提交PR后将自动触发AI代码审查，审查完成后可在此查看结果
+            {t('reviews.submitPRPrompt')}
           </Typography>
           <Button variant="contained" onClick={() => navigate('/')}>
-            返回首页
+            {t('common.back')} {t('navigation.home')}
           </Button>
         </Card>
       </Box>
@@ -127,12 +130,12 @@ const Reviews = ({ isDarkMode }) => {
       <Box sx={{ mt: 4, mb: 4, height: 'calc(100vh - 200px)' }}>
         {/* 面包屑导航 */}
         <Breadcrumbs sx={{ mb: 3 }}>
-          <Typography>审查</Typography>
+          <Typography>{t('reviews.reviews')}</Typography>
         </Breadcrumbs>
 
         {/* 页面标题 */}
         <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
-          审查记录
+          {t('reviews.reviewRecords')}
         </Typography>
 
         {/* 搜索框 */}
@@ -140,7 +143,7 @@ const Reviews = ({ isDarkMode }) => {
           fullWidth 
           sx={{  mb: 3}}
           variant="outlined"
-          placeholder="搜索PR标题、仓库名称、PR编号或作者..."
+          placeholder={t('reviews.searchPlaceholder')}
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
           InputProps={{
@@ -155,12 +158,12 @@ const Reviews = ({ isDarkMode }) => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>PR编号</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>PR标题</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>仓库</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>作者</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>状态</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>创建时间</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.prNumber')}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.prTitle')}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.repository')}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.author')}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.status')}</TableCell>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.creationTime')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -203,14 +206,14 @@ const Reviews = ({ isDarkMode }) => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={StatusMap[review.status]?.label || review.status}
+                          label={t(StatusMap[review.status]?.label) || review.status}
                           color={StatusMap[review.status]?.color || 'default'}
                           variant="outlined"
                           size="small"
                         />
                       </TableCell>
                       <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {review.created_at ? new Date(review.created_at).toLocaleString('zh-CN') : '未知'}
+                        {review.created_at ? formatDateTime(review.created_at, {}, t) : t('common.unknown')}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -221,7 +224,7 @@ const Reviews = ({ isDarkMode }) => {
             {filteredReviews.length === 0 && searchText && (
               <Box sx={{ p: 3, textAlign: 'center' }}>
                 <Typography color="text.secondary">
-                  未找到匹配的审查记录
+                  {t('home.noMatchingRecords')}
                 </Typography>
               </Box>
             )}
@@ -231,10 +234,10 @@ const Reviews = ({ isDarkMode }) => {
         {/* 统计信息 */}
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            共 {filteredReviews.length} 条审查记录
+            {t('home.filteredRecords', { count: filteredReviews.length })}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            总计 {reviews.length} 条记录
+            {t('home.totalRecords', { count: reviews.length })}
           </Typography>
         </Box>
       </Box>

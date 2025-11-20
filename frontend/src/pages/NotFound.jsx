@@ -2,9 +2,11 @@ import React from 'react';
 import { Container, Typography, Button, Box } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { Home as HomeIcon } from '@mui/icons-material';
+import { useTranslation } from 'react-i18next';
 
 const NotFound = ({ isDarkMode = false }) => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const handleGoHome = () => {
     navigate('/');
@@ -37,7 +39,7 @@ const NotFound = ({ isDarkMode = false }) => {
       </Typography>
       
       <Typography variant="h4" component="h2" gutterBottom>
-        页面未找到
+        {t('notFound.pageNotFound')}
       </Typography>
       
       <Typography 
@@ -47,7 +49,7 @@ const NotFound = ({ isDarkMode = false }) => {
           color: isDarkMode ? 'text.secondary' : 'text.primary'
         }}
       >
-        抱歉，您访问的页面不存在或已被移除。
+        {t('notFound.pageNotFoundMessage')}
       </Typography>
       
       <Button
@@ -60,7 +62,7 @@ const NotFound = ({ isDarkMode = false }) => {
           py: 1.5
         }}
       >
-        返回首页
+        {t('notFound.backToHome')}
       </Button>
     </Container>
   );

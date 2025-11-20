@@ -21,7 +21,8 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
-  Breadcrumbs
+  Breadcrumbs,
+  Link
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -29,9 +30,10 @@ import {
   CopyAll as CopyAllIcon
 } from '@mui/icons-material'
 import { authAPI } from '../services/api/authAPI'
-import { formatSmartTime } from '../utils/dateUtils'
+import { formatSmartTime } from '../utils/dateUtils';
 import { useAuth } from '../contexts/AuthContext'
 import { apikeyAPI } from '../services/api/apikeyAPI'
+import { useTranslation } from 'react-i18next'
 
 const Settings = ({ isDarkMode }) => {
   const { user } = useAuth();
@@ -41,6 +43,7 @@ const Settings = ({ isDarkMode }) => {
   const [apiKeyName, setApiKeyName] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [generatedApiKey, setGeneratedApiKey] = useState(null); // To show API key only once
+  const { t, i18n } = useTranslation();
 
   // Fetch API keys when component mounts
   useEffect(() => {
@@ -57,7 +60,7 @@ const Settings = ({ isDarkMode }) => {
       setApiKeys(sortedKeys);
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
-      showSnackbar('获取 API 密钥失败', 'error');
+      showSnackbar(t('settings.fetchApiKeysFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -74,10 +77,10 @@ const Settings = ({ isDarkMode }) => {
       fetchApiKeys();
       // Reset the dialog form
       setApiKeyName('');
-      showSnackbar('API 密钥生成成功', 'success');
+      showSnackbar(t('settings.generateApiKeySuccess'), 'success');
     } catch (error) {
       console.error('Failed to generate API key:', error);
-      showSnackbar('API 密钥生成失败', 'error');
+      showSnackbar(t('settings.generateApiKeyFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -93,10 +96,10 @@ const Settings = ({ isDarkMode }) => {
       setApiKeys(apiKeys.map(key =>
         key._id === apiKeyId ? { ...key, status: newStatus } : key
       ));
-      showSnackbar('API 密钥状态更新成功', 'success');
+      showSnackbar(t('settings.updateApiKeyStatusSuccess'), 'success');
     } catch (error) {
       console.error('Failed to update API key status:', error);
-      showSnackbar('API 密钥状态更新失败', 'error');
+      showSnackbar(t('settings.updateApiKeyStatusFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -106,10 +109,10 @@ const Settings = ({ isDarkMode }) => {
   const handleCopyApiKey = async () => {
     try {
       await navigator.clipboard.writeText(generatedApiKey.api_key);
-      showSnackbar('API 密钥已复制到剪贴板', 'success');
+      showSnackbar(t('settings.copyApiKeySuccess'), 'success');
     } catch (error) {
       console.error('Failed to copy API key:', error);
-      showSnackbar('API 密钥复制失败', 'error');
+      showSnackbar(t('settings.copyApiKeyFailed'), 'error');
     }
   };
 
@@ -120,10 +123,10 @@ const Settings = ({ isDarkMode }) => {
       await apikeyAPI.deleteApiKey(apiKeyId);
       // Update the local state
       setApiKeys(apiKeys.filter(key => key._id !== apiKeyId));
-      showSnackbar('API 密钥删除成功', 'success');
+      showSnackbar(t('settings.deleteApiKeySuccess'), 'success');
     } catch (error) {
       console.error('Failed to delete API key:', error);
-      showSnackbar('API 密钥删除失败', 'error');
+      showSnackbar(t('settings.deleteApiKeyFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -156,7 +159,7 @@ const Settings = ({ isDarkMode }) => {
 
   // 将状态转换为中文显示
   const getStatusText = (status) => {
-    return status === 'active' ? '已启用' : '已禁用';
+    return status === 'active' ? t('settings.active') : t('settings.inactive');
   };
 
   if (loading) {
@@ -170,16 +173,20 @@ const Settings = ({ isDarkMode }) => {
     <Container maxWidth="1050">
       <Box sx={{ mt: 4, mb: 4, height: 'calc(100vh - 200px)' }}>
         {/* 面包屑导航 */}
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Typography>设置</Typography>
+        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
+          <Link underline="hover" color="inherit" href="/">
+            {t('navigation.home')}
+          </Link>
+          <Typography color="text.primary">{t('settings.settings')}</Typography>
         </Breadcrumbs>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
-          设置
+
+        <Typography variant="h4" component="h1" gutterBottom>
+          {t('settings.settings')}
         </Typography>
         <Paper sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6">
-              API 密钥
+            <Typography variant="h5" component="h2">
+              {t('settings.apiKeys')}
             </Typography>
             <Button
               variant="contained"
@@ -187,7 +194,7 @@ const Settings = ({ isDarkMode }) => {
               onClick={() => setOpenDialog(true)}
               disabled={loading}
             >
-              生成新 API 密钥
+              {t('settings.generateNewApiKey')}
             </Button>
           </Box>
 
@@ -195,11 +202,11 @@ const Settings = ({ isDarkMode }) => {
             <Table sx={{ minWidth: 1050 }} aria-label="API keys table">
               <TableHead>
                 <TableRow>
-                  <TableCell>名称</TableCell>
-                  <TableCell>密钥预览</TableCell>
-                  <TableCell>状态</TableCell>
-                  <TableCell>创建时间</TableCell>
-                  <TableCell>启用/禁用和删除</TableCell>
+                  <TableCell>{t('settings.name')}</TableCell>
+                  <TableCell>{t('settings.keyPreview')}</TableCell>
+                  <TableCell>{t('settings.status')}</TableCell>
+                  <TableCell>{t('settings.createdAt')}</TableCell>
+                  <TableCell>{t('settings.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -209,36 +216,37 @@ const Settings = ({ isDarkMode }) => {
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
                     <TableCell component="th" scope="row">
-                      {apiKey.name || '未命名'}
+                      {apiKey.name || t('settings.unnamed')}
                     </TableCell>
                     <TableCell>{apiKey.key_preview}</TableCell>
                     <TableCell>
                       <Chip
-                        label={getStatusText(apiKey.status)}
+                        label={apiKey.status === 'active' ? t('settings.active') : t('settings.inactive')}
                         color={getStatusColor(apiKey.status)}
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>{formatSmartTime(apiKey.created_at)}</TableCell>
+                    <TableCell>{formatSmartTime(apiKey.created_at, t)}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Switch
-                          checked={apiKey.status === 'active'}
-                          onChange={() => handleToggleApiKeyStatus(apiKey._id, apiKey.status)}
-                          disabled={loading}
-                          color="primary"
-                        />
-                        <Button
-                          size="small"
-                          color="error"
-                          variant="contained"
-                          startIcon={<DeleteIcon />}
-                          onClick={() => handleDeleteApiKey(apiKey._id)}
-                          disabled={loading}
-                        >
-                          删除
-                        </Button>
-                      </Box>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => handleToggleApiKeyStatus(apiKey._id, apiKey.status === 'active' ? 'inactive' : 'active')}
+                            disabled={loading}
+                          >
+                            {apiKey.status === 'active' ? t('settings.disable') : t('settings.enable')}
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            onClick={() => handleDeleteApiKey(apiKey._id)}
+                            disabled={loading}
+                          >
+                            {t('settings.delete')}
+                          </Button>
+                        </Box>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -256,24 +264,24 @@ const Settings = ({ isDarkMode }) => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>生成新 API 密钥</DialogTitle>
+        <DialogTitle>{t('settings.generateNewApiKey')}</DialogTitle>
         <DialogContent>
           {!generatedApiKey && (
             <TextField
               autoFocus
               margin="dense"
-              label={"API 密钥名称"}
+              label={t('settings.apiKeyName')}
               type="text"
               fullWidth
               value={apiKeyName}
               onChange={(e) => setApiKeyName(e.target.value)}
-              helperText="为您的 API 密钥输入一个描述性名称"
+              helperText={t('settings.apiKeyNameHelper')}
             />
           )}
           {generatedApiKey && (
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
-                您的 API 密钥:（立即复制，您将不会再次看到它！请认真记住它！）
+                {t('settings.yourApiKey')}
               </Typography>
               <Paper sx={{ p: 2, bgcolor: 'background.paper' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -287,19 +295,19 @@ const Settings = ({ isDarkMode }) => {
                     onClick={handleCopyApiKey}
                     disabled={loading}
                   >
-                    复制
+                    {t('settings.copy')}
                   </Button>
                 </Box>
               </Paper>
               <Alert severity="info" sx={{ mt: 2 }}>
-                这是您此生唯一一次机会来看到此 API 密钥。请安全存储！
+                {t('settings.apiKeyWarning')}
               </Alert>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog} disabled={loading}>
-            取消
+            {t('settings.cancel')}
           </Button>
           {!generatedApiKey ? (
             <Button
@@ -307,7 +315,7 @@ const Settings = ({ isDarkMode }) => {
               variant="contained"
               disabled={loading}
             >
-              生成
+              {t('settings.generate')}
             </Button>
           ) : (
             <Button
@@ -315,7 +323,7 @@ const Settings = ({ isDarkMode }) => {
               variant="contained"
               disabled={loading}
             >
-              完成
+              {t('settings.done')}
             </Button>
           )}
         </DialogActions>

@@ -14,17 +14,20 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { LockOutlined, LightMode, DarkMode } from '@mui/icons-material';
+import { LockOutlined, LightMode, DarkMode, Language as LanguageIcon } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 function Copyright(props) {
+  const { t, i18n } = useTranslation();
+  
   return (
     <Typography variant="body2" color="text.secondary" align="center" {...props}>
       {'Copyright © '}
       <Link color="inherit" href="#">
-        智能代码审查系统
+        {t('app.title')}
       </Link>{' '}
       {new Date().getFullYear()}
       {'.'}
@@ -32,7 +35,7 @@ function Copyright(props) {
   );
 }
 
-const Register = ({ onThemeToggle, isDarkMode }) => {
+const Register = ({ onThemeToggle, isDarkMode, onLanguageToggle }) => {
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -43,6 +46,19 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { t, i18n } = useTranslation();
+
+  // 语言切换处理函数
+  const handleLanguageToggle = () => {
+    const currentLang = i18n.language
+    const newLang = currentLang === 'zh' ? 'en' : 'zh'
+    i18n.changeLanguage(newLang)
+    
+    // 如果有外部语言切换回调，则调用
+    if (onLanguageToggle) {
+      onLanguageToggle(newLang)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,9 +73,21 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
     setLoading(true);
     setError('');
 
-    // 验证密码
+    // 表单验证
+    if (!formData.email || !formData.username || !formData.password || !formData.confirmPassword) {
+      setError(t('auth.fillAllFields'));
+      setLoading(false);
+      return;
+    }
+    
     if (formData.password !== formData.confirmPassword) {
-      setError('两次输入的密码不一致');
+      setError(t('auth.passwordMismatch'));
+      setLoading(false);
+      return;
+    }
+    
+    if (formData.password.length < 6) {
+      setError(t('auth.passwordMinLength'));
       setLoading(false);
       return;
     }
@@ -79,7 +107,7 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
         setError(result.error);
       }
     } catch (err) {
-      setError('注册失败，请稍后再试');
+      setError(t('auth.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -87,11 +115,16 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
 
   return (
     <Container component="main" maxWidth="sm">
-      {/* 主题切换按钮 */}
-      <Box sx={{ position: 'absolute', top: 20, right: 20 }}>
-        <Tooltip title={isDarkMode ? '切换到浅色主题' : '切换到深色主题'}>
+      {/* 主题切换按钮和语言切换按钮 */}
+      <Box sx={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: 1 }}>
+        <Tooltip title={isDarkMode ? t('app.switchToLight') : t('app.switchToDark')}>
           <IconButton color="inherit" onClick={onThemeToggle}>
             {isDarkMode ? <LightMode /> : <DarkMode />}
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t('language.switch')}>
+          <IconButton color="inherit" onClick={handleLanguageToggle}>
+            <LanguageIcon />
           </IconButton>
         </Tooltip>
       </Box>
@@ -114,10 +147,10 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
           >
             
             <Typography component="h1" variant="h4">
-              智能代码审查系统
+              {t('app.title')}
             </Typography>
             <Typography component="h2" variant="h5" sx={{ mt: 2 }}>
-              注册
+              {t('auth.register')}
             </Typography>
           </Box>
           
@@ -129,7 +162,7 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
               required
               fullWidth
               id="email"
-              label="邮箱地址"
+              label={t('auth.email')}
               name="email"
               autoComplete="email"
               autoFocus
@@ -141,7 +174,7 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
               required
               fullWidth
               id="username"
-              label="用户名"
+              label={t('auth.username')}
               name="username"
               autoComplete="username"
               value={formData.username}
@@ -152,7 +185,7 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
               required
               fullWidth
               name="password"
-              label="密码"
+              label={t('auth.password')}
               type="password"
               id="password"
               autoComplete="new-password"
@@ -164,7 +197,7 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
               required
               fullWidth
               name="confirmPassword"
-              label="确认密码"
+              label={t('auth.confirmPassword')}
               type="password"
               id="confirmPassword"
               autoComplete="new-password"
@@ -179,13 +212,13 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              {loading ? <CircularProgress size={24} /> : '注册'}
+              {loading ? <CircularProgress size={24} /> : t('auth.register')}
             </Button>
             
             <Grid container>
               <Grid>
                 <Link href="/login" variant="body2">
-                  已有账户？立即登录
+                  {t('auth.haveAccount')}
                 </Link>
               </Grid>
             </Grid>

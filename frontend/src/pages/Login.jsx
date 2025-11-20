@@ -16,13 +16,14 @@ import {
   IconButton,
   Tooltip
 } from '@mui/material';
-import { LockOutlined, LightMode, DarkMode } from '@mui/icons-material';
+import { LockOutlined, LightMode, DarkMode, Language as LanguageIcon } from '@mui/icons-material';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 
-const Login = ({ onThemeToggle, isDarkMode }) => {
+const Login = ({ onThemeToggle, isDarkMode, onLanguageToggle }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,6 +33,19 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t, i18n } = useTranslation();
+
+  // 语言切换处理函数
+  const handleLanguageToggle = () => {
+    const currentLang = i18n.language
+    const newLang = currentLang === 'zh' ? 'en' : 'zh'
+    i18n.changeLanguage(newLang)
+    
+    // 如果有外部语言切换回调，则调用
+    if (onLanguageToggle) {
+      onLanguageToggle(newLang)
+    }
+  }
 
   const handleChange = (e) => {
     const { name, value, checked } = e.target;
@@ -57,7 +71,7 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
         setError(result.error);
       }
     } catch (err) {
-      setError('登录失败，请稍后再试');
+      setError(t('auth.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -65,11 +79,16 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
 
   return (
     <Container component="main" maxWidth="sm">
-      {/* 主题切换按钮 */}
-      <Box sx={{ position: 'absolute', top: 20, right: 20 }}>
-        <Tooltip title={isDarkMode ? '切换到浅色主题' : '切换到深色主题'}>
+      {/* 主题切换按钮和语言切换按钮 */}
+      <Box sx={{ position: 'absolute', top: 20, right: 20, display: 'flex', gap: 1 }}>
+        <Tooltip title={isDarkMode ? t('app.switchToLight') : t('app.switchToDark')}>
           <IconButton color="inherit" onClick={onThemeToggle}>
             {isDarkMode ? <LightMode /> : <DarkMode />}
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={t('app.switchLanguage')}>
+          <IconButton color="inherit" onClick={handleLanguageToggle}>
+            <LanguageIcon />
           </IconButton>
         </Tooltip>
       </Box>
@@ -92,10 +111,10 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
           >
             
             <Typography component="h1" variant="h4">
-              智能代码审查系统
+              {t('app.title')}
             </Typography>
             <Typography component="h2" variant="h5" sx={{ mt: 2 }}>
-              登录
+              {t('auth.login')}
             </Typography>
           </Box>
           
@@ -107,7 +126,7 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
               required
               fullWidth
               id="email"
-              label="邮箱地址或用户名"
+              label={t('auth.emailOrUsername')}
               name="email"
               autoComplete="email"
               autoFocus
@@ -119,7 +138,7 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
               required
               fullWidth
               name="password"
-              label="密码"
+              label={t('auth.password')}
               type="password"
               id="password"
               autoComplete="current-password"
@@ -135,7 +154,7 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
                   onChange={handleChange}
                 />
               }
-              label="记住我"
+              label={t('auth.rememberMe')}
             />
             <Button
               type="submit"
@@ -144,12 +163,12 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
               sx={{ mt: 3, mb: 2 }}
               disabled={loading}
             >
-              {loading ? <CircularProgress size={24} /> : '登录'}
+              {loading ? <CircularProgress size={24} /> : t('auth.login')}
             </Button>
             <Grid container>
               <Grid>
                 <Link href="/register" variant="body2">
-                  没有账户？立即注册
+                  {t('auth.noAccount')}
                 </Link>
               </Grid>
             </Grid>
