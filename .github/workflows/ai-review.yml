@@ -172,16 +172,22 @@ jobs:
 
             # 对历史未修复问题添加特殊前缀和提示
             if [ "$historical" = "true" ]; then
-              header="**⚠️ [历史未修复问题] ⚠️**\n"
-              extra_note="\n**提示**: 此问题已在历史审查中多次提及，请优先处理"
+              # 创建带有换行的header和提示
+              header="**⚠️ [历史未修复问题] ⚠️**"
+              extra_note=$'\n\n**提示**: 此问题已在历史审查中多次提及，请优先处理'
             else
-              header="**AI 代码审查意见**\n"
+              header="**AI 代码审查意见**"
               extra_note=""
             fi
 
-            # 拼接评论内容（包含历史问题标识）
-            body=$(printf "%s**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s%s" \
-              "$header" "$type" "$desc" "$sug" "$sev" "$extra_note")
+            # 拼接评论内容（包含历史问题标识）- 使用多行printf确保换行正确处理
+            if [ "$historical" = "true" ]; then
+              body=$(printf '%s\n\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s\n\n**提示**: 此问题已在历史审查中多次提及，请优先处理' \
+                "**⚠️ [历史未修复问题] ⚠️**" "$type" "$desc" "$sug" "$sev")
+            else
+              body=$(printf '%s\n\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s' \
+                "**AI 代码审查意见**" "$type" "$desc" "$sug" "$sev")
+            fi
 
             echo "Attempting to add inline comment to $file:$line"
 
