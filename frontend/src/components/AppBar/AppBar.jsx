@@ -19,7 +19,12 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
-  Tooltip
+  Tooltip,
+  Paper,
+  ListItemIcon,
+  ListItemButton,
+  CircularProgress,
+  Popover
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -29,11 +34,14 @@ import {
   LightMode,
   DarkMode,
   ExpandMore,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Code as CodeIcon
 } from '@mui/icons-material'
 import { alpha, styled } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { codeReviewAPI } from '../../services/api/codeReviewAPI'
+import { formatSmartTime } from '../../utils/dateUtils'
 
 // 自定义搜索框组件
 const Search = styled('div')(({ theme }) => ({
@@ -114,9 +122,134 @@ const AppBar = ({
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null)
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
   
+  // 搜索相关状态
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchAnchorEl, setSearchAnchorEl] = useState(null)
+  const searchRef = useRef(null)
+  const inputRef = useRef(null)
+  
   const isMenuOpen = Boolean(anchorEl)
   const isMobileMenuOpen = Boolean(mobileMenuAnchorEl)
   const isNotificationMenuOpen = Boolean(notificationAnchorEl)
+  const isSearchOpen = Boolean(searchAnchorEl)
+
+  // 处理点击外部区域关闭搜索菜单
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchAnchorEl(null)
+        setSearchResults([])
+      }
+    }
+
+    if (isSearchOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [isSearchOpen])
+
+  // 保持输入框焦点
+  useEffect(() => {
+    if (isSearchOpen && inputRef.current) {
+      // 确保搜索框保持焦点
+      inputRef.current.focus()
+    }
+  }, [isSearchOpen, searchResults])
+
+  // 搜索函数
+  const handleSearch = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([])
+      setSearchAnchorEl(null)
+      return
+    }
+
+    setIsSearching(true)
+    
+    try {
+      // 优先从localStorage获取数据
+      const cachedReviews = localStorage.getItem('cachedReviews')
+      let reviews = []
+      
+      if (cachedReviews) {
+        reviews = JSON.parse(cachedReviews)
+      } else {
+        // 如果localStorage中没有数据，调用API获取
+        reviews = await codeReviewAPI.getReviewHistory({})
+        // 缓存到localStorage
+        localStorage.setItem('cachedReviews', JSON.stringify(reviews))
+      }
+      
+      // 过滤搜索结果
+      const filteredResults = reviews.filter(review => 
+        review.pr_title?.toLowerCase().includes(query.toLowerCase()) ||
+        review.pr_number?.toString().includes(query) ||
+        review.repo_name?.toLowerCase().includes(query.toLowerCase()) ||
+        review.author?.toLowerCase().includes(query.toLowerCase())||
+        review._id?.toLowerCase().includes(query.toLowerCase())
+      )
+      
+      const results = filteredResults.slice(0, 5) // 最多显示5个结果
+      setSearchResults(results)
+      
+      // 只有当有搜索结果或正在搜索时才显示菜单
+      if (results.length > 0 || isSearching) {
+        setSearchAnchorEl(searchRef.current)
+      }
+    } catch (error) {
+      console.error('搜索失败:', error)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  // 搜索输入变化处理
+  const handleSearchChange = (event) => {
+    const query = event.target.value
+    setSearchQuery(query)
+    
+    // 防抖处理，避免频繁搜索
+    clearTimeout(searchRef.current?.timeout)
+    searchRef.current.timeout = setTimeout(() => {
+      handleSearch(query)
+    }, 300)
+  }
+
+  // 点击搜索结果处理
+  const handleSearchResultClick = (review) => {
+    navigate(`/reviews/${review._id || review.id}`)
+    setSearchQuery('')
+    setSearchResults([])
+    setSearchAnchorEl(null)
+  }
+
+  // 处理输入框获得焦点
+  const handleInputFocus = () => {
+    if (searchQuery.trim() && searchResults.length > 0) {
+      setSearchAnchorEl(searchRef.current)
+    }
+  }
+
+  // 处理输入框失去焦点
+  const handleInputBlur = () => {
+    // 延迟关闭，给点击事件时间处理
+    setTimeout(() => {
+      if (document.activeElement?.closest('[data-menu]') == null) {
+        setSearchAnchorEl(null)
+      }
+    }, 150)
+  }
+
+  // 关闭搜索下拉菜单
+  const handleSearchClose = () => {
+    setSearchAnchorEl(null)
+    setSearchResults([])
+  }
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget)
@@ -228,6 +361,59 @@ const AppBar = ({
     </Menu>
   )
 
+  // 搜索下拉菜单
+  const renderSearchMenu = (
+    <Popover
+      open={isSearchOpen}
+      anchorEl={searchAnchorEl}
+      onClose={handleSearchClose}
+      anchorOrigin={{
+        vertical: 'bottom',
+        horizontal: 'left',
+      }}
+      transformOrigin={{
+        vertical: 'top',
+        horizontal: 'left',
+      }}
+      PaperProps={{
+        sx: {
+          maxHeight: 300,
+          width: searchRef.current ? searchRef.current.offsetWidth : 300,
+          mt: 0.5,
+        },
+        'data-menu': true
+      }}
+    >
+      {isSearching ? (
+        <MenuItem disabled data-menu>
+          <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
+            <CircularProgress size={20} />
+            <Typography variant="body2" sx={{ ml: 2 }}>搜索中...</Typography>
+          </Box>
+        </MenuItem>
+      ) : searchResults.length > 0 ? (
+        searchResults.map((review, index) => (
+          <MenuItem key={index} onClick={() => handleSearchResultClick(review)} data-menu>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="body2" noWrap>
+                {review.pr_title}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {formatSmartTime(review.created_at)}
+              </Typography>
+            </Box>
+          </MenuItem>
+        ))
+      ) : searchQuery.trim() ? (
+        <MenuItem disabled data-menu>
+          <Typography variant="body2" color="text.secondary">
+            未找到匹配的审查记录
+          </Typography>
+        </MenuItem>
+      ) : null}
+    </Popover>
+  )
 
   // 移动端抽屉菜单
   const drawer = (
@@ -288,15 +474,23 @@ const AppBar = ({
             <Box sx={{ flexGrow: 1 }} />
             
             {showSearch && (
-              <Search>
-                <SearchIconWrapper>
-                  <SearchIcon />
-                </SearchIconWrapper>
-                <StyledInputBase
-                  placeholder="搜索..."
-                  inputProps={{ 'aria-label': 'search' }}
-                />
-              </Search>
+              <Box sx={{ position: 'relative' }} ref={searchRef}>
+                <Search>
+                  <SearchIconWrapper>
+                    <SearchIcon />
+                  </SearchIconWrapper>
+                  <StyledInputBase
+                    ref={inputRef}
+                    placeholder="搜索..."
+                    inputProps={{ 'aria-label': 'search' }}
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                  />
+                </Search>
+                {renderSearchMenu}
+              </Box>
             )}
             
             <Box sx={{ display: 'flex' }}>

@@ -9,8 +9,8 @@ from app.models.reputation import ReputationUpdatePayload
 from app.models.user import UserResponse
 from app.models.codereview import (
     CodeReviewCreate, CodeReviewUpdate, CodeReviewResponse, 
-    CodeReviewStats, CodeReviewListResponse, AgentOutput,
-    ReviewStatus
+    ReviewStatus, CodeReviewBaseResponse, CodeReviewDetailResponse,
+    SimpleCodeReviewListResponse
 )
 from app.utils.apikey import require_api_key
 from app.utils.userauth import require_bearer
@@ -192,7 +192,39 @@ async def update_reputation(payload: ReputationUpdatePayload):
 
 
 # ==============================
-# ⭐ 根据ID获取审查记录
+# ⭐ 根据ID获取审查记录基础信息
+# ==============================
+@router.get("/reviews/{review_id}/base", response_model=CodeReviewBaseResponse)
+async def get_review_base_by_id(
+    review_id: str,
+    username: Optional[str] = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """根据审查记录ID获取基础信息（不包含大字段）"""  
+    review = await code_review_service.get_review_by_id(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="审查记录未找到")
+    
+    return review
+
+# ==============================
+# ⭐ 根据ID获取审查记录详细信息
+# ==============================
+@router.get("/reviews/{review_id}/detail", response_model=CodeReviewDetailResponse)
+async def get_review_detail_by_id(
+    review_id: str,
+    username: Optional[str] = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """根据审查记录ID获取详细信息（包含所有字段）"""  
+    review = await code_review_service.get_review_by_id(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="审查记录未找到")
+    
+    return review
+
+# ==============================
+# ⭐ 根据ID获取审查记录（保持向后兼容）
 # ==============================
 @router.get("/reviews/{review_id}", response_model=CodeReviewResponse)
 async def get_review_by_id(
@@ -200,7 +232,7 @@ async def get_review_by_id(
     username: Optional[str] = Depends(require_bearer),
     code_review_service: CodeReviewService = Depends(get_code_review_service)
 ):
-    """根据审查记录ID获取详细的审查信息"""  
+    """根据审查记录ID获取详细的审查信息（保持向后兼容）"""  
     review = await code_review_service.get_review_by_id(review_id)
     if not review:
         raise HTTPException(status_code=404, detail="审查记录未找到")
@@ -209,7 +241,39 @@ async def get_review_by_id(
 
 
 # ==============================
-# ⭐ 根据GitHub Action ID获取审查记录
+# ⭐ 根据GitHub Action ID获取审查记录基础信息
+# ==============================
+@router.get("/reviews/github-action/{github_action_id}/base", response_model=CodeReviewBaseResponse)
+async def get_review_base_by_github_action_id(
+    github_action_id: str,
+    username: str = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """根据GitHub Action ID获取审查记录基础信息"""
+    review = await code_review_service.get_review_by_github_action_id(github_action_id, username)
+    if not review:
+        raise HTTPException(status_code=404, detail="GitHub Action对应的审查记录未找到")
+    
+    return review
+
+# ==============================
+# ⭐ 根据GitHub Action ID获取审查记录详细信息
+# ==============================
+@router.get("/reviews/github-action/{github_action_id}/detail", response_model=CodeReviewDetailResponse)
+async def get_review_detail_by_github_action_id(
+    github_action_id: str,
+    username: str = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """根据GitHub Action ID获取审查记录详细信息"""
+    review = await code_review_service.get_review_by_github_action_id(github_action_id, username)
+    if not review:
+        raise HTTPException(status_code=404, detail="GitHub Action对应的审查记录未找到")
+    
+    return review
+
+# ==============================
+# ⭐ 根据GitHub Action ID获取审查记录（保持向后兼容）
 # ==============================
 @router.get("/reviews/github-action/{github_action_id}", response_model=CodeReviewResponse)
 async def get_review_by_github_action_id(
@@ -217,7 +281,7 @@ async def get_review_by_github_action_id(
     username: str = Depends(require_bearer),
     code_review_service: CodeReviewService = Depends(get_code_review_service)
 ):
-    """根据GitHub Action ID获取审查记录"""
+    """根据GitHub Action ID获取审查记录（保持向后兼容）"""
     review = await code_review_service.get_review_by_github_action_id(github_action_id, username)
     if not review:
         raise HTTPException(status_code=404, detail="GitHub Action对应的审查记录未找到")
@@ -228,7 +292,7 @@ async def get_review_by_github_action_id(
 # ==============================
 # ⭐ 获取审查记录列表
 # ==============================
-@router.get("/reviews", response_model=CodeReviewListResponse)
+@router.get("/reviews", response_model=SimpleCodeReviewListResponse)
 async def list_reviews(
     username: str = Depends(require_bearer),
     code_review_service: CodeReviewService = Depends(get_code_review_service),
@@ -243,9 +307,6 @@ async def list_reviews(
     
     return await code_review_service.list_reviews(
         username=username,
-        status=status,
-        repo_owner=repo_owner,
-        repo_name=repo_name,
         skip=skip,
         limit=size
     )
@@ -253,26 +314,24 @@ async def list_reviews(
 
 
 # ==============================
-# ⭐ 获取当前用户最近一条审查记录
+# ⭐ 获取当前用户最近一条审查记录基础信息
 # ==============================
-@router.get("/review-latest", response_model=CodeReviewResponse)
-async def get_latest_review_by_current_user(
+@router.get("/review-latest/base", response_model=CodeReviewBaseResponse)
+async def get_latest_review_base_by_current_user(
     username: str = Depends(require_bearer),
     code_review_service: CodeReviewService = Depends(get_code_review_service)
 ):
     """
-    获取当前授权用户的最近一条代码审查记录
+    获取当前授权用户的最近一条代码审查记录基础信息
     
     Returns:
-        CodeReviewResponse: 最近一条审查记录的详细信息
+        CodeReviewBaseResponse: 最近一条审查记录的基础信息
     """
     if not username:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="需要认证才能查询个人审查记录"
         )
-    else:
-        logger.error(f"当前用户: {username}")
     
     try:
         # 获取当前用户的最近一条审查记录（使用用户名查询）
@@ -296,6 +355,140 @@ async def get_latest_review_by_current_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="获取最近审查记录失败，请稍后重试"
         )
+
+# ==============================
+# ⭐ 获取当前用户最近一条审查记录详细信息
+# ==============================
+@router.get("/review-latest/detail", response_model=CodeReviewDetailResponse)
+async def get_latest_review_detail_by_current_user(
+    username: str = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """
+    获取当前授权用户的最近一条代码审查记录详细信息
+    
+    Returns:
+        CodeReviewDetailResponse: 最近一条审查记录的详细信息
+    """
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="需要认证才能查询个人审查记录"
+        )
+    
+    try:
+        # 获取当前用户的最近一条审查记录（使用用户名查询）
+        latest_review = await code_review_service.get_latest_review_by_username(
+            username=username
+        )
+        
+        if not latest_review:
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT,
+                detail="当前用户暂无审查记录"
+            )
+        
+        return latest_review
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取最近审查记录失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取最近审查记录失败，请稍后重试"
+        )
+
+# ==============================
+# ⭐ 获取当前用户最近一条审查记录（保持向后兼容）
+# ==============================
+@router.get("/review-latest", response_model=CodeReviewResponse)
+async def get_latest_review_by_current_user(
+    username: str = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """
+    获取当前授权用户的最近一条代码审查记录（保持向后兼容）
+    
+    Returns:
+        CodeReviewResponse: 最近一条审查记录的详细信息
+    """
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="需要认证才能查询个人审查记录"
+        )
+    
+    try:
+        # 获取当前用户的最近一条审查记录（使用用户名查询）
+        latest_review = await code_review_service.get_latest_review_by_username(
+            username=username
+        )
+        
+        if not latest_review:
+            raise HTTPException(
+                status_code=status.HTTP_204_NO_CONTENT,
+                detail="当前用户暂无审查记录"
+            )
+        
+        return latest_review
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取最近审查记录失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="获取最近审查记录失败，请稍后重试"
+        )
+
+
+# ==============================
+# ⭐ 标记问题
+# ==============================
+class MarkIssuePayload(BaseModel):
+    """标记问题请求模型"""
+    issue_id: str = Field(..., description="问题项序号")
+    marked: bool = Field(..., description="是否标记")
+
+@router.post("/reviews/{review_id}/mark-issue")
+async def mark_issue(
+    review_id: str,
+    payload: MarkIssuePayload,
+    username: str = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """标记或取消标记问题项"""
+    # 获取当前审查记录
+    review = await code_review_service.get_review_by_id(review_id)
+    if not review:
+        raise HTTPException(status_code=404, detail="审查记录未找到")
+    
+    # 获取当前标记的问题列表
+    current_marked_issues = review.marked_issues or []
+    
+    if payload.marked:
+        # 标记问题
+        if payload.issue_id not in current_marked_issues:
+            current_marked_issues.append(payload.issue_id)
+    else:
+        # 取消标记
+        if payload.issue_id in current_marked_issues:
+            current_marked_issues.remove(payload.issue_id)
+    
+    # 更新数据库
+    update_data = CodeReviewUpdate(marked_issues=current_marked_issues)
+    success = await code_review_service.update_review(review_id, update_data)
+    
+    if not success:
+        raise HTTPException(status_code=500, detail="更新标记失败")
+    
+    return {
+        "review_id": review_id,
+        "issue_id": payload.issue_id,
+        "marked": payload.marked,
+        "marked_issues": current_marked_issues
+    }
 
 
 # ==============================

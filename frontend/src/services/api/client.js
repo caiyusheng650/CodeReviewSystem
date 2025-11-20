@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_REACT_APP_API_URL || 'http://192.168.1.102:8000';
 
 // Create an axios instance with base URL
 export const apiClient = axios.create({

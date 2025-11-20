@@ -98,6 +98,9 @@ class CodeReviewService:
         if update_data.final_result is not None:
             update_doc["final_result"] = update_data.final_result
             logger.debug("更新final_result字段")
+        if update_data.marked_issues is not None:
+            update_doc["marked_issues"] = update_data.marked_issues
+            logger.debug("更新marked_issues，数量: %d", len(update_data.marked_issues))
         
         logger.debug("更新文档内容: %s", update_doc)
         

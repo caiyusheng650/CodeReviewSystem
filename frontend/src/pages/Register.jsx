@@ -183,9 +183,9 @@ const Register = ({ onThemeToggle, isDarkMode }) => {
             </Button>
             
             <Grid container>
-              <Grid item>
-                <Link component="button" variant="body2" onClick={() => navigate('/login')}>
-                  {"已有账户？登录"}
+              <Grid>
+                <Link href="/login" variant="body2">
+                  已有账户？立即登录
                 </Link>
               </Grid>
             </Grid>

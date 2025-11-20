@@ -147,9 +147,9 @@ const Login = ({ onThemeToggle, isDarkMode }) => {
               {loading ? <CircularProgress size={24} /> : '登录'}
             </Button>
             <Grid container>
-              <Grid item>
-                <Link component="button" variant="body2" onClick={() => navigate('/register')}>
-                  {"没有账户？注册"}
+              <Grid>
+                <Link href="/register" variant="body2">
+                  没有账户？立即注册
                 </Link>
               </Grid>
             </Grid>
