@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   Box, Breadcrumbs, Button, Card, CardContent, Chip, CircularProgress,
   Tabs, Tab, Typography, Alert, Divider, IconButton, Tooltip, TextField,
@@ -27,6 +28,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
   const [searchText, setSearchText] = useState('');
+  const { t, i18n } = useTranslation();
 
   // 从主题中获取严重程度映射
   const SeverityMap = theme.severityMap;
@@ -45,7 +47,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
     groupedData,
     handleMarkIssue,
     setError
-  } = useHomeData(authUser, propUser);
+  } = useHomeData(authUser, propUser, t);
 
   // 自动刷新逻辑 - 当审查未完成时，每30秒刷新页面
   useEffect(() => {
@@ -62,21 +64,23 @@ const Home = ({ isDarkMode, user: propUser }) => {
   // 统计问题数量
   const getIssueCount = () => {
     return {
-      严重: parsedFinalResult.filter(item => item.severity === '严重').length,
-      中等: parsedFinalResult.filter(item => item.severity === '中等').length,
-      轻微: parsedFinalResult.filter(item => item.severity === '轻度').length,
-      表扬: parsedFinalResult.filter(item => item.severity === '表扬').length,
+      [t('sidebar.criticalIssues')]: parsedFinalResult.filter(item => item.severity === '严重').length,
+      [t('sidebar.moderateIssues')]: parsedFinalResult.filter(item => item.severity === '中等').length,
+      [t('sidebar.minorIssues')]: parsedFinalResult.filter(item => item.severity === '轻度').length,
+      [t('sidebar.highPraise')]: parsedFinalResult.filter(item => item.severity === '表扬').length,
       历史未修复: parsedFinalResult.filter(item => item.historical_mention).length
     };
   };
 
   // 获取合并建议
   const getMergeSuggestion = () => {
-    const { 严重, 中等 } = getIssueCount();
-    if (严重 > 0 || 中等 > 0) {
-      return { suggestion: '不建议合并', color: 'error' };
+    const issueCount = getIssueCount();
+    const criticalIssues = issueCount[t('sidebar.criticalIssues')];
+    const moderateIssues = issueCount[t('sidebar.moderateIssues')];
+    if (criticalIssues > 0 || moderateIssues > 0) {
+      return { suggestion: t('sidebar.notRecommended'), color: 'error' };
     }
-    return { suggestion: '建议合并', color: 'success' };
+    return { suggestion: t('sidebar.recommended'), color: 'success' };
   };
 
 
@@ -101,7 +105,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
           onClick={() => window.location.reload()}
           sx={{ mt: 2 }}
         >
-          重试
+          {t('common.retry')}
         </Button>
       </Box>
     );
@@ -113,20 +117,20 @@ const Home = ({ isDarkMode, user: propUser }) => {
       <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
         <Breadcrumbs sx={{ mb: 2 }}>
           <Typography linkComponent="button" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-            首页
+            {t('navigation.home')}
           </Typography>
-          <Typography>审查记录</Typography>
-          <Typography>暂无记录</Typography>
+          <Typography>{t('navigation.reviews')}</Typography>
+          <Typography>{t('home.noRecords')}</Typography>
         </Breadcrumbs>
         <Card sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
-            暂无代码审查记录
+            {t('home.noReviewRecords')}
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            提交PR后将自动触发AI代码审查，审查完成后可在此查看结果
+            {t('home.submitPRPrompt')}
           </Typography>
           <Button variant="contained" onClick={() => navigate('/')}>
-            返回首页
+            {t('common.back')} {t('navigation.home')}
           </Button>
         </Card>
       </Box>
@@ -139,10 +143,10 @@ const Home = ({ isDarkMode, user: propUser }) => {
         {/* 面包屑导航 */}
         <Breadcrumbs sx={{ mb: 3 }}>
           <Typography linkComponent="button" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-            首页
+            {t('navigation.home')}
           </Typography>
           <Typography linkComponent="button" onClick={() => navigate('/reviews')} sx={{ cursor: 'pointer' }}>
-            审查记录
+            {t('navigation.reviews')}
           </Typography>
           <Typography>PR #{latestReview.pr_number}</Typography>
         </Breadcrumbs>
@@ -150,7 +154,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
         {/* 页面标题 */}
         <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Typography variant="h4" component="h1" gutterBottom>
-            PR #{latestReview.pr_number} 智能代码审查
+            PR #{latestReview.pr_number} {t('home.intelligentCodeReview')}
           </Typography>
         </Box>
 
@@ -162,7 +166,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
             
             {/* 状态标题 */}
             <Typography variant="h5" color="primary">
-              智能代码审查进行中...
+              {t('home.reviewInProgress')}
             </Typography>
             
 
@@ -172,28 +176,28 @@ const Home = ({ isDarkMode, user: propUser }) => {
         {/* PR基本信息 */}
         <Card sx={{ p: 3 }}>
           <Typography variant="h6" gutterBottom>
-            PR 基本信息
+            {t('home.prBasicInfo')}
           </Typography>
           <Divider sx={{ mb: 2 }} />
           
           <Box display="grid" gridTemplateColumns="repeat(auto-fit, minmax(250px, 1fr))" gap={3}>
             {/* PR编号 */}
             <Box>
-              <Typography variant="subtitle2" color="text.secondary">PR编号</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('home.prNumber')}</Typography>
               <Typography variant="body1">#{latestReview.pr_number}</Typography>
             </Box>
             
             {/* 仓库名称 */}
             <Box>
-              <Typography variant="subtitle2" color="text.secondary">仓库</Typography>
-              <Typography variant="body1">{latestReview.repo_name || '未指定'}</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('home.repository')}</Typography>
+              <Typography variant="body1">{latestReview.repo_name || t('home.unknown')}</Typography>
             </Box>
                 
             {/* 创建时间 */}
             <Box>
-              <Typography variant="subtitle2" color="text.secondary">创建时间</Typography>
+              <Typography variant="subtitle2" color="text.secondary">{t('home.creationTime')}</Typography>
               <Typography variant="body1">
-                {latestReview.created_at ? new Date(latestReview.created_at).toLocaleString('zh-CN') : '未知'}
+                {latestReview.created_at ? new Date(latestReview.created_at).toLocaleString() : t('home.unknown')}
               </Typography>
             </Box>
           </Box>
@@ -202,7 +206,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
         {/* 自动刷新提示 */}
         <Box sx={{ mt: 3, textAlign: 'center',mb : '100vh'}}>
           <Typography variant="body2" color="text.secondary">
-            页面会自动刷新，请勿关闭
+            {t('home.autoRefreshPrompt')}
           </Typography>
         </Box>
       </Box>
@@ -214,10 +218,10 @@ const Home = ({ isDarkMode, user: propUser }) => {
       {/* 面包屑导航 */}
       <Breadcrumbs sx={{ mb: 3 }}>
         <Typography linkComponent="button" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-          首页
+          {t('navigation.home')}
         </Typography>
         <Typography linkComponent="button" onClick={() => navigate('/reviews')} sx={{ cursor: 'pointer' }}>
-          审查记录
+          {t('navigation.reviews')}
         </Typography>
         <Typography>PR #{latestReview.pr_number}</Typography>
       </Breadcrumbs>
@@ -225,16 +229,16 @@ const Home = ({ isDarkMode, user: propUser }) => {
       {/* 页面标题+操作按钮 */}
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          PR #{latestReview.pr_number} 智能代码审查结果
+          PR #{latestReview.pr_number} {t('home.intelligentCodeReview')} {t('home.reviewResults')}
         </Typography>
         <Box display="flex" gap={2}>
-          <Tooltip title="导出审查报告">
+          <Tooltip title={t('home.exportReport')}>
             <Button
               variant="outlined"
               startIcon={<DownloadIcon />}
               onClick={() => handleExportReport(latestReview)}
             >
-              导出报告
+              {t('home.exportReport')}
             </Button>
           </Tooltip>
         </Box>
@@ -261,7 +265,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
           <Box sx={{ mb: 3, width: '100%' }}>
             <TextField
               fullWidth
-              placeholder="搜索文件/问题描述/建议..."
+              placeholder={t('home.searchPlaceholder')}
               variant="outlined"
               size="small"
               value={searchText}
@@ -275,11 +279,11 @@ const Home = ({ isDarkMode, user: propUser }) => {
           {/* 问题详情标签页 */}
           <Box sx={{ mb: 4 }}>
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-              <Tab label="按类型分类" />
-              <Tab label="按文件分类" />
-              <Tab label="按程度分类" />
-              <Tab label="顽固问题" />
-              <Tab label="已标记问题" />
+              <Tab label={t('home.byType')} />
+              <Tab label={t('home.byFile')} />
+              <Tab label={t('home.bySeverity')} />
+              <Tab label={t('home.persistentIssues')} />
+              <Tab label={t('home.markedIssues')} />
             </Tabs>
             <Divider sx={{ mb: 2 }} />
 

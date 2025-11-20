@@ -35,13 +35,15 @@ import {
   DarkMode,
   ExpandMore,
   Logout as LogoutIcon,
-  Code as CodeIcon
+  Code as CodeIcon,
+  Language as LanguageIcon
 } from '@mui/icons-material'
 import { alpha, styled } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { codeReviewAPI } from '../../services/api/codeReviewAPI'
-import { formatSmartTime } from '../../utils/dateUtils'
+import { formatSmartTime } from '../../utils/dateUtils';
+import { useTranslation } from 'react-i18next'
 
 // 自定义搜索框组件
 const Search = styled('div')(({ theme }) => ({
@@ -98,7 +100,7 @@ function HideOnScroll(props) {
 }
 
 const AppBar = ({
-  title = "智能代码审查系统",
+  title = t('app.title'),
   menuItems = [],
   user = null,
   onMenuClick,
@@ -107,12 +109,14 @@ const AppBar = ({
   showNotifications = true,
   onThemeToggle,
   isDarkMode = false,
+  onLanguageToggle,
   window
 }) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const navigate = useNavigate()
   const { user: authUser, logout } = useAuth()
+  const { t, i18n } = useTranslation()
   
   // 使用传入的用户或认证上下文中的用户
   const currentUser = user || authUser
@@ -121,6 +125,18 @@ const AppBar = ({
   const [mobileMenuAnchorEl, setMobileMenuAnchorEl] = useState(null)
   const [notificationAnchorEl, setNotificationAnchorEl] = useState(null)
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
+  
+  // 语言切换处理函数
+  const handleLanguageToggle = () => {
+    const currentLang = i18n.language
+    const newLang = currentLang === 'zh' ? 'en' : 'zh'
+    i18n.changeLanguage(newLang)
+    
+    // 如果有外部语言切换回调，则调用
+    if (onLanguageToggle) {
+      onLanguageToggle(newLang)
+    }
+  }
   
   // 搜索相关状态
   const [searchQuery, setSearchQuery] = useState('')
@@ -302,9 +318,6 @@ const AppBar = ({
     handleMenuClose()
   }
 
-  const menuId = 'primary-search-account-menu'
-  const mobileMenuId = 'primary-search-account-menu-mobile'
-  const notificationMenuId = 'primary-search-notification-menu'
 
   // 移动端菜单
   const renderMobileMenu = (
@@ -339,24 +352,20 @@ const AppBar = ({
         </MenuItem>
       )}
       
-      <MenuItem onClick={handleProfileMenuOpen}>
-        <IconButton
-          size="large"
-          aria-label="account of current user"
-          aria-controls="primary-search-account-menu"
-          aria-haspopup="true"
-          color="inherit"
-        >
-          <AccountCircle />
-        </IconButton>
-        <p>个人资料</p>
-      </MenuItem>
+      
       
       <MenuItem onClick={onThemeToggle}>
         <IconButton size="large" color="inherit">
           {isDarkMode ? <LightMode /> : <DarkMode />}
         </IconButton>
-        <p>{isDarkMode ? '切换到浅色主题' : '切换到深色主题'}</p>
+        <p>{isDarkMode ? t('app.switchToLight') : t('app.switchToDark')}</p>
+      </MenuItem>
+      
+      <MenuItem onClick={handleLanguageToggle}>
+        <IconButton size="large" color="inherit">
+          <LanguageIcon />
+        </IconButton>
+        <p>{t('language.switch')} ({i18n.language === 'zh' ? t('language.chinese') : t('language.english')})</p>
       </MenuItem>
     </Menu>
   )
@@ -388,7 +397,7 @@ const AppBar = ({
         <MenuItem disabled data-menu>
           <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'center' }}>
             <CircularProgress size={20} />
-            <Typography variant="body2" sx={{ ml: 2 }}>搜索中...</Typography>
+            <Typography variant="body2" sx={{ ml: 2 }}>{t('app.searching')}</Typography>
           </Box>
         </MenuItem>
       ) : searchResults.length > 0 ? (
@@ -400,7 +409,7 @@ const AppBar = ({
                 {review.pr_title}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {formatSmartTime(review.created_at)}
+                {formatSmartTime(review.created_at, t)}
               </Typography>
             </Box>
           </MenuItem>
@@ -408,7 +417,7 @@ const AppBar = ({
       ) : searchQuery.trim() ? (
         <MenuItem disabled data-menu>
           <Typography variant="body2" color="text.secondary">
-            未找到匹配的审查记录
+            {t('app.noResults')}
           </Typography>
         </MenuItem>
       ) : null}
@@ -481,7 +490,7 @@ const AppBar = ({
                   </SearchIconWrapper>
                   <StyledInputBase
                     ref={inputRef}
-                    placeholder="搜索..."
+                    placeholder={t('app.searchPlaceholder')}
                     inputProps={{ 'aria-label': 'search' }}
                     value={searchQuery}
                     onChange={handleSearchChange}
@@ -494,11 +503,19 @@ const AppBar = ({
             )}
             
             <Box sx={{ display: 'flex' }}>
-              {/* 主题切换按钮 */}
-              <IconButton size="large" color="inherit" onClick={onThemeToggle}>
-                {isDarkMode ? <LightMode /> : <DarkMode />}
-              </IconButton>
+              {/* 语言切换按钮 */}
+              <Tooltip title={t('language.switch')}>
+                <IconButton size="large" color="inherit" onClick={handleLanguageToggle}>
+                  <LanguageIcon />
+                </IconButton>
+              </Tooltip>
               
+              {/* 主题切换按钮 */}
+              <Tooltip title={isDarkMode ? t('app.switchToLight') : t('app.switchToDark')}>
+                <IconButton size="large" color="inherit" onClick={onThemeToggle}>
+                  {isDarkMode ? <LightMode /> : <DarkMode />}
+                </IconButton>
+              </Tooltip>
               
               {/* 用户名显示 */}
               <Button
@@ -506,11 +523,11 @@ const AppBar = ({
                 onClick={handleProfileMenuOpen}
                 sx={{ ml: 1 }}
               >
-                {currentUser ? currentUser.username : '用户'}
+                {currentUser ? currentUser.username : t('common.user')}
               </Button>
 
               {/* 登出按钮 */}
-              <Tooltip title="登出">
+              <Tooltip title={t('auth.logout')}>
                 <IconButton
                   color="inherit"
                   onClick={() => handleUserMenuItemClick('logout')}

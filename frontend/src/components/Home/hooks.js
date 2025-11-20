@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { codeReviewAPI } from '../../services/api/codeReviewAPI';
 import { groupIssues } from './utils';
 
-export const useHomeData = (authUser, propUser) => {
+export const useHomeData = (authUser, propUser, t = null) => {
   const [user, setUser] = useState(propUser || authUser);
   const [latestReview, setLatestReview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +61,7 @@ export const useHomeData = (authUser, propUser) => {
         }
 
         // 分组数据
-        const grouped = groupIssues(resultArr, latestReview.marked_issues || []);
+        const grouped = groupIssues(resultArr, latestReview.marked_issues || [], t);
         setGroupedData(grouped);
       } catch (err) {
         setError('解析审查结果失败：' + err.message);
@@ -87,7 +87,7 @@ export const useHomeData = (authUser, propUser) => {
       
       // 重新分组数据
       const resultArr = Object.values(latestReview.final_result);
-      const grouped = groupIssues(resultArr, response.marked_issues);
+      const grouped = groupIssues(resultArr, response.marked_issues, t);
       setGroupedData(grouped);
       
     } catch (err) {

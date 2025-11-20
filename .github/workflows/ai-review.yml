@@ -142,7 +142,7 @@ jobs:
                 "  - 类型: **" + .value.bug_type + "**\n" +
                 "  - 程度: **" + .value.severity + "**\n" +
                 # 历史问题补充提示文字
-                (if .value.historical_mention == true then "  -  提示: 此问题已在历史审查中多次提及，请优先修复\n" else "" end) +
+                (if .value.historical_mention == true then "  - 提示: 此问题已在历史审查中多次提及，请优先修复\n" else "" end) +
                 "  - 描述: " + .value.description + "\n" +
                 "  - 建议: " + .value.suggestion + "\n"
               ) | join("\n")

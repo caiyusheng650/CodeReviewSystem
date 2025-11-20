@@ -6,8 +6,8 @@ import {
 
 // 审查状态枚举映射（对应后端ReviewStatus）
 export const StatusMap = {
-  pending: { label: '待审查', color: 'default', icon: InfoIcon },
-  processing: { label: '审查中', color: 'primary', icon: InfoIcon },
-  completed: { label: '已完成', color: 'success', icon: CheckCircleIcon },
-  failed: { label: '审查失败', color: 'error', icon: ErrorIcon }
+  pending: { label: 'pending', color: 'default', icon: InfoIcon },
+  processing: { label: 'processing', color: 'primary', icon: InfoIcon },
+  completed: { label: 'completed', color: 'success', icon: CheckCircleIcon },
+  failed: { label: 'failed', color: 'error', icon: ErrorIcon }
 };

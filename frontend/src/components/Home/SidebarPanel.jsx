@@ -2,13 +2,15 @@ import React from 'react';
 import {
   Box, Card, CardContent, Typography, Chip, Grid, Paper, Table, TableBody, TableRow, TableCell, Tooltip, TableContainer, Alert, useTheme
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle as CheckCircleIcon, Error as ErrorIcon, Info as InfoIcon } from '@mui/icons-material';
-import { formatChineseDateTime } from '../../utils/dateUtils';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const SidebarPanel = ({ latestReview,setActiveTab }) => {
   const theme = useTheme();
   const SeverityMap = theme.severityMap;
   const isDarkMode = theme.palette.mode === 'dark';
+  const { t } = useTranslation();
   
   // 根据主题模式获取背景颜色
   const getBgColor = (severity) => {
@@ -136,8 +138,8 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
 
                 <TableRow>
                   <TableCell sx={{ border: 'none', padding: '4px 0', textAlign: 'left', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    <Tooltip title={formatChineseDateTime(latestReview.created_at)}>
-                      <span>{formatChineseDateTime(latestReview.created_at)}</span>
+                    <Tooltip title={formatDateTime(latestReview.created_at, {}, t)}>
+                      <span>{formatDateTime(latestReview.created_at, {}, t)}</span>
                     </Tooltip>
                   </TableCell>
                 </TableRow>
@@ -150,7 +152,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
 
       {/* 合并建议 */}
       <Alert severity={mergeSuggestion.color} sx={{ mb: 3 }}>
-        <Typography variant="h7">{mergeSuggestion.suggestion}</Typography>
+        <Typography variant="h7">{mergeSuggestion.suggestion === '建议合并' ? t('sidebar.recommended') : t('sidebar.notRecommended')}</Typography>
       </Alert>
 
 
@@ -158,7 +160,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
       <Grid container spacing={2} sx={{ mb: 3 }} direction="column">
         <Grid size={12} onClick={() => setActiveTab(2)}>
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('严重') }}>
-            <Typography color="text.secondary">严重问题</Typography>
+            <Typography color="text.secondary">{t('sidebar.criticalIssues')}</Typography>
             <Typography color="error" variant="h5">
               {issueStats.bySeverity.严重 || 0}
             </Typography>
@@ -166,7 +168,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
         </Grid>
         <Grid size={12} onClick={() => setActiveTab(2)}>
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('中等') }}>
-            <Typography color="text.secondary">中等问题</Typography>
+            <Typography color="text.secondary">{t('sidebar.moderateIssues')}</Typography>
             <Typography color="warning" variant="h5">
               {issueStats.bySeverity.中等 || 0}
             </Typography>
@@ -174,7 +176,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
         </Grid>
         <Grid size={12} onClick={() => setActiveTab(2)}>
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('轻微') }}>
-            <Typography color="text.secondary">轻微问题</Typography>
+            <Typography color="text.secondary">{t('sidebar.minorIssues')}</Typography>
             <Typography color="info" variant="h5">
               {issueStats.bySeverity.轻微 || 0}
             </Typography>
@@ -182,7 +184,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
         </Grid>
         <Grid size={12} onClick={() => setActiveTab(2)}>
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('表扬') }}>
-            <Typography color="text.secondary">郑重表扬</Typography>
+            <Typography color="text.secondary">{t('sidebar.highPraise')}</Typography>
             <Typography color="success" variant="h5">
               {issueStats.bySeverity.表扬 || 0}
             </Typography>
@@ -190,7 +192,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
         </Grid>
         <Grid size={12} onClick={() => setActiveTab(2)}>
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('顽固') }}>
-            <Typography color="text.secondary">顽固问题</Typography>
+            <Typography color="text.secondary">{t('sidebar.persistentIssues')}</Typography>
             <Typography color="secondary" variant="h5">
               {issueStats.bySeverity.顽固 || 0}
             </Typography>

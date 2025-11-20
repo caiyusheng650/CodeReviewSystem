@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { codeReviewAPI } from '../services/api/codeReviewAPI';
+import { useTranslation } from 'react-i18next';
 import {
   Box, Breadcrumbs, Button, Card, CardContent, Chip, CircularProgress,
   Accordion, AccordionSummary, AccordionDetails, Tabs, Tab, Typography,
@@ -17,25 +18,26 @@ import {
 
 // 审查状态枚举映射（对应后端ReviewStatus）
 const StatusMap = {
-  pending: { label: '待审查', color: 'default', icon: <InfoIcon /> },
-  processing: { label: '审查中', color: 'primary', icon: <CircularProgress size={16} /> },
-  completed: { label: '已完成', color: 'success', icon: <CheckCircleIcon /> },
-  failed: { label: '审查失败', color: 'error', icon: <ErrorIcon /> }
+  pending: { label: 'reviews.pending', color: 'default', icon: <InfoIcon /> },
+  processing: { label: 'reviews.inProgress', color: 'primary', icon: <CircularProgress size={16} /> },
+  completed: { label: 'reviews.completed', color: 'success', icon: <CheckCircleIcon /> },
+  failed: { label: 'reviews.failed', color: 'error', icon: <ErrorIcon /> }
 };
 
-// 严重程度样式映射
-const SeverityMap = {
-  严重: { color: 'error', bgColor: '#ffebee', label: '严重' },
-  中等: { color: 'warning', bgColor: '#fff8e1', label: '中等' },
-  轻微: { color: 'info', bgColor: '#e3f2fd', label: '轻微' },
-  表扬: { color: 'success', bgColor: '#e8f5e9', label: '表扬' }
-};
+// 严重程度样式映射函数
+const getSeverityMap = (t) => ({
+  严重: { color: 'error', bgColor: '#ffebee', label: t('home.severity.critical') },
+  中等: { color: 'warning', bgColor: '#fff8e1', label: t('home.severity.medium') },
+  轻微: { color: 'info', bgColor: '#e3f2fd', label: t('home.severity.minor') },
+  表扬: { color: 'success', bgColor: '#e8f5e9', label: t('home.severity.praise') }
+});
 
 
 
 const Home = ({ isDarkMode, user: propUser }) => {
   const navigate = useNavigate();
   const { user: authUser, logout } = useAuth();
+  const { t, i18n } = useTranslation();
   const [user, setUser] = useState(propUser || authUser);
   const [latestReview, setLatestReview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -201,21 +203,23 @@ const Home = ({ isDarkMode, user: propUser }) => {
   // 统计问题数量
   const getIssueCount = () => {
     return {
-      严重: parsedFinalResult.filter(item => item.severity === '严重').length,
-      中等: parsedFinalResult.filter(item => item.severity === '中等').length,
-      轻微: parsedFinalResult.filter(item => item.severity === '轻度').length,
-      表扬: parsedFinalResult.filter(item => item.severity === '表扬').length,
+      [t('sidebar.criticalIssues')]: parsedFinalResult.filter(item => item.severity === '严重').length,
+      [t('sidebar.moderateIssues')]: parsedFinalResult.filter(item => item.severity === '中等').length,
+      [t('sidebar.minorIssues')]: parsedFinalResult.filter(item => item.severity === '轻度').length,
+      [t('sidebar.highPraise')]: parsedFinalResult.filter(item => item.severity === '表扬').length,
       历史未修复: parsedFinalResult.filter(item => item.historical_mention).length
     };
   };
 
   // 获取合并建议
   const getMergeSuggestion = () => {
-    const { 严重, 中等 } = getIssueCount();
-    if (严重 > 0 || 中等 > 0) {
-      return { suggestion: '不建议合并', color: 'error' };
+    const issueCount = getIssueCount();
+    const criticalIssues = issueCount[t('sidebar.criticalIssues')];
+    const moderateIssues = issueCount[t('sidebar.moderateIssues')];
+    if (criticalIssues > 0 || moderateIssues > 0) {
+      return { suggestion: t('sidebar.notRecommended'), color: 'error' };
     }
-    return { suggestion: '建议合并', color: 'success' };
+    return { suggestion: t('sidebar.recommended'), color: 'success' };
   };
 
   const issueCount = getIssueCount();
@@ -242,7 +246,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
           onClick={() => window.location.reload()}
           sx={{ mt: 2 }}
         >
-          重试
+          {t('common.retry')}
         </Button>
       </Box>
     );
@@ -254,20 +258,20 @@ const Home = ({ isDarkMode, user: propUser }) => {
       <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
         <Breadcrumbs sx={{ mb: 2 }}>
           <Typography linkComponent="button" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-            首页
+            {t('navigation.home')}
           </Typography>
-          <Typography>审查记录</Typography>
-          <Typography>暂无记录</Typography>
+          <Typography>{t('reviews.reviewRecords')}</Typography>
+          <Typography>{t('reviews.noRecords')}</Typography>
         </Breadcrumbs>
         <Card sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="h6" sx={{ mb: 2 }}>
-            暂无代码审查记录
+            {t('home.noReviewRecords')}
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            提交PR后将自动触发AI代码审查，审查完成后可在此查看结果
+            {t('home.submitPRPrompt')}
           </Typography>
           <Button variant="contained" onClick={() => navigate('/')}>
-            返回首页
+            {t('common.back')} {t('navigation.home')}
           </Button>
         </Card>
       </Box>
@@ -279,10 +283,10 @@ const Home = ({ isDarkMode, user: propUser }) => {
       {/* 面包屑导航 */}
       <Breadcrumbs sx={{ mb: 3 }}>
         <Typography linkComponent="button" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-          首页
+          {t('navigation.home')}
         </Typography>
         <Typography linkComponent="button" onClick={() => navigate('/reviews')} sx={{ cursor: 'pointer' }}>
-          审查记录
+          {t('reviews.reviewRecords')}
         </Typography>
         <Typography>PR #{latestReview.pr_number}</Typography>
       </Breadcrumbs>
@@ -290,17 +294,17 @@ const Home = ({ isDarkMode, user: propUser }) => {
       {/* 页面标题+操作按钮 */}
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          PR #{latestReview.pr_number} 智能代码审查结果
+          PR #{latestReview.pr_number} {t('home.intelligentCodeReview')}
         </Typography>
         <Box display="flex" gap={2}>
           
-          <Tooltip title="导出审查报告">
+          <Tooltip title={t('home.exportReport')}>
             <Button
               variant="outlined"
               startIcon={<DownloadIcon />}
               onClick={handleExportReport}
             >
-              导出报告
+              {t('home.exportReport')}
             </Button>
           </Tooltip>
         </Box>
@@ -325,7 +329,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
                 <Table size="small">
                   <TableBody>
                     <TableRow>
-                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>仓库</TableCell>
+                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>{t('home.repository')}</TableCell>
                       <TableCell sx={{ border: 'none', padding: '4px 0', textAlign: 'right', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <Tooltip title={`https://github.com/${latestReview.repo_owner}/${latestReview.repo_name}`}>
                           <a 
@@ -346,7 +350,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>PR标题</TableCell>
+                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>{t('reviews.prTitle')}</TableCell>
                       <TableCell sx={{ border: 'none', padding: '4px 0', textAlign: 'right', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <Tooltip title={`${latestReview.pr_title} `}>
                           <a 
@@ -367,7 +371,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>PR提交者</TableCell>
+                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>{t('reviews.author')}</TableCell>
                       <TableCell sx={{ border: 'none', padding: '4px 0', textAlign: 'right', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <Tooltip title={`https://github.com/${latestReview.author}`}>
                           <a 
@@ -388,11 +392,11 @@ const Home = ({ isDarkMode, user: propUser }) => {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>审查状态</TableCell>
+                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>{t('reviews.status')}</TableCell>
                       <TableCell sx={{ border: 'none', padding: '4px 0', textAlign: 'right' }}>
                         <Chip
                           icon={StatusMap[latestReview.status]?.icon}
-                          label={StatusMap[latestReview.status]?.label}
+                          label={t(StatusMap[latestReview.status]?.label) || latestReview.status}
                           color={StatusMap[latestReview.status]?.color}
                           variant="outlined"
                           size="small"
@@ -400,7 +404,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>审查时间</TableCell>
+                      <TableCell sx={{ border: 'none', padding: '4px 8px 4px 0', fontWeight: 'bold' }}>{t('reviews.creationTime')}</TableCell>
                       <TableCell sx={{ border: 'none', padding: '4px 0', textAlign: 'right', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         <Tooltip title={new Date(latestReview.created_at).toLocaleString()}>
                           <span>{new Date(latestReview.created_at).toLocaleString()}</span>
@@ -423,7 +427,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
           <Grid container spacing={2} sx={{ mb: 3 }} direction="column">
             <Grid size={12}>
               <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#ffebee' }}>
-                <Typography color="text.secondary">严重问题</Typography>
+                <Typography color="text.secondary">{t('home.severity.critical')}</Typography>
                 <Typography color="error" variant="h5">
                   {issueCount.严重}
                 </Typography>
@@ -431,7 +435,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
             </Grid>
             <Grid size={12}>
               <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#fff8e1' }}>
-                <Typography color="text.secondary">中等问题</Typography>
+                <Typography color="text.secondary">{t('home.severity.medium')}</Typography>
                 <Typography color="warning" variant="h5">
                   {issueCount.中等}
                 </Typography>
@@ -439,7 +443,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
             </Grid>
             <Grid size={12}>
               <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#e3f2fd' }}>
-                <Typography color="text.secondary">轻微问题</Typography>
+                <Typography color="text.secondary">{t('home.severity.minor')}</Typography>
                 <Typography color="info" variant="h5">
                   {issueCount.轻微}
                 </Typography>
@@ -447,7 +451,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
             </Grid>
             <Grid size={12}>
               <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#e8f5e9' }}>
-                <Typography color="text.secondary">郑重表扬</Typography>
+                <Typography color="text.secondary">{t('home.severity.praise')}</Typography>
                 <Typography color="success" variant="h5">
                   {issueCount.表扬}
                 </Typography>
@@ -455,7 +459,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
             </Grid>
             <Grid size={12}>
               <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#f3e5f5' }}>
-                <Typography color="text.secondary">顽固问题</Typography>
+                <Typography color="text.secondary">{t('home.persistentIssues')}</Typography>
                 <Typography color="purple" variant="h5">
                   {issueCount.历史未修复}
                 </Typography>
@@ -487,11 +491,11 @@ const Home = ({ isDarkMode, user: propUser }) => {
           {/* 问题详情标签页 */}
           <Box sx={{ mb: 4 }}>
             <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-              <Tab label="按类型分类" />
-              <Tab label="按文件分类" />
-              <Tab label="按程度分类" />
-              <Tab label="顽固的问题" />
-              <Tab label="已标记问题" />
+              <Tab label={t('tabPanels.byType')} />
+              <Tab label={t('tabPanels.byFile')} />
+              <Tab label={t('tabPanels.bySeverity')} />
+              <Tab label={t('tabPanels.persistentIssues')} />
+              <Tab label={t('tabPanels.markedIssues')} />
             </Tabs>
             <Divider sx={{ mb: 2 }} />
 
@@ -570,8 +574,8 @@ const Home = ({ isDarkMode, user: propUser }) => {
 
                                 
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                                  <Typography color="text.secondary" sx={{ mb: 0.5 }}>行号</Typography>
-                                  <Typography>{issue.line || '无'}</Typography>
+                                  <Typography color="text.secondary" sx={{ mb: 0.5 }}>{t('reviewDetail.lineNumber')}</Typography>
+                                  <Typography>{issue.line || t('reviewDetail.none')}</Typography>
                                 </Grid>
                                 <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                                   <Typography color="text.secondary" sx={{ mb: 0.5 }}>标记</Typography>

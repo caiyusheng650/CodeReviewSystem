@@ -2,6 +2,7 @@ import React from 'react';
 import {
   Box, Accordion, AccordionSummary, AccordionDetails, Chip, Typography, useTheme
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import IssueDisplay from './IssueDisplay';
 
@@ -15,6 +16,7 @@ const TabPanels = ({
   handleMarkIssue
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation();
   // 从主题中获取严重程度映射
   const SeverityMap = theme.severityMap;
   
@@ -34,10 +36,10 @@ const TabPanels = ({
 
           const getDisplayName = (key) => {
             switch (key) {
-              case '已标记': return '已标记问题';
-              case '未标记': return '未标记问题';
-              case '顽固问题': return '顽固问题';
-              case '普通问题': return '普通问题';
+              case '已标记': return t('tabPanels.markedIssues');
+              case '未标记': return t('tabPanels.unmarkedIssues');
+              case '顽固问题': return t('tabPanels.persistentIssues');
+              case '普通问题': return t('tabPanels.normalIssues');
               default: return key;
             }
           };
@@ -52,7 +54,7 @@ const TabPanels = ({
                   </Typography>
                   <Box display="flex" gap={1}>
                     <Chip
-                      label={`${filteredIssues.length}个问题`}
+                      label={t('tabPanels.issuesCount', { count: filteredIssues.length })}
                       color="default"
                       size="small"
                     />

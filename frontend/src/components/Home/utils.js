@@ -26,10 +26,15 @@ export const handleExportReport = (latestReview) => {
 };
 
 // 分组问题数据
-export const groupIssues = (resultArr, markedIssues = []) => {
+export const groupIssues = (resultArr, markedIssues = [], t = null) => {
+  // 默认翻译函数，如果没有提供翻译函数，则返回原字符串
+  const translate = (key, fallback) => {
+    return t ? t(key) : fallback;
+  };
+
   // 按文件分组
   const groupedByFile = resultArr.reduce((acc, item) => {
-    const key = item.file || '未知文件';
+    const key = item.file || translate('utils.unknownFile', '未知文件');
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
@@ -37,7 +42,7 @@ export const groupIssues = (resultArr, markedIssues = []) => {
 
   // 按问题类型分组
   const groupedByType = resultArr.reduce((acc, item) => {
-    const key = item.bug_type || '未知类型';
+    const key = item.bug_type || translate('utils.unknownType', '未知类型');
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
@@ -45,7 +50,7 @@ export const groupIssues = (resultArr, markedIssues = []) => {
 
   // 按严重程度分组
   const groupedBySeverity = resultArr.reduce((acc, item) => {
-    const key = item.severity || '未知程度';
+    const key = item.severity || translate('utils.unknownSeverity', '未知程度');
     if (!acc[key]) acc[key] = [];
     acc[key].push(item);
     return acc;
@@ -54,7 +59,7 @@ export const groupIssues = (resultArr, markedIssues = []) => {
   // 按标记分组
   const groupedByMarked = resultArr.reduce((acc, item, index) => {
     const isMarked = markedIssues.includes(index.toString());
-    const key = isMarked ? '已标记' : '未标记';
+    const key = isMarked ? translate('utils.marked', '已标记') : translate('utils.unmarked', '未标记');
     if (!acc[key]) acc[key] = [];
     acc[key].push({ ...item, index });
     return acc;
@@ -63,7 +68,7 @@ export const groupIssues = (resultArr, markedIssues = []) => {
   // 按顽固问题分组
   const groupedByHistorical = resultArr.reduce((acc, item, index) => {
     const isHistorical = item.historical_mention;
-    const key = isHistorical ? '顽固问题' : '普通问题';
+    const key = isHistorical ? translate('utils.persistentIssue', '顽固问题') : translate('utils.normalIssue', '普通问题');
     if (!acc[key]) acc[key] = [];
     acc[key].push({ ...item, index });
     return acc;
