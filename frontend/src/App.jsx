@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import { CssBaseline, Box, CircularProgress, Typography } from '@mui/material'
 import { Warning, Devices, ArrowForward } from '@mui/icons-material'
@@ -15,6 +15,8 @@ import AppBar from './components/AppBar/AppBar'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { I18nextProvider, useTranslation } from 'react-i18next'
 import i18n from './i18n'
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
+import PublicRoute from './components/PublicRoute/PublicRoute'
 import './App.css'
 
 // 内部应用组件，使用认证上下文
@@ -33,7 +35,6 @@ function Layout({ children, onThemeToggle, isDarkMode }) {
 
   // 语言切换处理函数
   const handleLanguageToggle = (newLang) => {
-    console.log(`语言已切换到: ${newLang}`);
   };
 
   return (
@@ -162,76 +163,82 @@ function AppContent() {
         <Router>
           <Layout onThemeToggle={handleThemeToggle} isDarkMode={isDarkMode}>
             <Routes>
-              {/* 登录页面路由 */}
+              {/* 登录页面路由 - 使用PublicRoute */}
               <Route
                 path="/login"
                 element={
-                  isAuthenticated ?
-                    <Navigate to="/" replace /> :
-                    <Login onThemeToggle={handleThemeToggle} isDarkMode={isDarkMode} />
+                  <PublicRoute
+                    component={Login}
+                    props={{ onThemeToggle: handleThemeToggle, isDarkMode }}
+                  />
                 }
               />
 
-              {/* 注册页面路由 */}
+              {/* 注册页面路由 - 使用PublicRoute */}
               <Route
                 path="/register"
                 element={
-                  isAuthenticated ?
-                    <Navigate to="/" replace /> :
-                    <Register onThemeToggle={handleThemeToggle} isDarkMode={isDarkMode} />
+                  <PublicRoute
+                    component={Register}
+                    props={{ onThemeToggle: handleThemeToggle, isDarkMode }}
+                  />
                 }
               />
 
-              {/* 受保护的路由 */}
+              {/* 受保护的路由 - 使用ProtectedRoute */}
               <Route
                 path="/"
                 element={
-                  isAuthenticated ?
-                    <Home onThemeToggle={handleThemeToggle} isDarkMode={isDarkMode} user={user} /> :
-                    <Navigate to="/login" replace />
+                  <ProtectedRoute
+                    component={Home}
+                    props={{ onThemeToggle: handleThemeToggle, isDarkMode, user }}
+                  />
                 }
               />
 
-              {/* 设置页面路由 */}
+              {/* 设置页面路由 - 使用ProtectedRoute */}
               <Route
                 path="/settings"
                 element={
-                  isAuthenticated ?
-                    <Settings isDarkMode={isDarkMode} user={user} /> :
-                    <Navigate to="/login" replace />
+                  <ProtectedRoute
+                    component={Settings}
+                    props={{ isDarkMode, user }}
+                  />
                 }
               />
 
-              {/* 审查列表页面路由 */}
+              {/* 审查列表页面路由 - 使用ProtectedRoute */}
               <Route
                 path="/reviews"
                 element={
-                  isAuthenticated ?
-                    <Reviews isDarkMode={isDarkMode} /> :
-                    <Navigate to="/login" replace />
+                  <ProtectedRoute
+                    component={Reviews}
+                    props={{ isDarkMode }}
+                  />
                 }
               />
 
-            {/* 审查详情页面路由（带reviewId参数） */}
-            <Route
-              path="/reviews/:reviewId"
-              element={
-                isAuthenticated ?
-                  <ReviewDetail isDarkMode={isDarkMode} /> :
-                  <Navigate to="/login" replace />
-              }
-            />
+              {/* 审查详情页面路由 - 使用ProtectedRoute */}
+              <Route
+                path="/reviews/:reviewId"
+                element={
+                  <ProtectedRoute
+                    component={ReviewDetail}
+                    props={{ isDarkMode }}
+                  />
+                }
+              />
 
-            {/* 404页面 - 需要放在最后 */}
-            <Route
-              path="*"
-              element={<NotFound isDarkMode={isDarkMode} />}
-            />
-          </Routes>
-        </Layout>
-      </Router>
-        </ThemeProvider>
-      </I18nextProvider>
+              {/* 404页面 - 不需要认证 */}
+              <Route
+                path="*"
+                element={<NotFound isDarkMode={isDarkMode} />}
+              />
+            </Routes>
+          </Layout>
+        </Router>
+      </ThemeProvider>
+    </I18nextProvider>
   )
 }
 
