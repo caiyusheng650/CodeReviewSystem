@@ -137,13 +137,12 @@ jobs:
             (
               .issues | to_entries | map(
                 # 对历史未修复问题添加醒目标识
-                (if .value.historical_mention == true then "⚠️ **[历史未修复问题]**\n" else "" end) +
                 "- **文件**: " + .value.file +
                 " (行 " + (.value.line|tostring) + ")\n" +
                 "  - 类型: **" + .value.bug_type + "**\n" +
                 "  - 程度: **" + .value.severity + "**\n" +
                 # 历史问题补充提示文字
-                (if .value.historical_mention == true then "  - ⚠️ 提示: 此问题已在历史审查中多次提及，请优先修复\n" else "" end) +
+                (if .value.historical_mention == true then "  -  提示: 此问题已在历史审查中多次提及，请优先修复\n" else "" end) +
                 "  - 描述: " + .value.description + "\n" +
                 "  - 建议: " + .value.suggestion + "\n"
               ) | join("\n")
