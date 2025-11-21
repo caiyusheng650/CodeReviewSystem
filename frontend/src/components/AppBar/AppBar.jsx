@@ -143,6 +143,7 @@ const AppBar = ({
   const [searchResults, setSearchResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchAnchorEl, setSearchAnchorEl] = useState(null)
+  const [searchError, setSearchError] = useState('')
   const searchRef = useRef(null)
   const inputRef = useRef(null)
   
@@ -493,23 +494,50 @@ const AppBar = ({
                     placeholder={t('app.searchPlaceholder')}
                     inputProps={{ 'aria-label': 'search' }}
                     value={searchQuery}
-                    onChange={handleSearchChange}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      // 输入时清除错误提示
+                      if (searchError) {
+                        setSearchError('');
+                      }
+                    }}
                     onFocus={handleInputFocus}
                     onBlur={handleInputBlur}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         const query = searchQuery.trim();
-                        if (query) {
-                          // 尝试导航到 review 详情页面
+                        const prIdPattern = /^[a-zA-Z0-9]+$/;  // 允许数字和字母
+                        
+                        if (query && prIdPattern.test(query)) {
+                          // 验证通过，导航到 review 详情页面
                           navigate(`/reviews/${query}`);
                           setSearchQuery('');
                           setSearchResults([]);
                           setSearchAnchorEl(null);
+                          setSearchError(''); // 清除错误提示
+                        } else if (query) {
+                          // 输入不为空但格式错误，显示错误提示
+                          setSearchError('请输入有效的PR编号');
                         }
                       }
                     }}
+                    error={!!searchError}
                   />
                 </Search>
+                {searchError && (
+                  <Typography 
+                    variant="caption" 
+                    color="error"
+                    sx={{ 
+                      position: 'absolute', 
+                      bottom: -20, 
+                      left: 8, 
+                      fontSize: '0.75rem' 
+                    }}
+                  >
+                    {searchError}
+                  </Typography>
+                )}
                 {renderSearchMenu}
               </Box>
             )}
