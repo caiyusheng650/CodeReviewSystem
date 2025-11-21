@@ -37,8 +37,8 @@ logic_error_agent = build_agent("LogicErrorReviewAgent", "logic_error_agent")
 memory_safety_agent = build_agent("MemorySafetyReviewAgent", "memory_safety_agent")
 security_vulnerability_agent = build_agent("SecurityVulnerabilityReviewAgent", "security_vulnerability_agent")
 performance_optimization_agent = build_agent("PerformanceOptimizationReviewAgent", "performance_optimization_agent")
-maintainability_agent = build_agent("MaintainabilityReviewer", "maintainability_agent")
-architecture_agent = build_agent("ArchitectureReviewer", "architecture_agent")
+maintainability_agent = build_agent("MaintainabilityReviewAgent", "maintainability_agent")
+architecture_agent = build_agent("ArchitectureReviewAgent", "architecture_agent")
 final_review_aggregator_agent = build_agent("FinalReviewAggregatorAgent", "final_review_aggregator_agent")
 
 def create_default_flow() -> GraphFlow:

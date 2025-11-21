@@ -124,13 +124,13 @@ async def update_api_key_status(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="无权修改此API密钥"
             )
+
         
         # 更新状态
         updated_api_key = await apikey_service.update_api_key_status(
             apikey_id=apikey_id,
             status=status_update.status
         )
-        
         if not updated_api_key:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,

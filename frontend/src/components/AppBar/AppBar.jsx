@@ -496,6 +496,18 @@ const AppBar = ({
                     onChange={handleSearchChange}
                     onFocus={handleInputFocus}
                     onBlur={handleInputBlur}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        const query = searchQuery.trim();
+                        if (query) {
+                          // 尝试导航到 review 详情页面
+                          navigate(`/reviews/${query}`);
+                          setSearchQuery('');
+                          setSearchResults([]);
+                          setSearchAnchorEl(null);
+                        }
+                      }
+                    }}
                   />
                 </Search>
                 {renderSearchMenu}

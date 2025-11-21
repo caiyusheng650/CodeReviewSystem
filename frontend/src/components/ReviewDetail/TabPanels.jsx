@@ -5,6 +5,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
 import IssueDisplay from './IssueDisplay';
+import ChatHistoryPanel from './ChatHistoryPanel';
 
 const TabPanels = ({ 
   activeTab, 
@@ -13,7 +14,9 @@ const TabPanels = ({
   searchText, 
   isDarkMode, 
   markedIssues, 
-  handleMarkIssue
+  handleMarkIssue,
+  chatHistory,
+  chatHistoryLoading
 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -27,7 +30,7 @@ const TabPanels = ({
     if (activeTab !== tabIndex) return null;
 
     return (
-      <Box sx={{minWidth:'900px'}}>
+      <Box sx={{minWidth:'900px', width: '100%'}}>
         {Object.entries(groupedData).map(([groupKey, issues], index) => {
           const filteredIssues = filterIssues(issues, searchText);
           
@@ -82,8 +85,21 @@ const TabPanels = ({
     );
   };
 
+  // 渲染聊天历史标签页
+  const renderChatHistoryPanel = () => {
+    if (activeTab !== 5) return null;
+    
+    return (
+      <ChatHistoryPanel 
+        chatHistory={chatHistory} 
+        isDarkMode={isDarkMode}
+        chatHistoryLoading={chatHistoryLoading}
+      />
+    );
+  };
+
   return (
-    <>
+    <div sx={{minWidth:'1700px'}}>
       {/* 按类型分类标签页 */}
       {renderTabPanel(groupedByType, 0)}
       
@@ -93,12 +109,15 @@ const TabPanels = ({
       {/* 按程度分类标签页 */}
       {renderTabPanel(groupedBySeverity, 2)}
       
+      {/* 顽固问题标签页 */}
+      {renderTabPanel(groupedByHistorical, 3, '顽固问题')}
+      
       {/* 已标记问题标签页 */}
       {renderTabPanel(groupedByMarked, 4, '已标记')}
       
-      {/* 顽固问题标签页 */}
-      {renderTabPanel(groupedByHistorical, 3, '顽固问题')}
-    </>
+      {/* 聊天历史标签页 */}
+      {renderChatHistoryPanel()}
+    </div>
   );
 };
 

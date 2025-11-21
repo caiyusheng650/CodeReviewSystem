@@ -18,7 +18,8 @@
     "reviews": "审查",
     "settings": "设置",
     "login": "登录",
-    "register": "注册"
+    "register": "注册",
+    "documentation": "文档"
   },
   "auth": {
     "username": "用户名",
@@ -76,7 +77,7 @@
     "noReviewRecords": "暂无代码审查记录",
     "submitPRPrompt": "提交PR后将自动触发AI代码审查，审查完成后可在此查看结果",
     "reviews": "审查",
-    "reviewRecords": "审查记录",
+    "reviewRecords": "审查记录列表",
     "searchPlaceholder": "搜索PR标题、仓库名称、PR编号或作者...",
     "prNumber": "PR编号",
     "prTitle": "PR标题",
@@ -102,7 +103,8 @@
     "byFile": "按文件分类",
     "bySeverity": "按程度分类",
     "persistentIssues": "顽固问题",
-    "markedIssues": "已标记问题"
+    "markedIssues": "已标记问题",
+    "chatHistory": "聊天历史"
   },
   "settings": {
     "fetchApiKeysFailed": "获取 API 密钥失败",
@@ -168,7 +170,12 @@
     "suggestion": "建议",
     "problemCode": "问题代码",
     "optimizedCode": "优化代码",
-    "goodCode": "优质代码"
+    "goodCode": "优质代码",
+    "rowsPerPage": "每页行数",
+    "of": "共",
+    "displayedRecords": "显示 {{from}}-{{to}} 条，共 {{total}} 条记录",
+    "totalRecords": "{{count}} 条记录",
+    "item": "项目"
   },
   "sidebar": {
     "notRecommended": "不建议合并",
@@ -184,7 +191,30 @@
     "unmarkedIssues": "未标记问题",
     "persistentIssues": "顽固问题",
     "normalIssues": "普通问题",
-    "issuesCount": "{{count}}个问题"
+    "issuesCount": "{{count}}个问题",
+    "loadingChatHistory": "正在加载聊天历史...",
+    "noChatHistory": "暂无聊天历史",
+    "expandAll": "展开所有",
+    "collapseAll": "折叠所有",
+    "unknownAgent": "未知人工智能智能体",
+    "reviewTaskDispatcherAgent": "审查任务分发人工智能智能体",
+    "maintainabilityReviewAgent": "可维护性审查人工智能智能体",
+    "logicErrorReviewAgent": "逻辑错误审查人工智能智能体",
+    "staticAnalysisReviewAgent": "静态分析审查人工智能智能体",
+    "performanceOptimizationReviewAgent": "性能优化审查人工智能智能体",
+    "memorySafetyReviewAgent": "内存安全审查人工智能智能体",
+    "architectureReviewAgent": "架构审查人工智能智能体",
+    "securityVulnerabilityReviewAgent": "安全漏洞审查人工智能智能体",
+    "finalReviewAggregatorAgent": "最终审查聚合人工智能智能体",
+    "reputationAssessmentAgent": "声誉评估人工智能智能体",
+    "codeReviewAgent": "代码审查人工智能智能体"
+  },
+  "chatHistory": {
+    "emptyArray": "空数组",
+    "emptyObject": "空对象",
+    "arrayItems": "数组 [{{count}}项]",
+    "object": "对象",
+    "arrayData": "数组数据 (共{{count}}项)"
   },
   "reviewStatus": {
     "pending": "待审查",
@@ -216,5 +246,116 @@
     "hoursAgo": "{{hours}}小时前", 
     "daysAgo": "{{days}}天前",
     "yesterday": "昨天"
+  },
+  "documentation": {
+    "title": "文档",
+    "installation": {
+      "title": "安装指南",
+      "method1": {
+        "title": "一键安装",
+        "description": "运行以下命令即可完成一键安装",
+        "warning": "请确保您信任此脚本，因为它将在您的系统上执行命令"
+      },
+      "method2": {
+        "title": "手动安装",
+        "description": "手动安装提供更详细的配置选项，适合需要自定义配置的用户",
+        "step1": {
+          "title": "步骤 1: 创建工作流目录",
+          "description": "在项目根目录下创建 GitHub Actions 工作流目录结构"
+        },
+        "step2": {
+          "title": "步骤 2: 下载 AI 代码审查工作流",
+          "description": "下载 AI 代码审查的主要工作流配置文件"
+        },
+        "step3": {
+          "title": "步骤 3: 下载文档配置",
+          "description": "下载文档相关的配置文件"
+        },
+        "step4": {
+          "title": "步骤 4: 配置 GitHub Secrets",
+          "description": "在 GitHub 仓库设置中配置必要的 Secrets",
+          "substep1": "访问你的 GitHub 仓库页面",
+          "substep2": "点击 'Settings' 标签",
+          "substep3": "在左侧菜单中找到 'Secrets and variables' → 'Actions'",
+          "substep4": "点击 'New repository secret' 添加新的 Secret"
+        },
+        "step5": {
+          "title": "步骤 5: 验证安装",
+          "description": "创建 PR 来验证 AI 代码审查功能是否正常工作",
+          "warning": "确保所有 Secrets 都已正确配置，否则代码审查将无法正常工作"
+        }
+      }
+    },
+    "api": {
+      "title": "API 文档",
+      "installGuide": "获取安装指南页面",
+      "installScript": "获取一键安装脚本",
+      "workflowFile": "下载指定的工作流文件"
+    },
+    "secrets": {
+      "title": "GitHub Secrets 配置",
+      "description": "在 GitHub 仓库设置中配置以下 Secrets 以启用代码审查功能",
+      "apiToken": "API 访问令牌，用于身份验证",
+      "apiUrl": "API 服务器地址",
+      "getToken": "去设置页面获取",
+      "secretName": "Secret 名称",
+      "value": "值",
+      "actions": "操作"
+    },
+    "actions": {
+      "viewGuide": "查看安装指南",
+      "downloadScript": "下载安装脚本"
+    },
+    "quickActions": "快速操作",
+    "copyCommand": "复制命令",
+    "downloadFile": "下载文件",
+    "viewApiDocs": "查看 API 文档",
+    "oneClickInstallDescription": "运行以下命令即可完成一键安装",
+    "manualInstallSteps": "手动安装步骤",
+    "step1": "步骤 1: 创建目录结构",
+    "step2": "步骤 2: 下载工作流文件",
+    "step3": "步骤 3: 配置 GitHub Secrets",
+    "apiEndpoints": "API 端点",
+    "endpoint": "端点",
+    "method": "方法",
+    "description": "描述",
+    "response": "响应",
+    "secretsConfiguration": "Secrets 配置",
+    "secretName": "Secret 名称",
+    "value": "值",
+    "purpose": "用途",
+    "required": "必填",
+    "optional": "可选",
+    "copySuccess": "复制成功",
+    "downloadSuccess": "下载成功",
+    "commandCopied": "命令已复制到剪贴板",
+    "fileDownloaded": "文件下载成功",
+    "prTutorial": {
+      "title": "PR 创建教程",
+      "description": "学习如何创建 Pull Request (PR) 来触发 AI 代码审查",
+      "step1": {
+        "title": "步骤 1: 创建新分支",
+        "description": "创建一个新的功能分支来开发你的功能"
+      },
+      "step2": {
+        "title": "步骤 2: 提交代码",
+        "description": "将你的修改添加到暂存区并提交"
+      },
+      "step3": {
+        "title": "步骤 3: 推送分支",
+        "description": "将本地分支推送到远程仓库"
+      },
+      "step4": {
+        "title": "步骤 4: 创建 Pull Request",
+        "description": "在 GitHub 上创建 Pull Request",
+        "instructions": "访问你的 GitHub 仓库页面，点击 'Pull requests' 标签，然后点击 'New pull request' 按钮。选择你的功能分支作为源分支，主分支作为目标分支，填写 PR 标题和描述，然后创建 PR。"
+      },
+      "step5": {
+        "title": "步骤 5: 等待 AI 代码审查",
+        "description": "AI 代码审查将自动触发",
+        "success": "PR 创建成功后，AI 代码审查将自动开始。审查完成后，你可以在审查记录页面看到审查结果。",
+        "successLink": "审查记录页面"
+      }
+    }
   }
 }

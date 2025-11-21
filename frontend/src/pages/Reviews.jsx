@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { codeReviewAPI } from '../services/api/codeReviewAPI';
@@ -7,10 +7,11 @@ import { useTranslation } from 'react-i18next';
 import {
   Box, Breadcrumbs, Card, CardContent, Chip, CircularProgress,
   Typography, Alert, Divider, TextField, Table, TableBody,
-  TableCell, TableContainer, TableHead, TableRow, Paper, Button, Container
+  TableCell, TableContainer, TableHead, TableRow, Paper, Button, Container,
+  TablePagination
 } from '@mui/material';
 import {
-  Search as SearchIcon, Error as ErrorIcon
+  Search as SearchIcon, Error as ErrorIcon, ArrowUpward, ArrowDownward
 } from '@mui/icons-material';
 
 // 状态映射
@@ -28,7 +29,15 @@ const Reviews = ({ isDarkMode }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchText, setSearchText] = useState('');
+  const [page, setPage] = useState(0); // 0-based page index
+  const [rowsPerPage, setRowsPerPage] = useState(10); // 每页显示10条数据
   const { t, i18n } = useTranslation();
+  
+  // 排序状态
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
 
   // 获取用户的所有审查记录
   useEffect(() => {
@@ -56,16 +65,97 @@ const Reviews = ({ isDarkMode }) => {
     }
   }, [user]);
 
+  // 重置到第一页当搜索文本改变时
+  useEffect(() => {
+    setPage(0);
+  }, [searchText]);
+
+  // 排序函数
+  const handleSort = (columnKey) => {
+    let direction = 'asc';
+    
+    if (sortConfig.key === columnKey && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    
+    setSortConfig({ key: columnKey, direction });
+    setPage(0); // 排序后重置到第一页
+  };
+
+  // 获取排序方向图标
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return null;
+    }
+    
+    if (sortConfig.direction === 'asc') {
+      return <ArrowUpward sx={{ fontSize: 16 }} />;
+    } else {
+      return <ArrowDownward sx={{ fontSize: 16 }} />;
+    }
+  };
+
   // 过滤审查记录
-  const filteredReviews = reviews.filter(review => {
-    const searchLower = searchText.toLowerCase();
-    return (
-      review.pr_title?.toLowerCase().includes(searchLower) ||
-      review.repo_name?.toLowerCase().includes(searchLower) ||
-      review.pr_number?.toString().includes(searchLower) ||
-      review.author?.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredReviews = useMemo(() => {
+    return reviews.filter(review => {
+      const searchLower = searchText.toLowerCase();
+      return (
+        review.pr_title?.toLowerCase().includes(searchLower) ||
+        review.repo_name?.toLowerCase().includes(searchLower) ||
+        review.pr_number?.toString().includes(searchLower) ||
+        review.author?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [reviews, searchText]);
+
+  // 排序后的数据
+  const sortedReviews = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredReviews;
+    }
+
+    return [...filteredReviews].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // 处理不同数据类型
+      if (sortConfig.key === 'created_at') {
+        aValue = new Date(aValue);
+        bValue = new Date(bValue);
+      } else if (sortConfig.key === 'pr_number') {
+        aValue = parseInt(aValue) || 0;
+        bValue = parseInt(bValue) || 0;
+      } else {
+        aValue = aValue?.toString().toLowerCase() || '';
+        bValue = bValue?.toString().toLowerCase() || '';
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [filteredReviews, sortConfig]);
+
+  // 分页后的数据
+  const paginatedReviews = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return sortedReviews.slice(startIndex, startIndex + rowsPerPage);
+  }, [sortedReviews, page, rowsPerPage]);
+
+  // 处理页面切换
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  // 处理每页显示数量变化
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // 重置到第一页
+  };
 
   // 查看审查详情
   const handleViewReview = (review) => {
@@ -101,33 +191,12 @@ const Reviews = ({ isDarkMode }) => {
 
   // 无审查记录状态
   if (reviews.length === 0) {
-    return (
-      <Box sx={{ p: 3, minWidth: 1200, mx: 'auto' }}>
-        <Breadcrumbs sx={{ mb: 2 }}>
-          <Typography linkComponent="button" onClick={() => navigate('/')} sx={{ cursor: 'pointer' }}>
-            {t('navigation.home')}
-          </Typography>
-          <Typography>{t('reviews.reviewRecords')}</Typography>
-          <Typography>{t('reviews.noRecords')}</Typography>
-        </Breadcrumbs>
-        <Card sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            {t('reviews.noReviewRecords')}
-          </Typography>
-          <Typography color="text.secondary" sx={{ mb: 3 }}>
-            {t('reviews.submitPRPrompt')}
-          </Typography>
-          <Button variant="contained" onClick={() => navigate('/')}>
-            {t('common.back')} {t('navigation.home')}
-          </Button>
-        </Card>
-      </Box>
-    );
+    navigate('/documentation');
   }
 
   return (
     <Container maxWidth="1200" minWidth="1200px">
-      <Box sx={{ mt: 4, mb: 4, height: 'calc(100vh - 200px)' }}>
+      <Box sx={{ mt: 6, mb: 4, height: '100vh' }}>
         {/* 面包屑导航 */}
         <Breadcrumbs sx={{ mb: 3 }}>
           <Typography>{t('reviews.reviews')}</Typography>
@@ -158,66 +227,138 @@ const Reviews = ({ isDarkMode }) => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.prNumber')}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.prTitle')}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.repository')}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.author')}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.status')}</TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{t('reviews.creationTime')}</TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'nowrap', 
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                      onClick={() => handleSort('pr_number')}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {t('reviews.prNumber')}
+                        {getSortIcon('pr_number')}
+                      </Box>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'nowrap', 
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                      onClick={() => handleSort('pr_title')}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {t('reviews.prTitle')}
+                        {getSortIcon('pr_title')}
+                      </Box>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'nowrap', 
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                      onClick={() => handleSort('repo_name')}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {t('reviews.repository')}
+                        {getSortIcon('repo_name')}
+                      </Box>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'nowrap', 
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                      onClick={() => handleSort('author')}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {t('reviews.author')}
+                        {getSortIcon('author')}
+                      </Box>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'nowrap', 
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                      onClick={() => handleSort('status')}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {t('reviews.status')}
+                        {getSortIcon('status')}
+                      </Box>
+                    </TableCell>
+                    <TableCell 
+                      sx={{ 
+                        whiteSpace: 'nowrap', 
+                        cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' }
+                      }}
+                      onClick={() => handleSort('created_at')}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        {t('reviews.creationTime')}
+                        {getSortIcon('created_at')}
+                      </Box>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredReviews.map((review) => (
-                    <TableRow
-                      key={review._id}
-                      hover
-                      onClick={() => handleViewReview(review)}
-                      sx={{ cursor: 'pointer' }}
-                    >
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>#{review.pr_number}</TableCell>
-                      <TableCell>
-                        <Typography
-                          sx={{
-                            maxWidth: 200,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                          title={review.pr_title}
-                        >
-                          {review.pr_title}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ 
-                        maxWidth: 150,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }} title={review.repo_name}>
-                        {review.repo_name}
-                      </TableCell>
-                      <TableCell sx={{ 
-                        maxWidth: 100,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }} title={review.author}>
-                        {review.author}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={t(StatusMap[review.status]?.label) || review.status}
-                          color={StatusMap[review.status]?.color || 'default'}
-                          variant="outlined"
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {review.created_at ? formatDateTime(review.created_at, {}, t) : t('common.unknown')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                   {paginatedReviews.map((review) => (
+                     <TableRow
+                       key={review._id}
+                       hover
+                       onClick={() => handleViewReview(review)}
+                       sx={{ cursor: 'pointer' }}
+                     >
+                       <TableCell sx={{ whiteSpace: 'nowrap' }}>#{review.pr_number}</TableCell>
+                       <TableCell>
+                         <Typography
+                           sx={{
+                             maxWidth: 200,
+                             overflow: 'hidden',
+                             textOverflow: 'ellipsis',
+                             whiteSpace: 'nowrap'
+                           }}
+                           title={review.pr_title}
+                         >
+                           {review.pr_title}
+                         </Typography>
+                       </TableCell>
+                       <TableCell sx={{ 
+                         maxWidth: 150,
+                         overflow: 'hidden',
+                         textOverflow: 'ellipsis',
+                         whiteSpace: 'nowrap'
+                       }} title={review.repo_name}>
+                         {review.repo_name}
+                       </TableCell>
+                       <TableCell sx={{ 
+                         maxWidth: 100,
+                         overflow: 'hidden',
+                         textOverflow: 'ellipsis',
+                         whiteSpace: 'nowrap'
+                       }} title={review.author}>
+                         {review.author}
+                       </TableCell>
+                       <TableCell>
+                         <Chip
+                           label={t(StatusMap[review.status]?.label) || review.status}
+                           color={StatusMap[review.status]?.color || 'default'}
+                           variant="outlined"
+                           size="small"
+                         />
+                       </TableCell>
+                       <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                         {review.created_at ? formatDateTime(review.created_at, {}, t) : t('common.unknown')}
+                       </TableCell>
+                     </TableRow>
+                   ))}
+                 </TableBody>
               </Table>
             </TableContainer>
 
@@ -231,10 +372,25 @@ const Reviews = ({ isDarkMode }) => {
           </CardContent>
         </Card>
 
+        {/* 分页控件 */}
+        <TablePagination
+          component="div"
+          count={sortedReviews.length} // 使用排序后的数据总数
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[10, 25, 50, 100]} // 可选择的每页显示数量
+          labelRowsPerPage={t('common.rowsPerPage')}
+          labelDisplayedRows={({ from, to, count }) => {
+            return `${from}-${to} ${t('common.of')} ${count !== -1 ? count : `>${to}`}`;
+          }}
+        />
+
         {/* 统计信息 */}
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            {t('home.filteredRecords', { count: filteredReviews.length })}
+            {t('home.filteredRecords', { count: sortedReviews.length })}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {t('home.totalRecords', { count: reviews.length })}

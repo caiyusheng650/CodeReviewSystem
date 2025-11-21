@@ -10,6 +10,7 @@ import Home from './pages/Home'
 import Reviews from './pages/Reviews'
 import ReviewDetail from './pages/ReviewDetail'
 import Settings from './pages/Settings'
+import Documentation from './pages/Documentation'
 import NotFound from './pages/NotFound'
 import AppBar from './components/AppBar/AppBar'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -30,6 +31,7 @@ function Layout({ children, onThemeToggle, isDarkMode }) {
   const menuItems = [
     { label: t('navigation.home'), path: '/' },
     { label: t('navigation.reviews'), path: '/reviews' },
+    { label: t('navigation.documentation'), path: '/documentation' },
     { label: t('navigation.settings'), path: '/settings' },
   ];
 
@@ -88,26 +90,7 @@ function AppContent() {
     }
   }, [])
 
-  // 如果正在加载，显示加载指示器
-  if (isLoading) {
-    return (
-      <ThemeProvider theme={isDarkMode ? darkTheme : theme}>
-        <CssBaseline />
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '100vh',
-            flexDirection: 'column',
-            gap: 2
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      </ThemeProvider>
-    )
-  }
+
 
   // 如果是小屏幕，显示提醒信息
   if (isSmallScreen) {
@@ -229,11 +212,30 @@ function AppContent() {
                 }
               />
 
+              {/* 文档页面路由 - 使用ProtectedRoute */}
+              <Route
+                path="/documentation"
+                element={
+                  <ProtectedRoute
+                    component={Documentation}
+                    props={{ isDarkMode }}
+                  />
+                }
+              />
+
+              <Route
+                path="/not-found"
+                element={<NotFound isDarkMode={isDarkMode} />}
+              />
+              
               {/* 404页面 - 不需要认证 */}
               <Route
                 path="*"
                 element={<NotFound isDarkMode={isDarkMode} />}
               />
+
+              
+              
             </Routes>
           </Layout>
         </Router>
