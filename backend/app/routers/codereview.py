@@ -17,11 +17,11 @@ from app.utils.userauth import require_bearer
 from app.utils.codereview import (
     parse_base64_content, parse_comments_from_base64, parse_ai_output,
     calculate_reputation_delta, build_final_result, log_review_request,
-    calculate_review_summary, build_event_description
+    calculate_review_summary, build_event_description, build_ai_chat_message
 )
 from app.utils.database import get_database
 from app.services.codereview import get_ai_code_review_service
-
+from app.services.aicopilot import aicopilot_service
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -100,7 +100,6 @@ async def review(
     reputation_score = reputation["score"]
     reputation_history = reputation["history"]
 
-
     # 使用解码后的字段
     diff_text = payload.diff_content
     pr_title = payload.pr_title
@@ -133,9 +132,8 @@ async def review(
 
     # 导入AI代码审查服务
     
-    # 启动AI代码审查流程
-    ai_service = get_ai_code_review_service(code_review_service)
-    
+    # 启动AI代码审查流程（启用并发限制）
+    ai_service = get_ai_code_review_service(code_review_service, enable_concurrency_limit=True)
     
     # 使用AI服务进行代码审查
     review_data = {
@@ -154,7 +152,18 @@ async def review(
         "pr_body": pr_body,
         "user_id": user_id
     }
+    
+    # 运行AI代码审查（带并发限制）
     ai_result = await ai_service.run_ai_code_review(review_data)
+    
+    # 检查并发限制错误
+    if ai_result.get("status") == "error" and ai_result.get("error_code") == "CONCURRENCY_LIMIT_EXCEEDED":
+        # 并发限制错误，返回503状态码
+        raise HTTPException(
+            status_code=503,
+            detail=ai_result.get("error", "系统繁忙，请稍后重试"),
+            headers={"Retry-After": "60"}
+        )
     
     # 获取AI审查结果
     final_ai_output = ai_result.get("final_result", "")
@@ -162,14 +171,17 @@ async def review(
     # 解析AI输出
     issues, summary, defect_types = parse_ai_output(final_ai_output)
     
-
     # 计算信誉值变化
     delta_reputation = calculate_reputation_delta(summary)
     event = build_event_description(summary, defect_types, delta_reputation, payload.pr_number)
     await reputation_service.update_programmer_reputation(author, event, delta_reputation=delta_reputation)
 
+    ai_chat_message = build_ai_chat_message(final_ai_output,diff_text,pr_title,pr_body)
+    await aicopilot_service.add_chat_message(review_id, ai_chat_message,'system')
+
     return { 
-        "issues": issues
+        "issues": issues,
+        "concurrency_status": ai_result.get("concurrency_status", {})
     }
 
 
@@ -497,3 +509,28 @@ async def mark_issue(
 @router.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ==============================
+# ⭐ 并发状态检查
+# ==============================
+@router.get("/concurrency-status")
+async def get_concurrency_status(
+    username: str = Depends(require_bearer)
+):
+    """
+    获取当前并发限制状态
+    """
+    from app.utils.concurrency import code_review_limiter
+    
+    status = code_review_limiter.get_current_status()
+    
+    return {
+        "status": "success",
+        "concurrency_status": status,
+        "description": "代码审查服务并发状态",
+        "max_concurrent": status["max_concurrent"],
+        "current_active": status["active_tasks"],
+        "available_slots": status["available_slots"],
+        "active_task_ids": status["active_task_ids"]
+    }

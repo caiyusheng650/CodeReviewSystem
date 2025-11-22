@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { authAPI } from '../services/api/authAPI';
 
 // 创建认证上下文
@@ -18,10 +18,15 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const hasCheckedAuth = useRef(false);
 
   // 检查用户是否已登录
   useEffect(() => {
     const checkAuthStatus = async () => {
+      // 防止在StrictMode下重复检查
+      if (hasCheckedAuth.current) return;
+      hasCheckedAuth.current = true;
+      
       const token = localStorage.getItem('token');
       if (token) {
         try {

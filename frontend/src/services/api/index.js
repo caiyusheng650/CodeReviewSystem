@@ -2,5 +2,6 @@
 import { apikeyAPI } from './apikeyAPI';
 import { authAPI } from './authAPI';
 import { codeReviewAPI } from './codeReviewAPI';
+import { aicopilotAPI } from './aicopilotAPI';
 
-export { apikeyAPI, authAPI, codeReviewAPI };
+export { apikeyAPI, authAPI, codeReviewAPI, aicopilotAPI };

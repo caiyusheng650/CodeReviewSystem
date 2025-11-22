@@ -19,7 +19,8 @@
     "settings": "设置",
     "login": "登录",
     "register": "注册",
-    "documentation": "文档"
+    "documentation": "文档",
+    "support": "支持"
   },
   "auth": {
     "username": "用户名",
@@ -209,6 +210,39 @@
     "reputationAssessmentAgent": "声誉评估人工智能智能体",
     "codeReviewAgent": "代码审查人工智能智能体"
   },
+  "support": {
+    "title": "支持 CodeReviewSystem",
+    "description": "这是一个开源的智能代码审查系统，致力于提升代码质量，促进团队协作。您的支持将帮助我们持续改进，为开发者社区提供更好的工具。",
+    "supportButton": "支持项目 ， 给我们一个 Star ！",
+    "whyChooseUs": "为什么选择我们？",
+    "features": {
+      "intelligentReview": {
+        "title": "智能代码审查",
+        "description": "基于AI的自动化代码审查，提升代码质量"
+      },
+      "security": {
+        "title": "安全性保障",
+        "description": "全面的安全检测，保护您的代码安全"
+      },
+      "efficiency": {
+        "title": "高效开发",
+        "description": "简化审查流程，加速团队协作"
+      },
+      "transparency": {
+        "title": "透明可追溯",
+        "description": "完整的审查记录和追溯机制"
+      },
+      "multiAgent": {
+        "title": "高级多智能体支持",
+        "description": "多智能体协作系统，提供更精准的代码分析和智能化建议"
+      }
+    },
+    "thanksAnimation": {
+      "title": "感谢您的支持！",
+      "message": "您的每一份支持都是我们前进的动力 ❤️"
+    }
+    
+  },
   "chatHistory": {
     "emptyArray": "空数组",
     "emptyObject": "空对象",
@@ -246,6 +280,16 @@
     "hoursAgo": "{{hours}}小时前", 
     "daysAgo": "{{days}}天前",
     "yesterday": "昨天"
+  },
+  "chatPanel": {
+    "title": "智能代码审查系统助手",
+    "placeholder": "输入您的问题...",
+    "hint": "按 Enter 发送，Shift + Enter 换行",
+    "emptyState": "开始与智能代码审查系统助手交流代码审查问题",
+    "you": "您",
+    "aiAssistant": "助手",
+    "collapse": "折叠智能代码审查系统助手",
+    "expand": "展开智能代码审查系统助手"
   },
   "documentation": {
     "title": "文档",

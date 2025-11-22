@@ -11,6 +11,7 @@ import Reviews from './pages/Reviews'
 import ReviewDetail from './pages/ReviewDetail'
 import Settings from './pages/Settings'
 import Documentation from './pages/Documentation'
+import Support from './pages/Support'
 import NotFound from './pages/NotFound'
 import AppBar from './components/AppBar/AppBar'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
@@ -33,6 +34,7 @@ function Layout({ children, onThemeToggle, isDarkMode }) {
     { label: t('navigation.reviews'), path: '/reviews' },
     { label: t('navigation.documentation'), path: '/documentation' },
     { label: t('navigation.settings'), path: '/settings' },
+    { label: t('navigation.support'), path: '/support' },
   ];
 
   // 语言切换处理函数
@@ -221,6 +223,12 @@ function AppContent() {
                     props={{ isDarkMode }}
                   />
                 }
+              />
+
+              {/* 支持页面路由 - 直接渲染，支持所有用户访问 */}
+              <Route
+                path="/support"
+                element={<Support isDarkMode={isDarkMode} />}
               />
 
               <Route

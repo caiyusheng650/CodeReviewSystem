@@ -45,13 +45,19 @@ const Reviews = ({ isDarkMode }) => {
       try {
         setLoading(true);
         setError(null);
+        
+        // 直接从API获取最新数据
         const response = await codeReviewAPI.getReviewHistory({});
-        setReviews(response.reviews || []);
-        // 将数据保存到localStorage
-        localStorage.setItem('cachedReviews', JSON.stringify(response.reviews || []));
+        const latestReviews = response.reviews || [];
+        setReviews(latestReviews);
+        
+        // 保存数据到localStorage供AppBar使用
+        localStorage.setItem('cachedReviews', JSON.stringify(latestReviews));
+        
       } catch (err) {
         if (err.response?.status === 404) {
           setReviews([]);
+          localStorage.setItem('cachedReviews', JSON.stringify([]));
         } else {
           setError(t('reviews.fetchFailed') + ': ' + (err.response?.data?.message || err.message));
         }
@@ -195,7 +201,7 @@ const Reviews = ({ isDarkMode }) => {
   }
 
   return (
-    <Container maxWidth="1200" minWidth="1200px">
+    <Container maxWidth="1200" sx={{ minWidth: '1200px' }}>
       <Box sx={{ mt: 6, mb: 4, height: '100vh' }}>
         {/* 面包屑导航 */}
         <Breadcrumbs sx={{ mb: 3 }}>
