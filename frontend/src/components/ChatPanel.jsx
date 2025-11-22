@@ -82,7 +82,7 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
         height: 'calc(100vh - 120px)',
         position: 'fixed',
         right: 16,
-        top: 100,
+        top: 80,
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column'

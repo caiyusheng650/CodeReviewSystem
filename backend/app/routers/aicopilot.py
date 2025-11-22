@@ -26,7 +26,7 @@ class MessageRequest(BaseModel):
 router = APIRouter()
 
 
-@router.post("/chathistory/{review_id}")
+@router.get("/chathistory/{review_id}")
 async def get_chat_history(
     review_id: str,
     current_user: UserMeResponse = Depends(require_bearer)

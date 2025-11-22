@@ -324,7 +324,6 @@ class CodeReviewService:
             
             if docs:
                 review = self._convert_to_response(docs[0])
-                logger.info("成功找到用户最近一条代码审查记录，审查ID: %s", review.github_action_id)
                 return review
             else:
                 logger.info("用户没有代码审查记录，用户名: %s", username)

@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**/*.md)",
+      "Read(**/*.py)",
+      "Read(**/*.js)",
+      "Read(**/*.jsx)",
+      "Read(**/*.ts)",
+      "Read(**/*.tsx)",
+      "Read(**/*.json)",
+      "Read(**/*.yml)",
+      "Read(**/*.yaml)",
+      "Read(**/*.txt)",
+      "Read(**/*.html)",
+      "Read(**/*.css)",
+      "Shell(grep)",
+      "Shell(find)",
+      "Shell(cat)",
+      "Shell(ls)",
+      "Shell(wc)"
+    ],
+    "deny": [
+      "Write(**/*)",
+      "Shell(git)",
+      "Shell(gh)",
+      "Shell(rm)",
+      "Shell(mv)",
+      "Shell(cp)"
+    ]
+  },
+  "constraints": {
+    "max_file_size": "10MB",
+    "max_total_files": 200,
+    "timeout": "600s"
+  },
+  "description": "代码审查专用配置 - 只读模式，专注于分析代码变更"
+}

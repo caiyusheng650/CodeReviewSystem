@@ -19,7 +19,8 @@
     "settings": "Settings",
     "login": "Login",
     "register": "Register",
-    "documentation": "Documentation"
+    "documentation": "Documentation",
+    "support": "Support"
   },
   "auth": {
     "username": "Username",
@@ -208,6 +209,39 @@
     "finalReviewAggregatorAgent": "Final Review Aggregator Agent",
     "reputationAssessmentAgent": "Reputation Assessment Agent",
     "codeReviewAgent": "Code Review Agent"
+  },
+  "support": {
+    "title": "Support CodeReviewSystem",
+    "description": "An open-source intelligent code review system dedicated to improving code quality and promoting team collaboration. Your support helps us continuously improve and provide better tools for the developer community.",
+    "supportButton": "Support Project, Give us a Star!",
+    "whyChooseUs": "Why Choose Us?",
+    "features": {
+      "intelligentReview": {
+        "title": "Intelligent Code Review",
+        "description": "AI-based automated code review to enhance code quality"
+      },
+      "security": {
+        "title": "Security Assurance",
+        "description": "Comprehensive security detection to protect your code"
+      },
+      "efficiency": {
+        "title": "Efficient Development",
+        "description": "Streamlined review process to accelerate team collaboration"
+      },
+      "transparency": {
+        "title": "Transparent & Traceable",
+        "description": "Complete review records and traceability mechanism"
+      },
+      "multiAgent": {
+        "title": "Advanced Multi-Agent Support",
+        "description": "Multi-agent collaboration system providing more accurate code analysis and intelligent suggestions"
+      }
+    },
+    "thanksAnimation": {
+      "title": "Thank You for Your Support!",
+      "message": "Every bit of your support drives us forward ❤️"
+    }
+    
   },
   "chatHistory": {
     "emptyArray": "Empty array",

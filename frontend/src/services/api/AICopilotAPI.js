@@ -3,7 +3,7 @@ import { apiClient } from './client';
 export const aicopilotAPI = {
   // 获取聊天历史记录
   getChatHistory: async (reviewId) => {
-    const response = await apiClient.post(`/api/aicopilot/chathistory/${reviewId}`);
+    const response = await apiClient.get(`/api/aicopilot/chathistory/${reviewId}`);
     return response.data;
   },
 
