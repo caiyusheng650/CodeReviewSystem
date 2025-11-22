@@ -19,7 +19,7 @@ import {
   handleExportReport,
   filterIssues,
   StatusMap
-} from '../components/Home';
+} from '../components/ReviewDetail';
 
 const ReviewDetail = ({ isDarkMode }) => {
   const navigate = useNavigate();
@@ -32,6 +32,8 @@ const ReviewDetail = ({ isDarkMode }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [searchText, setSearchText] = useState('');
   const [markedIssues, setMarkedIssues] = useState([]);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [chatHistoryLoading, setChatHistoryLoading] = useState(false);
   const { t, i18n } = useTranslation();
 
   // 检测屏幕宽度是否小于1300px
@@ -53,10 +55,29 @@ const ReviewDetail = ({ isDarkMode }) => {
         setLoading(true);
         setError(null);
         const reviewDetail = await codeReviewAPI.getReviewBase(reviewId);
+        
+        // 检查是否找到了审查记录
+        if (!reviewDetail) {
+          setError(t('reviewDetail.reviewNotFound'));
+          return;
+        }
+        
         setReview(reviewDetail);
       } catch (err) {
-        console.error('获取审查详情失败:', err);
-        setError(t('reviewDetail.fetchFailed') + ': ' + (err.response?.data?.message || err.message));
+        console.error('加载审查详情失败:', err);
+        
+        // 根据错误类型提供更友好的错误信息
+        if (err.response?.status === 404) {
+          setError(t('reviewDetail.reviewNotFound'));
+        } else if (err.response?.status === 401) {
+          setError(t('common.unauthorized'));
+        } else if (err.response?.status === 403) {
+          setError(t('common.forbidden'));
+        } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+          setError(t('common.networkError'));
+        } else {
+          setError(t('common.loadError'));
+        }
       } finally {
         setLoading(false);
       }
@@ -67,16 +88,55 @@ const ReviewDetail = ({ isDarkMode }) => {
     }
   }, [reviewId, user]);
 
-  // 标记问题处理函数
-  const handleMarkIssue = (issue) => {
-    setMarkedIssues(prev => {
-      const isMarked = prev.some(marked => marked.index === issue.index);
-      if (isMarked) {
-        return prev.filter(marked => marked.index !== issue.index);
+  // 加载聊天历史
+  const fetchChatHistory = async () => {
+    if (!reviewId) return;
+    
+    try {
+      setChatHistoryLoading(true);
+      const reviewDetail = await codeReviewAPI.getReviewDetail(reviewId);
+      
+      // 提取agent_outputs字段
+      if (reviewDetail && reviewDetail.agent_outputs) {
+        setChatHistory(reviewDetail.agent_outputs);
       } else {
-        return [...prev, { ...issue, marked: true }];
+        setChatHistory([]);
       }
-    });
+    } catch (err) {
+      console.error('加载聊天历史失败:', err);
+      setChatHistory([]);
+    } finally {
+      setChatHistoryLoading(false);
+    }
+  };
+
+  // 当切换到聊天历史标签页时加载聊天历史
+  useEffect(() => {
+    if (activeTab === 5 && user) {
+      fetchChatHistory();
+    }
+  }, [activeTab, reviewId, user]);
+
+  // 标记问题处理函数
+  const handleMarkIssue = async (issueId, marked) => {
+    if (!review) return;
+    
+    try {
+      const response = await codeReviewAPI.markIssue(review._id, issueId, marked);
+      
+      // 更新本地标记状态
+      setMarkedIssues(response.marked_issues);
+      
+      // 更新review中的标记状态
+      setReview({
+        ...review,
+        marked_issues: response.marked_issues
+      });
+      
+    } catch (err) {
+      console.error('标记问题失败：', err);
+      // 可以添加错误提示
+    }
   };
 
   // 解析final_result数据
@@ -228,7 +288,7 @@ const ReviewDetail = ({ isDarkMode }) => {
   const groupedData = groupIssues(parsedFinalResult);
 
   return (
-    <Box sx={{ p: 3, mx: 'auto', mt: 4 }}>
+    <Box sx={{ p: 3, mx: 'auto', mt: 6 }}>
       {/* 面包屑导航 */}
       <Breadcrumbs sx={{ mb: 3 }}>
         
@@ -296,6 +356,7 @@ const ReviewDetail = ({ isDarkMode }) => {
               <Tab label={t('reviewDetail.bySeverity')} />
               <Tab label={t('reviewDetail.persistentIssues')} />
               <Tab label={t('reviewDetail.markedIssues')} />
+              <Tab label={t('reviewDetail.chatHistory')} sx={{ ml: 'auto' }} />
             </Tabs>
             <Divider sx={{ mb: 2 }} />
 
@@ -309,6 +370,8 @@ const ReviewDetail = ({ isDarkMode }) => {
               handleMarkIssue={handleMarkIssue}
               isDarkMode={isDarkMode}
               SeverityMap={SeverityMap}
+              chatHistory={chatHistory}
+              chatHistoryLoading={chatHistoryLoading}
             />
           </Box>
         </Box>

@@ -102,8 +102,8 @@ class ContentAnalyzer:
         repository_readme: str
     ) -> str:
         """构建审查提示词"""
-        comments_preview = pr_comments[:20]
-        history_preview = developer_reputation_history[:10]
+        comments_preview = pr_comments
+        history_preview = developer_reputation_history
         
         # 分析历史评论，识别重复问题
         historical_issues = ContentAnalyzer.analyze_historical_comments(pr_comments)
@@ -121,9 +121,9 @@ class ContentAnalyzer:
                 "developer_reputation_history": history_preview,
                 "historical_issues_analysis": historical_issues
             },
-            "repository_readme_excerpt": repository_readme[:4000],
+            "repository_readme_excerpt": repository_readme,
             "pr_comments": comments_preview,
-            "code_diff": code_diff[:40000],
+            "code_diff": code_diff,
         }
         return json.dumps(payload, ensure_ascii=False, indent=2)
 

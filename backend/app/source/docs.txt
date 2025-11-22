@@ -1,0 +1,59 @@
+# AI 代码审查系统 - 配置教程
+
+## 环境变量配置
+需要配置以下两个环境变量：
+- CODE_REVIEW_API_URL: AI代码审查API的URL地址
+- CODE_REVIEW_API_TOKEN: API访问令牌
+
+## GitHub Actions 配置步骤
+
+### 1. 在GitHub仓库中设置Secrets
+1. 进入仓库 Settings → Secrets and variables → Actions
+2. 点击 "New repository secret"
+3. 添加以下两个secrets：
+   - CODE_REVIEW_API_URL: 您的API服务地址（如：http://your-api-domain.com）
+   - CODE_REVIEW_API_TOKEN: 您的API访问令牌
+
+### 2. 工作流文件说明
+- 工作流文件：.github/workflows/ai-review.yml
+- 触发条件：PR创建、同步、重新打开时自动运行
+- 功能：自动进行AI代码审查并添加评论
+
+### 3. 工作流执行流程
+1. **检出代码** - 获取PR相关代码
+2. **收集元数据** - 获取PR标题、描述等信息
+3. **生成差异** - 创建代码变更的diff文件
+4. **获取现有评论** - 获取PR中已有的评论作为上下文
+5. **调用AI审查API** - 发送数据到AI审查服务
+6. **生成审查报告** - 格式化AI返回的结果
+7. **添加内联评论** - 在具体代码行添加详细评论
+8. **创建总结评论** - 在PR中生成总体审查报告
+
+### 4. 内联评论格式
+每个内联评论包含以下四个字段：
+- **类型**: 问题的分类（如：代码风格、安全漏洞等）
+- **描述**: 问题的详细说明
+- **建议**: 修复建议和解决方案
+- **程度**: 问题的严重程度（轻微、中等、严重）
+
+### 5. 合并建议
+根据问题的严重程度自动生成合并建议：
+- 如果存在"严重"或"中等"程度的问题 → "不建议合并"
+- 否则 → "建议合并"
+
+## 注意事项
+- 确保API服务正常运行且可访问
+- 检查GitHub Actions的权限设置
+- 大文件（>5MB）的diff会被截断处理
+- 如果文件/行号在PR差异中不存在，内联评论会失败但不会中断流程
+
+## 故障排除
+1. 检查API服务是否可达
+2. 验证API令牌是否正确
+3. 查看GitHub Actions日志获取详细错误信息
+4. 确保仓库有足够的权限（pull-requests: write, contents: read）
+
+---
+环境变量名称：
+CODE_REVIEW_API_URL
+CODE_REVIEW_API_TOKEN

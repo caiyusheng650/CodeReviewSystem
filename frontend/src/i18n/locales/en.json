@@ -18,7 +18,8 @@
     "reviews": "Reviews",
     "settings": "Settings",
     "login": "Login",
-    "register": "Register"
+    "register": "Register",
+    "documentation": "Documentation"
   },
   "auth": {
     "username": "Username",
@@ -102,7 +103,8 @@
     "byFile": "By File",
     "bySeverity": "By Severity",
     "persistentIssues": "Persistent Issues",
-    "markedIssues": "Marked Issues"
+    "markedIssues": "Marked Issues",
+    "chatHistory": "Chat History"
   },
   "settings": {
     "fetchApiKeysFailed": "Failed to fetch API keys",
@@ -168,7 +170,12 @@
     "suggestion": "Suggestion",
     "problemCode": "Problem Code",
     "optimizedCode": "Optimized Code",
-    "goodCode": "Good Code"
+    "goodCode": "Good Code",
+    "rowsPerPage": "Rows per page",
+    "of": "of",
+    "displayedRecords": "Showing {{from}}-{{to}} of {{total}} records",
+    "totalRecords": "{{count}} records",
+    "item": "Item"
   },
   "sidebar": {
     "notRecommended": "Not Recommended",
@@ -184,7 +191,30 @@
     "unmarkedIssues": "Unmarked Issues",
     "persistentIssues": "Persistent Issues",
     "normalIssues": "Normal Issues",
-    "issuesCount": "{{count}} issues"
+    "issuesCount": "{{count}} issues",
+    "loadingChatHistory": "Loading chat history...",
+    "noChatHistory": "No chat history available",
+    "expandAll": "Expand All",
+    "collapseAll": "Collapse All",
+    "unknownAgent": "Unknown Agent",
+    "reviewTaskDispatcherAgent": "Review Task Dispatcher Agent",
+    "maintainabilityReviewAgent": "Maintainability Review Agent",
+    "logicErrorReviewAgent": "Logic Error Review Agent",
+    "staticAnalysisReviewAgent": "Static Analysis Review Agent",
+    "performanceOptimizationReviewAgent": "Performance Optimization Review Agent",
+    "memorySafetyReviewAgent": "Memory Safety Review Agent",
+    "architectureReviewAgent": "Architecture Review Agent",
+    "securityVulnerabilityReviewAgent": "Security Vulnerability Review Agent",
+    "finalReviewAggregatorAgent": "Final Review Aggregator Agent",
+    "reputationAssessmentAgent": "Reputation Assessment Agent",
+    "codeReviewAgent": "Code Review Agent"
+  },
+  "chatHistory": {
+    "emptyArray": "Empty array",
+    "emptyObject": "Empty object",
+    "arrayItems": "Array [{{count}} items]",
+    "object": "Object",
+    "arrayData": "Array data ({{count}} items total)"
   },
   "reviewStatus": {
     "pending": "Pending",
@@ -216,5 +246,117 @@
     "hoursAgo": "{{hours}} hours ago", 
     "daysAgo": "{{days}} days ago",
     "yesterday": "Yesterday"
+  },
+  "documentation": {
+    "title": "Documentation",
+    "installation": {
+      "title": "Installation Guide",
+      "method1": {
+        "title": "One-Click Install",
+        "description": "Run the following command to complete one-click installation",
+        "warning": "Please ensure you trust this script as it will execute commands on your system"
+      },
+      "method2": {
+        "title": "Manual Install",
+        "description": "Manual installation provides more detailed configuration options, suitable for users who need custom configurations",
+        "step1": {
+          "title": "Step 1: Create Workflow Directory",
+          "description": "Create GitHub Actions workflow directory structure in the project root directory"
+        },
+        "step2": {
+          "title": "Step 2: Download AI Code Review Workflow",
+          "description": "Download the main workflow configuration file for AI code review"
+        },
+        "step3": {
+          "title": "Step 3: Download Documentation Configuration",
+          "description": "Download documentation-related configuration files"
+        },
+        "step4": {
+          "title": "Step 4: Configure GitHub Secrets",
+          "description": "Configure necessary Secrets in GitHub repository settings",
+          "substep1": "Visit your GitHub repository page",
+          "substep2": "Click on the 'Settings' tab",
+          "substep3": "Find 'Secrets and variables' → 'Actions' in the left menu",
+          "substep4": "Click 'New repository secret' to add a new Secret"
+        },
+        "step5": {
+          "title": "Step 5: Verify Installation",
+          "description": "Create a PR to verify that the AI code review functionality is working properly",
+          "warning": "Ensure all Secrets are properly configured, otherwise code review will not work correctly"
+        }
+      }
+    },
+    "api": {
+      "title": "API Documentation",
+      "installGuide": "Get installation guide page",
+      "installScript": "Get one-click installation script",
+      "workflowFile": "Download specified workflow file"
+    },
+    "secrets": {
+      "title": "GitHub Secrets Configuration",
+      "description": "Configure the following Secrets in your GitHub repository settings to enable code review functionality",
+      "apiToken": "API access token for authentication",
+      "apiUrl": "API server address",
+      "getToken": "Get from Settings page",
+      "secretName": "Secret Name",
+      "value": "Value",
+      "actions": "Actions"
+    },
+
+    "actions": {
+      "viewGuide": "View Installation Guide",
+      "downloadScript": "Download Installation Script"
+    },
+    "quickActions": "Quick Actions",
+    "copyCommand": "Copy Command",
+    "downloadFile": "Download File",
+    "viewApiDocs": "View API Docs",
+    "oneClickInstallDescription": "Run the following command to complete one-click installation",
+    "manualInstallSteps": "Manual Installation Steps",
+    "step1": "Step 1: Create Directory Structure",
+    "step2": "Step 2: Download Workflow Files",
+    "step3": "Step 3: Configure GitHub Secrets",
+    "apiEndpoints": "API Endpoints",
+    "endpoint": "Endpoint",
+    "method": "Method",
+    "description": "Description",
+    "response": "Response",
+    "secretsConfiguration": "Secrets Configuration",
+    "secretName": "Secret Name",
+    "value": "Value",
+    "purpose": "Purpose",
+    "required": "Required",
+    "optional": "Optional",
+    "copySuccess": "Copy Success",
+    "downloadSuccess": "Download Success",
+    "commandCopied": "Command copied to clipboard",
+    "fileDownloaded": "File downloaded successfully",
+    "prTutorial": {
+      "title": "PR Creation Tutorial",
+      "description": "Learn how to create a Pull Request (PR) to trigger AI code review",
+      "step1": {
+        "title": "Step 1: Create New Branch",
+        "description": "Create a new feature branch to develop your feature"
+      },
+      "step2": {
+        "title": "Step 2: Commit Code",
+        "description": "Add your changes to staging area and commit"
+      },
+      "step3": {
+        "title": "Step 3: Push Branch",
+        "description": "Push your local branch to remote repository"
+      },
+      "step4": {
+        "title": "Step 4: Create Pull Request",
+        "description": "Create Pull Request on GitHub",
+        "instructions": "Visit your GitHub repository page, click on the 'Pull requests' tab, then click the 'New pull request' button. Select your feature branch as the source branch and the main branch as the target branch, fill in the PR title and description, then create the PR."
+      },
+      "step5": {
+        "title": "Step 5: Wait for AI Code Review",
+        "description": "AI code review will be automatically triggered",
+        "success": "After the PR is created successfully, AI code review will automatically start. You can view the results on the",
+        "successLink": "review records page"
+      }
+    }
   }
 }

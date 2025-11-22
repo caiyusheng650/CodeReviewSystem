@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   Container,
   Typography,
@@ -22,7 +22,8 @@ import {
   Snackbar,
   CircularProgress,
   Breadcrumbs,
-  Link
+  Link,
+  TablePagination
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -43,6 +44,8 @@ const Settings = ({ isDarkMode }) => {
   const [apiKeyName, setApiKeyName] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [generatedApiKey, setGeneratedApiKey] = useState(null); // To show API key only once
+  const [page, setPage] = useState(0); // 0-based page index
+  const [rowsPerPage, setRowsPerPage] = useState(10); // 每页显示10条数据
   const { t, i18n } = useTranslation();
 
   // Fetch API keys when component mounts
@@ -58,6 +61,8 @@ const Settings = ({ isDarkMode }) => {
       // Sort keys with active ones first
       const sortedKeys = keys.sort((a, b) => b.is_active - a.is_active);
       setApiKeys(sortedKeys);
+      // 重置到第一页当数据更新时
+      setPage(0);
     } catch (error) {
       console.error('Failed to fetch API keys:', error);
       showSnackbar(t('settings.fetchApiKeysFailed'), 'error');
@@ -90,7 +95,7 @@ const Settings = ({ isDarkMode }) => {
   const handleToggleApiKeyStatus = async (apiKeyId, currentStatus) => {
     try {
       setLoading(true);
-      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const newStatus = currentStatus === 'active' ? 'active' : 'inactive';
       await apikeyAPI.updateApiKeyStatus(apiKeyId, newStatus);
       // Update the local state
       setApiKeys(apiKeys.map(key =>
@@ -132,6 +137,23 @@ const Settings = ({ isDarkMode }) => {
     }
   };
 
+  // 处理页面切换
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  // 处理每页显示数量变化
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // 重置到第一页
+  };
+
+  // 分页后的数据
+  const paginatedApiKeys = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return apiKeys.slice(startIndex, startIndex + rowsPerPage);
+  }, [apiKeys, page, rowsPerPage]);
+
   // Show snackbar message
   const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });
@@ -170,13 +192,11 @@ const Settings = ({ isDarkMode }) => {
     );
   }
   return (
-    <Container maxWidth="1050">
-      <Box sx={{ mt: 4, mb: 4, height: 'calc(100vh - 200px)' }}>
+    <Container maxWidth="1200">
+      <Box sx={{ mt: 6, mb: 4, height: '100vh' }}>
         {/* 面包屑导航 */}
         <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          <Link underline="hover" color="inherit" href="/">
-            {t('navigation.home')}
-          </Link>
+          
           <Typography color="text.primary">{t('settings.settings')}</Typography>
         </Breadcrumbs>
 
@@ -210,7 +230,7 @@ const Settings = ({ isDarkMode }) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {apiKeys.map((apiKey) => (
+                {paginatedApiKeys.map((apiKey) => (
                   <TableRow
                     key={apiKey._id}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -253,6 +273,35 @@ const Settings = ({ isDarkMode }) => {
               </TableBody>
             </Table>
           </TableContainer>
+
+          {/* 分页控件 */}
+          <TablePagination
+            component="div"
+            count={apiKeys.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[10, 25, 50, 100]} // 可选择的每页显示数量
+            labelRowsPerPage={t('common.rowsPerPage')}
+            labelDisplayedRows={({ from, to, count }) => {
+              return `${from}-${to} ${t('common.of')} ${count !== -1 ? count : `>${to}`}`;
+            }}
+          />
+
+          {/* 统计信息 */}
+          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              {t('common.displayedRecords', { 
+                from: apiKeys.length > 0 ? (page * rowsPerPage + 1) : 0, 
+                to: Math.min((page + 1) * rowsPerPage, apiKeys.length), 
+                total: apiKeys.length 
+              })}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {t('common.totalRecords', { count: apiKeys.length })}
+            </Typography>
+          </Box>
 
         </Paper>
       </Box>

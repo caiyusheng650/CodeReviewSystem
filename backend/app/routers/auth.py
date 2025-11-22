@@ -71,8 +71,6 @@ async def register_user(user_data: UserCreate):
         "hashed_password": hashed_password,
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
-        "reputation_score": 60,
-        "reputation_history": []
     }
     
     result = await users_collection.insert_one(user_dict)
@@ -81,6 +79,9 @@ async def register_user(user_data: UserCreate):
     await apikey_service.create_api_key(user_data.username)
     
     created_user = await users_collection.find_one({"_id": result.inserted_id})
+    
+    # 将ObjectId转换为字符串
+    created_user["_id"] = str(created_user["_id"])
     
     return UserInfoResponse(**created_user)
 

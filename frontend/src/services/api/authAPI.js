@@ -17,12 +17,8 @@ export const authAPI = {
   },
 
   // User registration
-  register: async (email, password, username) => {
-    const response = await apiClient.post('/api/auth/register', {
-      email,
-      password,
-      username
-    });
+  register: async (userData) => {
+    const response = await apiClient.post('/api/auth/register', userData);
     return response.data;
   },
 
