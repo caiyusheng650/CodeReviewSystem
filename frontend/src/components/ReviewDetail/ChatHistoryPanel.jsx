@@ -23,6 +23,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import { getAgentColor, getAgentDisplayName, isMarkdownContent, getMarkdownStyles } from '../../utils/agentUtils';
 
 const ChatHistoryPanel = ({ chatHistory, isDarkMode, chatHistoryLoading }) => {
   const theme = useTheme();
@@ -73,129 +74,12 @@ const ChatHistoryPanel = ({ chatHistory, isDarkMode, chatHistoryLoading }) => {
     );
   }
 
-  // 获取代理头像颜色
-  const getAgentColor = (agent) => {
-    const agentColors = {
-      'user': theme.palette.primary.main,
-      'ReputationAssessmentAgent': theme.palette.secondary.main,
-      'CodeReviewAgent': theme.palette.success.main,
-      'ReviewTaskDispatcherAgent': theme.palette.info.main,
-      'MaintainabilityReviewer': theme.palette.warning.main,
-      'LogicErrorReviewAgent': '#e91e63', // 粉色
-      'StaticAnalysisReviewAgent': '#9c27b0', // 紫色
-      'PerformanceOptimizationReviewAgent': '#ff9800', // 橙色
-      'MemorySafetyReviewAgent': '#2196f3', // 蓝色
-      'ArchitectureReviewer': '#4caf50', // 绿色
-      'SecurityVulnerabilityReviewAgent': '#f44336', // 红色
-      'FinalReviewAggregatorAgent': '#607d8b', // 蓝灰色
-      'default': theme.palette.grey[500]
-    };
-    return agentColors[agent] || agentColors.default;
-  };
 
-  // 获取代理显示名称
-  const getAgentDisplayName = (agent) => {
-    const agentNames = {
-      'user': t('common.user'),
-      'ReputationAssessmentAgent': t('tabPanels.reputationAssessmentAgent'),
-      'CodeReviewAgent': t('tabPanels.codeReviewAgent'),
-      'ReviewTaskDispatcherAgent': t('tabPanels.reviewTaskDispatcherAgent'),
-      'MaintainabilityReviewer': t('tabPanels.maintainabilityReviewer'),
-      'LogicErrorReviewAgent': t('tabPanels.logicErrorReviewAgent'),
-      'StaticAnalysisReviewAgent': t('tabPanels.staticAnalysisReviewAgent'),
-      'PerformanceOptimizationReviewAgent': t('tabPanels.performanceOptimizationReviewAgent'),
-      'MemorySafetyReviewAgent': t('tabPanels.memorySafetyReviewAgent'),
-      'ArchitectureReviewer': t('tabPanels.architectureReviewer'),
-      'SecurityVulnerabilityReviewAgent': t('tabPanels.securityVulnerabilityReviewAgent'),
-      'FinalReviewAggregatorAgent': t('tabPanels.finalReviewAggregatorAgent'),
-      'default': t('tabPanels.unknownAgent')
-    };
-    return agentNames[agent] || agentNames.default;
-  };
-
-  // 检测是否为Markdown内容
-  const isMarkdownContent = (text) => {
-    if (typeof text !== 'string') return false;
-    
-    // Markdown常见标记
-    const markdownPatterns = [
-      /^#+\s/,                    // 标题
-      /\*\*[^*]+\*\*/,            // 粗体
-      /\*[^*]+\*/,                // 斜体
-      /\[.+\]\(.+\)/,            // 链接
-      /^-\s/,                     // 列表
-      /\d+\.\s/,                  // 有序列表
-      /```[\s\S]*```/,           // 代码块
-      /`[^`]+`/,                  // 行内代码
-      />\s/,                      // 引用
-      /\|.*\|.*\|/                // 表格
-    ];
-    
-    return markdownPatterns.some(pattern => pattern.test(text));
-  };
 
   // 渲染Markdown内容
   const renderMarkdown = (content) => {
     return (
-      <Box sx={{ 
-        fontFamily: 'inherit',
-        '& h1, & h2, & h3, & h4, & h5, & h6': {
-          margin: '8px 0 4px 0',
-          fontWeight: 'bold'
-        },
-        '& h1': { fontSize: '1.4rem' },
-        '& h2': { fontSize: '1.3rem' },
-        '& h3': { fontSize: '1.2rem' },
-        '& h4': { fontSize: '1.1rem' },
-        '& h5, & h6': { fontSize: '1rem' },
-        '& p': { margin: '4px 0', lineHeight: 1.5 },
-        '& ul, & ol': { margin: '4px 0', paddingLeft: '20px' },
-        '& li': { margin: '2px 0' },
-        '& blockquote': {
-          borderLeft: '4px solid',
-          borderColor: 'primary.main',
-          paddingLeft: '12px',
-          margin: '8px 0',
-          fontStyle: 'italic',
-          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'
-        },
-        '& code': {
-          fontFamily: 'monospace',
-          backgroundColor: isDarkMode ? '#333' : '#f5f5f5',
-          padding: '2px 4px',
-          borderRadius: '3px',
-          fontSize: '0.85em'
-        },
-        '& pre': {
-          backgroundColor: isDarkMode ? '#1a1a1a' : '#f8f9fa',
-          padding: '12px',
-          borderRadius: '4px',
-          overflow: 'auto',
-          margin: '8px 0'
-        },
-        '& table': {
-          borderCollapse: 'collapse',
-          width: '100%',
-          margin: '8px 0'
-        },
-        '& th, & td': {
-          border: '1px solid',
-          borderColor: 'divider',
-          padding: '8px',
-          textAlign: 'left'
-        },
-        '& th': {
-          backgroundColor: isDarkMode ? '#333' : '#f5f5f5',
-          fontWeight: 'bold'
-        },
-        '& a': {
-          color: 'primary.main',
-          textDecoration: 'none'
-        },
-        '& a:hover': {
-          textDecoration: 'underline'
-        }
-      }}>
+      <Box sx={getMarkdownStyles(isDarkMode)}>
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
           {content}
         </ReactMarkdown>
@@ -436,18 +320,18 @@ const ChatHistoryPanel = ({ chatHistory, isDarkMode, chatHistoryLoading }) => {
               sx={{
                 width: 32,
                 height: 32,
-                bgcolor: getAgentColor(chat.agent),
+                bgcolor: getAgentColor(chat.agent, theme),
                 mr: 1,
                 fontSize: '0.875rem'
               }}
             >
-              {getAgentDisplayName(chat.agent).charAt(0)}
+              {getAgentDisplayName(chat.agent, t).charAt(0)}
             </Avatar>
             
             <Box sx={{ flex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="subtitle1" fontWeight="bold">
-                  {getAgentDisplayName(chat.agent)}
+                  {getAgentDisplayName(chat.agent, t)}
                 </Typography>
                 
                 {/* 折叠按钮 */}

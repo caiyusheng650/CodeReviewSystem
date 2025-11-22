@@ -247,6 +247,16 @@
     "daysAgo": "{{days}}天前",
     "yesterday": "昨天"
   },
+  "chatPanel": {
+    "title": "智能代码审查系统助手",
+    "placeholder": "输入您的问题...",
+    "hint": "按 Enter 发送，Shift + Enter 换行",
+    "emptyState": "开始与智能代码审查系统助手交流代码审查问题",
+    "you": "您",
+    "aiAssistant": "助手",
+    "collapse": "折叠智能代码审查系统助手",
+    "expand": "展开智能代码审查系统助手"
+  },
   "documentation": {
     "title": "文档",
     "installation": {

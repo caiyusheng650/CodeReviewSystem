@@ -21,6 +21,22 @@ apiClient.interceptors.request.use(config => {
   return Promise.reject(error);
 });
 
+// Helper method to create SSE requests with automatic token handling
+apiClient.createSSERequest = (url, options = {}) => {
+  const token = localStorage.getItem('token');
+  
+  const fetchOptions = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : '',
+      ...options.headers
+    }
+  };
+  
+  return fetch(`${apiClient.defaults.baseURL}${url}`, fetchOptions);
+};
+
 // Response interceptor to handle errors
 apiClient.interceptors.response.use(
   response => response,

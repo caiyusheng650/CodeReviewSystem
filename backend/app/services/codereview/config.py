@@ -301,8 +301,21 @@ SYSTEM_PROMPTS: Dict[str, str] = {
             "bug_code_example": "代码片段（可选）",
             "optimized_code_example": "优化示例（可选）",
             "good_code_example": "优质示例（可选）"
+        },
+        '1': {
+            "file": "文件路径",
+            "line": 行号,
+            "bug_type": "问题类型",
+            "description": "描述内容",
+            "suggestion": "建议内容",
+            "severity": "严重程度",
+            "historical_mention": true|false,  
+            "bug_code_example": "代码片段（可选）",
+            "optimized_code_example": "优化示例（可选）",
+            "good_code_example": "优质示例（可选）"
+          }
         }
-        }
+        
 
         ### 关键约束：
         - 无论是否存在历史记录，`historical_mention`字段**必须显式输出**，不允许省略或为`null`；

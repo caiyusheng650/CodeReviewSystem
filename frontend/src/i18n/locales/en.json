@@ -247,6 +247,16 @@
     "daysAgo": "{{days}} days ago",
     "yesterday": "Yesterday"
   },
+  "chatPanel": {
+    "title": "Intelligent Code Review System Assistant",
+    "placeholder": "Enter your question...",
+    "hint": "Press Enter to send, Shift + Enter for new line",
+    "emptyState": "Start communicating with AI assistant for code review questions",
+    "you": "You",
+    "aiAssistant": "AI Assistant",
+    "collapse": "Collapse panel",
+    "expand": "Expand chat panel"
+  },
   "documentation": {
     "title": "Documentation",
     "installation": {

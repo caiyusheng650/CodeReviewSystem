@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { codeReviewAPI } from '../services/api/codeReviewAPI';
+import { aicopilotAPI } from '../services/api/aicopilotAPI';
 import { useTranslation } from 'react-i18next';
 import {
   Box, Breadcrumbs, Button, Card, CardContent, Chip, CircularProgress,
@@ -12,6 +13,9 @@ import {
   Download as DownloadIcon, Search as SearchIcon, Error as ErrorIcon
 } from '@mui/icons-material';
 
+// 导入ChatPanel组件
+import ChatPanel from '../components/ChatPanel';
+
 // 导入模块化组件
 import {
   TabPanels,
@@ -20,6 +24,7 @@ import {
   filterIssues,
   StatusMap
 } from '../components/ReviewDetail';
+
 
 const ReviewDetail = ({ isDarkMode }) => {
   const navigate = useNavigate();
@@ -34,6 +39,11 @@ const ReviewDetail = ({ isDarkMode }) => {
   const [markedIssues, setMarkedIssues] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
   const [chatHistoryLoading, setChatHistoryLoading] = useState(false);
+  
+  // ChatPanel相关状态
+  const [isChatPanelCollapsed, setIsChatPanelCollapsed] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  
   const { t, i18n } = useTranslation();
 
   // 检测屏幕宽度是否小于1300px
@@ -117,6 +127,14 @@ const ReviewDetail = ({ isDarkMode }) => {
     }
   }, [activeTab, reviewId, user]);
 
+  useEffect(() => {
+    aicopilotAPI.getChatHistory(reviewId).then(history => {
+      setChatMessages(history.chat_history || []);
+    });
+  }, []);
+
+
+
   // 标记问题处理函数
   const handleMarkIssue = async (issueId, marked) => {
     if (!review) return;
@@ -136,6 +154,116 @@ const ReviewDetail = ({ isDarkMode }) => {
     } catch (err) {
       console.error('标记问题失败：', err);
       // 可以添加错误提示
+    }
+  };
+
+  // ChatPanel相关处理函数
+  const handleToggleChatPanel = () => {
+    setIsChatPanelCollapsed(!isChatPanelCollapsed);
+  };
+
+  const handleSendMessage = async (messageText) => {
+    if (!review) return;
+    
+    
+    // 添加用户消息
+    const userMessage = {
+      role: 'user',
+      content: messageText,
+      timestamp: new Date().toISOString()
+    };
+    
+    setChatMessages(prev => [...prev, userMessage]);
+    
+    try {
+      // 创建AI消息占位符，用于流式更新
+      const aiMessageIndex = chatMessages.length + 1;
+      const aiMessage = {
+        role: 'assistant',
+        content: '',
+        timestamp: new Date().toISOString()
+      };
+      
+      // 先添加空的AI消息
+      setChatMessages(prev => [...prev, aiMessage]);
+      
+      // 调用真实的AI服务（流式输出）
+      const apiCall = await aicopilotAPI.send(review._id, messageText);
+      
+      // 处理流式响应
+      apiCall.stream(
+        // onMessage - 实时接收增量内容
+        (chunk) => {
+          setChatMessages(prev => {
+            const updated = [...prev];
+            if (updated[aiMessageIndex]) {
+              updated[aiMessageIndex] = {
+                ...updated[aiMessageIndex],
+                content: updated[aiMessageIndex].content + chunk
+              };
+            }
+            return updated;
+          });
+        },
+        
+        // onError - 处理错误
+        (error) => {
+          console.error('AI回复错误:', error);
+          
+          // 处理认证错误
+          if (error.message.includes('未登录') || error.message.includes('401') || error.message.includes('unauthorized')) {
+            // 提示用户重新登录
+            const authErrorMessage = {
+              role: 'assistant',
+              content: '登录已过期，请刷新页面重新登录后使用AI助手功能。',
+              timestamp: new Date().toISOString(),
+              error: true
+            };
+            setChatMessages(prev => [...prev, authErrorMessage]);
+          } else {
+            // 其他错误
+            setChatMessages(prev => {
+              const updated = [...prev];
+              if (updated[aiMessageIndex]) {
+                updated[aiMessageIndex] = {
+                  ...updated[aiMessageIndex],
+                  text: '抱歉，AI助手暂时无法回复，请稍后再试。',
+                  error: true
+                };
+              }
+              return updated;
+            });
+          }
+        },
+        
+        // onComplete - 完整回复已完成
+        (completeResponse) => {
+          console.log('AI回复完成:', completeResponse);
+        }
+      );
+      
+    } catch (err) {
+      console.error('发送消息失败：', err);
+      
+      // 处理不同类型的错误
+      if (err.message.includes('未登录') || err.message.includes('unauthorized') || err.message.includes('401')) {
+        const errorMessage = {
+          role: 'ai',
+          text: '登录已过期，请刷新页面重新登录。',
+          timestamp: new Date().toISOString(),
+          error: true
+        };
+        setChatMessages(prev => [...prev, errorMessage]);
+      } else {
+        // 添加错误消息
+        const errorMessage = {
+          role: 'ai',
+          text: '抱歉，发送消息失败，请检查网络连接后重试。',
+          timestamp: new Date().toISOString(),
+          error: true
+        };
+        setChatMessages(prev => [...prev, errorMessage]);
+      }
     }
   };
 
@@ -288,7 +416,13 @@ const ReviewDetail = ({ isDarkMode }) => {
   const groupedData = groupIssues(parsedFinalResult);
 
   return (
-    <Box sx={{ p: 3, mx: 'auto', mt: 6 }}>
+    <Box sx={{ p: 3, mx: 'auto', mt: 6, position: 'relative',
+        ml: {
+          xs: 0, // 小屏幕时不需要额外padding，因为ChatPanel会调整位置
+          sm: 0,
+          md: isChatPanelCollapsed ? 0 : 80, // 中等屏幕及以上，ChatPanel展开时留出空间
+          lg: isChatPanelCollapsed ? 0 : -40  // 大屏幕时留出更多空间
+        } }}>
       {/* 面包屑导航 */}
       <Breadcrumbs sx={{ mb: 3 }}>
         
@@ -299,7 +433,7 @@ const ReviewDetail = ({ isDarkMode }) => {
       </Breadcrumbs>
 
       {/* 页面标题+操作按钮 */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3,maxWidth: '1200px' }}>
         <Typography variant="h4" component="h1" gutterBottom>
           PR #{review.pr_number} {t('reviewDetail.intelligentCodeReview')} {t('reviewDetail.reviewResults')}
         </Typography>
@@ -317,7 +451,12 @@ const ReviewDetail = ({ isDarkMode }) => {
       </Box>
 
       {/* 两列布局 */}
-      <Box sx={{ display: 'flex', gap: 3, position: 'relative' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        gap: 3, 
+        position: 'relative',
+        
+      }}>
         {/* 左侧列 - 仓库基本信息（屏幕宽度小于1300px时隐藏） */}
         {!isSmallScreen && (
           <SidebarPanel
@@ -331,7 +470,14 @@ const ReviewDetail = ({ isDarkMode }) => {
           flex: 1,
           minHeight: '100vh',
           // 小屏幕时左侧边栏隐藏，右侧内容占满宽度
-          width: isSmallScreen ? '100%' : 'auto'
+          width: isSmallScreen ? '100%' : 'auto',
+          // 响应式的右边距调整
+          marginRight: {
+            xs: 0, // 手机端不需要额外margin
+            sm: 0,
+            md: isChatPanelCollapsed ? 0 : (isSmallScreen ? 0 : 0), // 中等屏幕根据左侧边栏状态调整
+            lg: isChatPanelCollapsed ? 0 : (isSmallScreen ? 0 : 20) // 大屏幕时适度调整
+          }
         }}>
           {/* 搜索框 */}
           <Box sx={{ mb: 3, width: '100%' }}>
@@ -376,6 +522,14 @@ const ReviewDetail = ({ isDarkMode }) => {
           </Box>
         </Box>
       </Box>
+
+      {/* ChatPanel - 右侧可折叠交流面板 */}
+      <ChatPanel
+        isCollapsed={isChatPanelCollapsed}
+        onToggle={handleToggleChatPanel}
+        messages={chatMessages}
+        onSendMessage={handleSendMessage}
+      />
     </Box>
   );
 };

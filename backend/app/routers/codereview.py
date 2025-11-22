@@ -17,11 +17,11 @@ from app.utils.userauth import require_bearer
 from app.utils.codereview import (
     parse_base64_content, parse_comments_from_base64, parse_ai_output,
     calculate_reputation_delta, build_final_result, log_review_request,
-    calculate_review_summary, build_event_description
+    calculate_review_summary, build_event_description, build_ai_chat_message
 )
 from app.utils.database import get_database
 from app.services.codereview import get_ai_code_review_service
-
+from app.services.aicopilot import aicopilot_service
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -167,6 +167,10 @@ async def review(
     delta_reputation = calculate_reputation_delta(summary)
     event = build_event_description(summary, defect_types, delta_reputation, payload.pr_number)
     await reputation_service.update_programmer_reputation(author, event, delta_reputation=delta_reputation)
+
+
+    ai_chat_message = build_ai_chat_message(final_ai_output,diff_text,pr_title,pr_body)
+    await aicopilot_service.add_chat_message(review_id, ai_chat_message,'system')
 
     return { 
         "issues": issues

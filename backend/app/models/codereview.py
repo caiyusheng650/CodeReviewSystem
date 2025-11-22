@@ -42,6 +42,9 @@ class CodeReviewInDB(CodeReviewBase):
     # 存储标记的问题项序号
     marked_issues: List[str] = Field(default_factory=list, description="标记的问题项序号列表")
     
+    # 存储聊天记录
+    chat_history: List = Field(default_factory=list, description="聊天记录列表")
+    
     username: str = Field(..., description="请求头API token所属的用户名")
     
     model_config = {
@@ -79,6 +82,7 @@ class CodeReviewDetailResponse(CodeReviewBaseResponse):
     readme_content: str = Field(..., description="README内容")
     comments: List[Dict[str, Any]] = Field(..., description="评论列表")
     agent_outputs: List[Dict] = []
+    chat_history: List = Field(default_factory=list, description="聊天记录列表")
 
 class CodeReviewResponse(CodeReviewDetailResponse):
     """API响应中的代码审查模型（保持向后兼容）"""
@@ -118,6 +122,7 @@ class CodeReviewUpdate(BaseModel):
     agent_outputs: Optional[List[Dict]] = None
     final_result: Optional[Dict] = None
     marked_issues: Optional[List[str]] = None
+    chat_history: Optional[List[Dict[str, Any]]] = None
 
 class CodeReviewStats(BaseModel):
     """代码审查统计模型"""
