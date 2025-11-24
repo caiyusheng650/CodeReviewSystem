@@ -390,9 +390,7 @@ const ReviewDetail = ({ isDarkMode }) => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <CircularProgress />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          {t('reviewDetail.loadingReviewDetails')}
-        </Typography>
+        
       </Box>
     );
   }
