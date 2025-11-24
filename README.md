@@ -1,188 +1,244 @@
-# 智能代码审查系统
+# 智能代码审查系统 (AI Code Review System)
 
-## 项目简介
+一个基于AI的智能代码审查系统，通过GitHub Actions集成，为开发团队提供自动化的代码质量分析和审查服务。
 
-智能代码审查系统是一个基于AI的自动化代码审查工具，旨在帮助开发团队提高代码质量和审查效率。该系统通过GitHub Actions集成，能够自动分析Pull Request中的代码变更，并提供详细的审查反馈。
+## 🌟 特性
 
-## 核心功能
+### 核心功能
+- **AI驱动的代码审查** - 使用多Agent架构进行深度代码分析
+- **GitHub Actions集成** - 自动触发PR审查流程
+- **多维度代码质量评估** - 涵盖安全、性能、可维护性等7个维度
+- **开发者信誉系统** - 基于历史表现评估代码质量
+- **实时聊天助手** - 提供代码改进建议和问题解答
 
-- **自动化代码审查**：当创建或更新Pull Request时，自动触发代码审查流程
-- **多维度问题检测**：识别代码中的潜在问题，包括：
-  - 静态缺陷（未使用的变量、代码规范等）
-  - 逻辑缺陷（潜在的错误、异常处理缺失等）
-  - 安全漏洞（XSS、SQL注入风险等）
-- **详细的问题报告**：为每个发现的问题提供具体位置、描述和修复建议
-- **用户友好的Web界面**：提供注册、登录、设置等完整的用户功能
-- **API密钥管理**：安全地管理访问凭证
+### 技术特色
+- **现代化技术栈** - FastAPI + React + MongoDB
+- **多语言支持** - 完整的中英文国际化
+- **响应式设计** - Material-UI打造的现代化界面
+- **RESTful API** - 标准化的API设计
+- **容器化部署** - 支持Docker部署
 
-## 技术架构
+## 🏗️ 系统架构
 
-### 前端
-- **框架**：React 18 + Vite
-- **UI库**：Material-UI (MUI)
-- **路由**：React Router v7
-- **状态管理**：React Context API
-- **构建工具**：Vite
+### 前端 (Frontend)
+- **框架**: React 19 + Vite
+- **UI组件库**: Material-UI (MUI)
+- **状态管理**: React Context
+- **路由**: React Router DOM
+- **国际化**: i18next
+- **HTTP客户端**: Axios
 
-### 后端
-- **框架**：FastAPI (Python)
-- **数据库**：MongoDB (通过Motor驱动)
-- **认证**：JWT Token
-- **部署**：Uvicorn ASGI服务器
+### 后端 (Backend)
+- **框架**: FastAPI
+- **数据库**: MongoDB
+- **认证**: JWT + API密钥
+- **AI引擎**: AutoGen多Agent系统
+- **异步处理**: Async/Await
+- **文档**: OpenAPI自动生成
 
-### CI/CD集成
-- **平台**：GitHub Actions
-- **触发事件**：Pull Request (opened, synchronize, reopened)
+### AI审查维度
+1. **静态分析** - 代码规范、命名约定
+2. **逻辑缺陷** - 逻辑错误、分支覆盖
+3. **内存安全** - 内存泄漏、资源管理
+4. **安全漏洞** - 安全风险、注入攻击
+5. **性能优化** - 性能瓶颈、算法效率
+6. **可维护性** - 代码结构、复杂度
+7. **架构设计** - 设计模式、模块划分
 
-## 项目结构
+## 🚀 快速开始
 
+### 环境要求
+- Python 3.9+
+- Node.js 18+
+- MongoDB 5.0+
+- Git
+
+### 安装步骤
+
+#### 1. 克隆项目
+```bash
+git clone <repository-url>
+cd CodeReviewSystem
 ```
-.
-├── backend/              # 后端服务
-│   ├── app/             # 应用核心代码
-│   │   ├── models/      # 数据模型
-│   │   ├── routers/     # API路由
-│   │   ├── schemas/     # 数据验证模式
-│   │   ├── services/    # 业务逻辑
-│   │   └── utils/       # 工具函数
-│   ├── main.py          # 应用入口
-│   └── requirements.txt # Python依赖
-├── frontend/            # 前端应用
-│   ├── src/             # 源代码
-│   │   ├── components/  # 可复用组件
-│   │   ├── pages/       # 页面组件
-│   │   ├── contexts/    # React上下文
-│   │   ├── services/    # API服务
-│   │   └── theme/       # 主题配置
-│   └── package.json     # Node.js依赖
-├── .github/workflows/   # GitHub Actions工作流
-└── README.md            # 项目说明文档
+
+#### 2. 后端设置
+```bash
+cd backend
+
+# 安装Python依赖
+pip install -r requirements.txt
+
+# 配置环境变量
+cp .env.example .env
+# 编辑.env文件，配置数据库连接和AI服务
+
+# 启动后端服务
+python main.py
 ```
 
-## 快速开始
+#### 3. 前端设置
+```bash
+cd frontend
 
-### 后端服务启动
+# 安装Node.js依赖
+npm install
 
-1. 进入后端目录：
-   ```bash
-   cd backend
-   ```
+# 启动开发服务器
+npm run dev
+```
 
-2. 安装Python依赖：
-   ```bash
-   pip install -r requirements.txt
-   ```
+#### 4. 访问系统
+- 前端地址: http://localhost:5173
+- 后端API: http://localhost:8000
+- API文档: http://localhost:8000/docs
 
-3. 配置环境变量（复制`.env.example`为`.env`并修改相应值）：
-   ```bash
-   cp .env.example .env
-   ```
+## 📋 使用指南
 
-4. 启动服务：
-   ```bash
-   python main.py
-   ```
-   或使用：
-   ```bash
-   uvicorn main:app --reload
-   ```
+### GitHub Actions集成
 
-### 前端应用启动
+#### 1. 安装GitHub Workflow
+```bash
+# 使用安装脚本自动配置
+curl -s "http://your-api-domain/api/install/workflow/install.sh" | bash
+```
 
-1. 进入前端目录：
-   ```bash
-   cd frontend
-   ```
+#### 2. 配置GitHub Secrets
+在仓库设置中添加以下secrets：
+- `CODE_REVIEW_API_TOKEN`: 您的API密钥
+- `CODE_REVIEW_API_URL`: API服务地址
 
-2. 安装Node.js依赖：
-   ```bash
-   npm install
-   ```
+#### 3. 创建Pull Request
+系统将在PR创建时自动触发AI代码审查。
 
-3. 启动开发服务器：
-   ```bash
-   npm run dev
-   ```
+### Web界面使用
 
-## API接口
+#### 审查记录
+- 查看所有代码审查历史
+- 按状态、仓库、作者筛选
+- 导出审查报告
+
+#### 审查详情
+- 多维度问题分类展示
+- 代码片段对比查看
+- 智能聊天助手交互
+
+#### 设置管理
+- API密钥管理
+- 团队配置
+- 个性化设置
+
+## 🔧 API接口
 
 ### 认证相关
-- `POST /api/auth/register` - 用户注册
 - `POST /api/auth/login` - 用户登录
+- `POST /api/auth/register` - 用户注册
+- `GET /api/auth/me` - 获取当前用户信息
 
-### 代码审查相关
-- `POST /api/codereview/review` - 接收代码审查请求
-- `GET /api/codereview/health` - 健康检查
+### 代码审查
+- `POST /api/codereview/` - 提交代码审查
+- `GET /api/codereview/{review_id}` - 获取审查详情
+- `GET /api/codereview/` - 获取审查列表
 
 ### API密钥管理
-- `POST /api/apikeys` - 创建API密钥
-- `GET /api/apikeys` - 列出所有API密钥
-- `PUT /api/apikeys/{apikey}/disable` - 禁用API密钥
-- `PUT /api/apikeys/{apikey}/enable` - 启用API密钥
-- `DELETE /api/apikeys/{apikey}` - 删除API密钥
+- `POST /api/apikeys/` - 创建API密钥
+- `GET /api/apikeys/` - 获取密钥列表
+- `DELETE /api/apikeys/{key_id}` - 删除API密钥
 
-## GitHub Actions集成
+### 信誉系统
+- `GET /api/reputation/{user_id}` - 获取用户信誉信息
+- `GET /api/reputation/leaderboard` - 信誉排行榜
 
-系统通过GitHub Actions工作流自动审查Pull Request：
+## 🗂️ 项目结构
 
-1. 当创建或更新PR时自动触发
-2. 生成代码差异(diff)
-3. 发送请求到后端API进行分析
-4. 在PR中添加审查评论
+```
+CodeReviewSystem/
+├── backend/                 # 后端服务
+│   ├── app/
+│   │   ├── models/          # 数据模型
+│   │   ├── routers/         # API路由
+│   │   ├── services/        # 业务逻辑
+│   │   ├── source/          # 静态资源
+│   │   └── utils/           # 工具函数
+│   ├── main.py             # 应用入口
+│   └── requirements.txt     # Python依赖
+├── frontend/               # 前端应用
+│   ├── src/
+│   │   ├── components/     # React组件
+│   │   ├── pages/          # 页面组件
+│   │   ├── services/       # API服务
+│   │   ├── contexts/       # 状态管理
+│   │   └── utils/          # 工具函数
+│   ├── package.json        # Node.js依赖
+│   └── vite.config.js      # Vite配置
+└── .github/workflows/      # GitHub Actions
+    ├── ai-review.yml       # 主工作流
+    └── docs.txt            # 文档说明
+```
 
-需要在仓库中配置以下Secrets：
-- `CODE_REVIEW_API_URL` - 后端API地址
-- `CODE_REVIEW_API_TOKEN` - API访问令牌
+## 🔒 安全特性
 
-## 开发指南
+- **API密钥认证** - 所有API请求需要有效密钥
+- **JWT令牌** - 用户会话管理
+- **CORS配置** - 跨域请求控制
+- **输入验证** - 请求参数验证
+- **错误处理** - 安全的错误信息返回
 
-### 代码规范
+## 🚀 部署
 
-- 前端遵循ESLint规则
-- 后端遵循Python PEP8规范
-- 提交前请运行相应的lint检查
+### 开发环境
+```bash
+# 后端
+cd backend && python main.py
 
-### 扩展功能
+# 前端
+cd frontend && npm run dev
+```
 
-1. **添加新的审查规则**：
-   - 在后端`codereview`路由中扩展分析逻辑
-   - 返回符合GitHub Actions期望格式的结果
+### 生产环境
+```bash
+# 使用Docker部署
+docker-compose up -d
 
-2. **添加新的API端点**：
-   - 在`backend/app/routers/`目录下创建新的路由文件
-   - 在`main.py`中注册新路由
+# 或使用PM2管理进程
+pm2 start ecosystem.config.js
+```
 
-## 部署说明
+## 🤝 贡献指南
 
-### 后端部署
+我们欢迎社区贡献！请遵循以下步骤：
 
-推荐使用以下方式部署：
-1. 使用Docker容器化部署
-2. 使用云服务（如Heroku、AWS、阿里云等）
-3. 使用Gunicorn作为WSGI服务器
-
-### 前端部署
-
-1. 构建生产版本：
-   ```bash
-   npm run build
-   ```
-2. 部署构建产物到静态文件服务器
-
-## 贡献指南
-
-欢迎提交Issue和Pull Request来改进这个项目！
-
-1. Fork项目
+1. Fork 项目
 2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
+5. 创建Pull Request
 
-## 许可证
+### 开发规范
+- 遵循PEP 8 (Python)和ESLint (JavaScript)代码规范
+- 编写单元测试
+- 更新相关文档
+- 使用有意义的提交信息
 
-本项目采用MIT许可证 - 查看[LICENSE](LICENSE)文件了解详情
+## 📄 许可证
 
-## 联系方式
+本项目采用MIT许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
-项目链接: [https://github.com/yourusername/CodeReviewSystem](https://github.com/yourusername/CodeReviewSystem)
+## 📞 支持与联系
+
+- 项目文档: [查看文档](docs/)
+- 问题反馈: [GitHub Issues](issues)
+- 邮箱支持: support@codereview.example.com
+- 社区讨论: [Discord频道](discord-link)
+
+## 🙏 致谢
+
+感谢以下开源项目的支持：
+- [FastAPI](https://fastapi.tiangolo.com/) - 高性能Python Web框架
+- [React](https://reactjs.org/) - 用户界面库
+- [Material-UI](https://mui.com/) - React组件库
+- [AutoGen](https://microsoft.github.io/autogen/) - 多Agent框架
+- [MongoDB](https://www.mongodb.com/) - 文档数据库
+
+---
+
+**智能代码审查系统** - 让代码审查更智能、更高效！ 🚀

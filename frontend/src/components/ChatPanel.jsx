@@ -135,7 +135,7 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
           }
         }}
       >
-        {messages.length === 0 ? (
+        {messages.length === 1 ? (
           <Box 
             sx={{ 
               height: '100%', 

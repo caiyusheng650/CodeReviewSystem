@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { codeReviewAPI } from '../services/api/codeReviewAPI';
-import { aicopilotAPI } from '../services/api/aicopilotAPI';
+import { aicopilotAPI } from '../services/api/AICopilotAPI';
 import { useTranslation } from 'react-i18next';
 import {
   Box, Breadcrumbs, Button, Card, CardContent, Chip, CircularProgress,
