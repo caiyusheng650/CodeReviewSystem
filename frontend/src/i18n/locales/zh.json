@@ -105,7 +105,9 @@
     "bySeverity": "按程度分类",
     "persistentIssues": "顽固问题",
     "markedIssues": "已标记问题",
-    "chatHistory": "聊天历史"
+    "chatHistory": "聊天历史",
+    "pendingReview": "正在审查中",
+    "loadingReviewDetails": "正在加载审查详情..."
   },
   "settings": {
     "fetchApiKeysFailed": "获取 API 密钥失败",
@@ -176,7 +178,8 @@
     "of": "共",
     "displayedRecords": "显示 {{from}}-{{to}} 条，共 {{total}} 条记录",
     "totalRecords": "{{count}} 条记录",
-    "item": "项目"
+    "item": "项目",
+    "refreshPage": "刷新页面"
   },
   "sidebar": {
     "notRecommended": "不建议合并",

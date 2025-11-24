@@ -39,6 +39,7 @@ const ReviewDetail = ({ isDarkMode }) => {
   const [markedIssues, setMarkedIssues] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
   const [chatHistoryLoading, setChatHistoryLoading] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   
   // ChatPanel相关状态
   const [isChatPanelCollapsed, setIsChatPanelCollapsed] = useState(false);
@@ -73,6 +74,8 @@ const ReviewDetail = ({ isDarkMode }) => {
         }
         
         setReview(reviewDetail);
+        setMarkedIssues(reviewDetail.marked_issues);
+        setIsPending(reviewDetail.status === 'pending');
       } catch (err) {
         console.error('加载审查详情失败:', err);
         
@@ -329,7 +332,7 @@ const ReviewDetail = ({ isDarkMode }) => {
       groupedBySeverity[severityKey].push({ ...issue, index });
 
       // 按标记状态分组
-      const markedStatus = issue.marked ? t('utils.marked') : t('utils.unmarked');
+      const markedStatus = markedIssues.includes(index.toString()) ? t('utils.marked') : t('utils.unmarked');
       if (!groupedByMarked[markedStatus]) {
         groupedByMarked[markedStatus] = [];
       }
@@ -364,12 +367,32 @@ const ReviewDetail = ({ isDarkMode }) => {
       issue.severity?.toLowerCase().includes(lowerSearchText)
     );
   };
+  if (isPending) {
+    return (
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          {review.pr_title} {t('reviewDetail.pendingReview')}
+        </Typography>
+        <Button
+          variant="contained"
+          onClick={() => window.location.reload()}
+          sx={{ mt: 2 }}
+        >
+          {t('common.refreshPage')}
+        </Button>
+      </Box>
+    )
+  }
 
   // 加载中状态
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <CircularProgress />
+        <Typography variant="h6" sx={{ mt: 2 }}>
+          {t('reviewDetail.loadingReviewDetails')}
+        </Typography>
       </Box>
     );
   }
@@ -412,7 +435,6 @@ const ReviewDetail = ({ isDarkMode }) => {
 
   const parsedFinalResult = parseFinalResult(review.final_result);
   const issueCount = getIssueCount(parsedFinalResult);
-  const mergeSuggestion = getMergeSuggestion(issueCount);
   const groupedData = groupIssues(parsedFinalResult);
 
   return (

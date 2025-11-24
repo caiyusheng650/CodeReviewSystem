@@ -64,10 +64,6 @@ async def send_stream_message(
         if not chat_history:
             chat_history = []
         
-        
-        
-        logging.info(f"发送消息到AI助手，历史记录: {len(chat_history)} 条")
-        
         # 使用aicopilot_service的生成器方法
         async def generate_stream():
             """生成流式响应"""
