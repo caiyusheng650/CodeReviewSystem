@@ -35,8 +35,6 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
   const [inputText, setInputText] = useState('');
   const { t } = useTranslation();
 
-  console.log('messages', messages);
-
   const handleSendMessage = () => {
     if (inputText.trim()) {
       onSendMessage(inputText);
@@ -194,10 +192,12 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
                     '& *': { 
                       color: 'inherit',
                       whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word'
+                      wordBreak: 'break-word',
+                      lineHeight: 1.1
                     }
                   }}>
-                    {message.content}
+                    
+                    <ReactMarkdown>{message.content}</ReactMarkdown>
                   </Box>
                 </Paper>
               </ListItem>

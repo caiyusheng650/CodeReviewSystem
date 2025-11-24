@@ -94,18 +94,20 @@
   "reviewDetail": {
     "invalidReviewId": "Invalid review ID",
     "fetchFailed": "Failed to fetch review details",
-    "reviewNotFound": "Review record does not exist",
+    "reviewNotFound": "Review record not found",
     "reviews": "Reviews",
     "intelligentCodeReview": "Intelligent Code Review",
     "reviewResults": "Review Results",
     "exportReport": "Export Report",
-    "searchPlaceholder": "Search file/issue description/suggestion...",
+    "searchPlaceholder": "Search files/issue descriptions/suggestions...",
     "byType": "By Type",
     "byFile": "By File",
     "bySeverity": "By Severity",
     "persistentIssues": "Persistent Issues",
     "markedIssues": "Marked Issues",
-    "chatHistory": "Chat History"
+    "chatHistory": "Chat History",
+    "pendingReview": "is under review",
+    "loadingReviewDetails": "Loading review details..."
   },
   "settings": {
     "fetchApiKeysFailed": "Failed to fetch API keys",
@@ -174,9 +176,10 @@
     "goodCode": "Good Code",
     "rowsPerPage": "Rows per page",
     "of": "of",
-    "displayedRecords": "Showing {{from}}-{{to}} of {{total}} records",
+    "displayedRecords": "Displaying {{from}}-{{to}} of {{total}} records",
     "totalRecords": "{{count}} records",
-    "item": "Item"
+    "item": "Item",
+    "refreshPage": "Refresh Page"
   },
   "sidebar": {
     "notRecommended": "Not Recommended",
