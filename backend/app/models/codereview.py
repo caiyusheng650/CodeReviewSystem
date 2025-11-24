@@ -115,6 +115,7 @@ class CodeReviewCreate(BaseModel):
     readme_content: str = Field(..., description="README内容")
     comments: List[Dict[str, Any]] = Field(..., description="评论列表")
     username: str = Field(..., description="请求头API token所属的用户名")
+    chat_history: List = Field(default_factory=list, description="聊天记录列表")
 
 class CodeReviewUpdate(BaseModel):
     """更新代码审查模型"""

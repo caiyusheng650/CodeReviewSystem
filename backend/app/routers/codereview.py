@@ -125,7 +125,8 @@ async def review(
         pr_body=pr_body,
         readme_content=readme_content,
         comments=comments,
-        username=username
+        username=username,
+        chat_history=[]
     )
     
     review_id = await code_review_service.create_review(review_data, user_id)
