@@ -10,4 +10,7 @@ motor==3.3.2
 python-dotenv==1.0.0
 autogen==0.7.5
 aiofiles==23.2.0
-
+bcrypt==4.3.0
+autogen-agentchat==0.7.5
+autogen-core==0.7.5
+autogen-ext==0.7.5
