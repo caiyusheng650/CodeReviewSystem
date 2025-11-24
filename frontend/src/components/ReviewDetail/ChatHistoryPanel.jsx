@@ -268,6 +268,7 @@ const ChatHistoryPanel = ({ chatHistory, isDarkMode, chatHistoryLoading }) => {
     }
   };
 
+
   if (!chatHistory || chatHistory.length === 0) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>

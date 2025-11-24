@@ -24,16 +24,13 @@ async def connect_to_mongo():
     try:
         # 测试连接
         await client.admin.command('ping')
-        print("成功连接到MongoDB Atlas")
         return True
     except Exception as e:
-        print(f"连接MongoDB失败: {e}")
         return False
 
 async def close_mongo_connection():
     """关闭MongoDB连接"""
     client.close()
-    print("MongoDB连接已关闭")
 
 
 # FastAPI依赖函数

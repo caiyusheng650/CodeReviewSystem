@@ -52,7 +52,8 @@ class CodeReviewService:
             "agent_outputs": [],
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "username": review_data.username
+            "username": review_data.username,
+            "chat_history": review_data.chat_history
         }
         
         logger.debug("准备插入的文档内容: %s", {k: v for k, v in review_doc.items() if k not in ['diff_base64', 'pr_title_b64', 'pr_body_b64', 'readme_b64', 'comments_b64']})
@@ -315,7 +316,6 @@ class CodeReviewService:
         Returns:
             Optional[CodeReviewResponse]: 最近一条审查记录，如果没有则返回None
         """
-        logger.info("开始查询用户最近一条代码审查记录，用户名: %s", username)
         
         try:
             # 查询该用户的最新一条记录，按创建时间倒序排列
