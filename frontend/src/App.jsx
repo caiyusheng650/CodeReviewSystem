@@ -95,7 +95,7 @@ function AppContent() {
 
 
   // 如果是小屏幕，显示提醒信息
-  if (isSmallScreen) {
+  if (false && isSmallScreen) {
     return (
       <I18nextProvider i18n={i18n}>
         <ThemeProvider theme={isDarkMode ? darkTheme : theme}>

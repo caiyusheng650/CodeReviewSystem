@@ -214,7 +214,7 @@
     "codeReviewAgent": "代码审查人工智能智能体"
   },
   "support": {
-    "title": "支持 CodeReviewSystem",
+    "title": "支持 智能代码审查系统",
     "description": "这是一个开源的智能代码审查系统，致力于提升代码质量，促进团队协作。您的支持将帮助我们持续改进，为开发者社区提供更好的工具。",
     "supportButton": "支持项目 ， 给我们一个 Star ！",
     "whyChooseUs": "为什么选择我们？",

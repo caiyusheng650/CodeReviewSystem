@@ -76,7 +76,7 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
   return (
     <Card 
       sx={{ 
-        width: 500,
+        width: 450,
         height: 'calc(100vh - 120px)',
         position: 'fixed',
         right: 16,
@@ -91,7 +91,7 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
         sx={{ 
           p: 2, 
           display: 'flex', 
-          alignItems: 'center', 
+          alignItems: 'center',  
           justifyContent: 'space-between',
           borderBottom: `1px solid ${theme.palette.divider}`
         }}
