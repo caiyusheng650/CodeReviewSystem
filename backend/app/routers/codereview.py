@@ -309,7 +309,6 @@ async def get_review_by_github_action_id(
 async def list_reviews(
     username: str = Depends(require_bearer),
     code_review_service: CodeReviewService = Depends(get_code_review_service),
-    status: Optional[ReviewStatus] = Query(None, description="审查状态"),
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量")
 ):
