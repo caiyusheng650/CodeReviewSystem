@@ -12,7 +12,7 @@ from bson import ObjectId
 from app.models.codereview import (
     CodeReviewCreate, CodeReviewUpdate, CodeReviewResponse, 
     CodeReviewStats, CodeReviewListResponse, AgentOutput,
-    ReviewStatus
+    ReviewStatus,SimpleCodeReviewListResponse,SimpleCodeReviewResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -162,16 +162,13 @@ class CodeReviewService:
         # 只返回必要的字段，排除大字段如diff_content、pr_body、readme_content等
         projection = {
             '_id': 1,
-            'github_action_id': 1,
             'pr_number': 1,
-            'repo_owner': 1,
             'repo_name': 1,
             'author': 1,
             'pr_title': 1,
             'created_at': 1,
-            'updated_at': 1,
             'status': 1,
-            'username': 1
+            'pr_body': 1
         }
         
         # 获取记录，只包含必要字段
@@ -187,18 +184,12 @@ class CodeReviewService:
                 if "created_by" in doc and isinstance(doc["created_by"], ObjectId):
                     doc["created_by"] = str(doc["created_by"])
                 
-                # 确保包含必要的字段，即使查询中没有返回
-                if "final_result" not in doc:
-                    doc["final_result"] = None
-                if "marked_issues" not in doc:
-                    doc["marked_issues"] = []
-                
                 # 使用CodeReviewBaseResponse而不是CodeReviewResponse
-                reviews.append(CodeReviewBaseResponse(**doc))
+                reviews.append(SimpleCodeReviewResponse(**doc))
         
         has_next = skip + limit < total
         
-        return CodeReviewListResponse(
+        return SimpleCodeReviewListResponse(
             reviews=reviews,
             total=total,
             page=skip // limit + 1,

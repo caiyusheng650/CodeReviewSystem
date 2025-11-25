@@ -9,7 +9,7 @@ from app.models.reputation import ReputationUpdatePayload
 from app.models.user import UserResponse
 from app.models.codereview import (
     CodeReviewCreate, CodeReviewUpdate, CodeReviewResponse, 
-    ReviewStatus, CodeReviewBaseResponse, CodeReviewDetailResponse,
+    CodeReviewBaseResponse, CodeReviewDetailResponse,
     SimpleCodeReviewListResponse
 )
 from app.utils.apikey import require_api_key
