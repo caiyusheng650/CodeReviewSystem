@@ -9,7 +9,7 @@ from app.models.reputation import ReputationUpdatePayload
 from app.models.user import UserResponse
 from app.models.codereview import (
     CodeReviewCreate, CodeReviewUpdate, CodeReviewResponse, 
-    ReviewStatus, CodeReviewBaseResponse, CodeReviewDetailResponse,
+    CodeReviewBaseResponse, CodeReviewDetailResponse,
     SimpleCodeReviewListResponse
 )
 from app.utils.apikey import require_api_key
@@ -309,9 +309,6 @@ async def get_review_by_github_action_id(
 async def list_reviews(
     username: str = Depends(require_bearer),
     code_review_service: CodeReviewService = Depends(get_code_review_service),
-    status: Optional[ReviewStatus] = Query(None, description="审查状态"),
-    repo_owner: Optional[str] = Query(None, description="仓库所有者"),
-    repo_name: Optional[str] = Query(None, description="仓库名称"),
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量")
 ):

@@ -12,7 +12,7 @@ from bson import ObjectId
 from app.models.codereview import (
     CodeReviewCreate, CodeReviewUpdate, CodeReviewResponse, 
     CodeReviewStats, CodeReviewListResponse, AgentOutput,
-    ReviewStatus
+    ReviewStatus,SimpleCodeReviewListResponse,SimpleCodeReviewResponse
 )
 
 logger = logging.getLogger(__name__)
@@ -159,15 +159,37 @@ class CodeReviewService:
         # 获取总数
         total = await self.collection.count_documents(query)
         
-        # 获取记录
-        cursor = self.collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+        # 只返回必要的字段，排除大字段如diff_content、pr_body、readme_content等
+        projection = {
+            '_id': 1,
+            'pr_number': 1,
+            'repo_name': 1,
+            'author': 1,
+            'pr_title': 1,
+            'created_at': 1,
+            'status': 1,
+            'pr_body': 1
+        }
+        
+        # 获取记录，只包含必要字段
+        cursor = self.collection.find(query, projection).sort("created_at", -1).skip(skip).limit(limit)
         docs = await cursor.to_list(length=limit)
         
-        reviews = [self._convert_to_response(doc) for doc in docs if doc]
+        # 转换ObjectId并创建CodeReviewBaseResponse实例
+        reviews = []
+        for doc in docs:
+            if doc:
+                # 转换ObjectId
+                doc["_id"] = str(doc["_id"])
+                if "created_by" in doc and isinstance(doc["created_by"], ObjectId):
+                    doc["created_by"] = str(doc["created_by"])
+                
+                # 使用CodeReviewBaseResponse而不是CodeReviewResponse
+                reviews.append(SimpleCodeReviewResponse(**doc))
         
         has_next = skip + limit < total
         
-        return CodeReviewListResponse(
+        return SimpleCodeReviewListResponse(
             reviews=reviews,
             total=total,
             page=skip // limit + 1,

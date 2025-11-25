@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import PlainTextResponse, Response
 import os
 from pathlib import Path
+import aiofiles
 
 router = APIRouter()
 
@@ -101,8 +102,8 @@ async def get_github_workflow_file(filename: str):
         raise HTTPException(status_code=404, detail="File not found")
     
     # 读取文件内容
-    with open(file_path, "r", encoding="utf-8") as f:
-        file_content = f.read()
+    async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
+        file_content = await f.read()
     
     # 根据文件类型设置媒体类型
     media_type = "text/plain"
