@@ -53,7 +53,7 @@ jobs:
           BASE="${{ github.base_ref }}"
           if [ -z "$BASE" ]; then BASE="origin/main"; fi
 
-          DIFF_RAW=$(git diff -U20 "origin/$BASE"...HEAD)
+          DIFF_RAW=$(git diff -U20 "origin/$BASE"...HEAD  -- . ':!.github')
 
           # Prevent oversize
           DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)
