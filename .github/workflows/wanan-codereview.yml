@@ -1,3 +1,4 @@
+
 name: wanan codereview
 
 on:
@@ -30,11 +31,9 @@ jobs:
           echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
           echo "RUN_ATTEMPT=${{ github.run_attempt }}" >> $GITHUB_ENV
           echo "RUN_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
-
           # Base64 encoding of title/body
           printf "%s" "${{ github.event.pull_request.title }}" | base64 -w0 > title.b64
           printf "%s" "${{ github.event.pull_request.body }}" | base64 -w0 > body.b64
-
       # 3) Capture README Content
       - name: Capture README Content
         run: |
@@ -46,15 +45,12 @@ jobs:
             echo "README.md not found. Creating empty placeholder file."
             touch readme.b64
           fi
-
       # 4) Generate diff safely
       - name: Generate diff safely
         run: |
           BASE="${{ github.base_ref }}"
           if [ -z "$BASE" ]; then BASE="origin/main"; fi
-
-          DIFF_RAW=$(git diff -U20 "origin/$BASE"...HEAD  -- . ':!.github')
-
+          DIFF_RAW=$(git diff -U20 "origin/$BASE"...HEAD)
           # Prevent oversize
           DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)
           MAX=5000000
@@ -62,9 +58,7 @@ jobs:
             echo "⚠️ Diff >5MB, truncating."
             DIFF_RAW=$(echo "$DIFF_RAW" | head -c $MAX)
           fi
-
           printf "%s" "$DIFF_RAW" | base64 -w0 > diff.b64
-
       # 5) Fetch Existing Comments
       - name: Fetch Existing Comments
         run: |
@@ -101,7 +95,6 @@ jobs:
           echo "=== API Payload (payload.json) ==="
           cat payload.json
           echo "=================================="
-
       # 7) Send to AI Review API
       - name: Call AI Review API
         run: |
@@ -111,11 +104,9 @@ jobs:
             --data-binary @payload.json \
             "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
             -o response.json
-
           echo "=== API Response (response.json) ==-"
           cat response.json
           echo "===================================="
-
       # 8) Format markdown
       - name: Generate Review Markdown
         run: |
@@ -148,17 +139,13 @@ jobs:
               ) | join("\n")
             )
           ' response.json > comment.md
-
           echo "Markdown generated:"
           cat comment.md
-
-
       # 9) Add inline comments
       - name: Add inline comments
         run: |
           HEAD_SHA=$(git rev-parse HEAD)
           echo "HEAD_SHA=$HEAD_SHA"
-
           jq -c '.issues[]' response.json | while read -r issue; do
             file=$(echo "$issue" | jq -r '.file')
             line=$(echo "$issue" | jq -r '.line')
@@ -168,7 +155,6 @@ jobs:
             sev=$(echo "$issue" | jq -r '.severity')
             # 提取历史未修复标记
             historical=$(echo "$issue" | jq -r '.historical_mention')
-
             # 对历史未修复问题添加特殊前缀和提示
             if [ "$historical" = "true" ]; then
               # 创建带有换行的header和提示
@@ -178,7 +164,6 @@ jobs:
               header="**AI 代码审查意见**"
               extra_note=""
             fi
-
             # 拼接评论内容（包含历史问题标识）- 使用多行printf确保换行正确处理
             if [ "$historical" = "true" ]; then
               body=$(printf '%s\n\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s\n\n**提示**: 此问题已在历史审查中多次提及，请优先处理' \
@@ -187,9 +172,7 @@ jobs:
               body=$(printf '%s\n\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s' \
                 "**AI 代码审查意见**" "$type" "$desc" "$sug" "$sev")
             fi
-
             echo "Attempting to add inline comment to $file:$line"
-
             # 保留原有的错误处理逻辑
             if ! gh api \
               repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/comments \
