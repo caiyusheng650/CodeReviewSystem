@@ -89,7 +89,7 @@ echo "💡 提示：您可以在 {base_url} 获取API密钥"
 async def get_github_workflow_file(filename: str):
     """返回GitHub Workflow文件"""
     # 允许的文件列表
-    allowed_files = ["ai-review.yml", "docs.txt"]
+    allowed_files = ["wanan-codereview.yml", "docs.txt"]
     
     if filename not in allowed_files:
         raise HTTPException(status_code=404, detail="File not found")

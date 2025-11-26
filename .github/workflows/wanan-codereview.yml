@@ -1,15 +1,14 @@
-name: AI Code Review
+name: wanan codereview
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  pull_request_target:
 
 permissions:
   pull-requests: write
   contents: read
 
 jobs:
-  ai_review:
+  wanan-codereview:
     runs-on: ubuntu-latest
 
     steps:
@@ -53,7 +52,7 @@ jobs:
           BASE="${{ github.base_ref }}"
           if [ -z "$BASE" ]; then BASE="origin/main"; fi
 
-          DIFF_RAW=$(git diff "origin/$BASE"...HEAD)
+          DIFF_RAW=$(git diff -U20 "origin/$BASE"...HEAD)
 
           # Prevent oversize
           DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)

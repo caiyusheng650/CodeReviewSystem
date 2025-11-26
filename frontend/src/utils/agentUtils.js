@@ -14,12 +14,12 @@ export const getAgentColor = (agent, theme) => {
     'ReputationAssessmentAgent': theme.palette.secondary.main,
     'CodeReviewAgent': theme.palette.success.main,
     'ReviewTaskDispatcherAgent': theme.palette.info.main,
-    'MaintainabilityReviewer': theme.palette.warning.main,
+    'MaintainabilityReviewAgent': theme.palette.warning.main,
     'LogicErrorReviewAgent': '#e91e63', // 粉色
     'StaticAnalysisReviewAgent': '#9c27b0', // 紫色
     'PerformanceOptimizationReviewAgent': '#ff9800', // 橙色
     'MemorySafetyReviewAgent': '#2196f3', // 蓝色
-    'ArchitectureReviewer': '#4caf50', // 绿色
+    'ArchitectureReviewAgent': '#4caf50', // 绿色
     'SecurityVulnerabilityReviewAgent': '#f44336', // 红色
     'FinalReviewAggregatorAgent': '#607d8b', // 蓝灰色
     'default': theme.palette.grey[500]
