@@ -16,7 +16,8 @@ import {
   Card,
   CardContent,
   IconButton,
-  Collapse
+  Collapse,
+  CircularProgress
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
@@ -67,9 +68,7 @@ const ChatHistoryPanel = ({ chatHistory, isDarkMode, chatHistoryLoading }) => {
   if (chatHistoryLoading) {
     return (
       <Box sx={{ p: 3, textAlign: 'center', minWidth: '900px' }}>
-        <Typography color="text.secondary">
-          {t('tabPanels.loadingChatHistory')}
-        </Typography>
+        <CircularProgress />
       </Box>
     );
   }
@@ -362,7 +361,8 @@ const ChatHistoryPanel = ({ chatHistory, isDarkMode, chatHistoryLoading }) => {
                 width: '100%', // 确保宽度统一
                 minWidth: '100%', // 防止内容过小时宽度变化
                 overflowX: 'auto', // 内容溢出时显示水平滚动条
-                maxHeight: '400px' // 限制最大高度，防止内容过长
+                maxHeight: '400px', // 限制最大高度，防止内容过长
+                textAlign: 'left' // 左对齐内容
               }}
             >
               {chat.content}
