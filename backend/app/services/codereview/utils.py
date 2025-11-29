@@ -124,6 +124,7 @@ class ContentAnalyzer:
             "repository_readme_excerpt": repository_readme,
             "pr_comments": comments_preview,
             "code_diff": code_diff,
+            
         }
         return json.dumps(payload, ensure_ascii=False, indent=2)
 

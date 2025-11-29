@@ -210,7 +210,7 @@
     "architectureReviewAgent": "架构审查人工智能智能体",
     "securityVulnerabilityReviewAgent": "安全漏洞审查人工智能智能体",
     "finalReviewAggregatorAgent": "最终审查聚合人工智能智能体",
-    "reputationAssessmentAgent": "声誉评估人工智能智能体",
+    "reputationAssessmentAgent": "信誉评估人工智能智能体",
     "codeReviewAgent": "代码审查人工智能智能体"
   },
   "support": {

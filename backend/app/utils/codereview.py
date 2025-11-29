@@ -4,7 +4,7 @@
 包含代码审查相关的辅助函数、解析器、统计计算等工具函数
 """
 
-import json
+import json5 as json
 import base64
 import logging
 from typing import List, Dict, Any, Tuple, Optional
@@ -79,7 +79,7 @@ def parse_ai_output(final_ai_output: str) -> Tuple[List[Dict[str, Any]], Dict[st
 
     try:
         issues = json.loads(final_ai_output)
-    except json.JSONDecodeError as e:
+    except Exception as e:
         logger.error(f"AI输出JSON解析失败: {str(e)}")
         return issues, summary, defect_types
 

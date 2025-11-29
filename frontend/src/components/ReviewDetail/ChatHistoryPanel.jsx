@@ -360,10 +360,12 @@ const ChatHistoryPanel = ({ chatHistory, isDarkMode, chatHistoryLoading }) => {
               sx={{
                 borderRadius: 1,
                 width: '100%', // 确保宽度统一
-                minWidth: '100%' // 防止内容过小时宽度变化
+                minWidth: '100%', // 防止内容过小时宽度变化
+                overflowX: 'auto', // 内容溢出时显示水平滚动条
+                maxHeight: '400px' // 限制最大高度，防止内容过长
               }}
             >
-              {parseContent(chat.content)}
+              {chat.content}
             </Box>
           </Collapse>
         </Paper>

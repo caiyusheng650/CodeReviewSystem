@@ -1,13 +1,13 @@
 # review/service.py
 # 核心服务模块
 
-import json
+import json5 as json
 import time
 import asyncio
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from autogen_agentchat.teams import GraphFlow
-
+import re
 from .config import logger, setup_logger, silence_autogen_console
 from .models import AgentBuffer, ReviewResult, ReviewRequest
 from .utils import JSONParser, ContentAnalyzer, ResultFormatter
@@ -80,6 +80,19 @@ class AICodeReviewService:
 
             # 5. 格式化最终结果
             final_result = agent_outputs.get("FinalReviewAggregatorAgent", "")
+            
+            # 使用正则表达式提取 ```json 和 ``` 之间的内容
+            
+            # 匹配 ```json 和 ``` 之间的内容
+            json_pattern = r'```json\s*(.*?)\s*```'
+            match = re.search(json_pattern, final_result, re.DOTALL)
+            
+            if match:
+                # 如果找到 ```json 和 ``` 标记，提取中间的内容
+                final_result = match.group(1).strip()
+            else:
+                # 如果没有找到标记，保持原样
+                final_result = final_result.strip()
 
             # 6. 一次性保存完整结果
             await self._save_complete_review_result(request.review_id, agent_outputs, final_result)
@@ -165,14 +178,15 @@ class AICodeReviewService:
                 agent_output_list.append(agent_output)
             
             # 构建更新数据（直接存储原始final_result字符串）
-            update_data = CodeReviewUpdate(
-                agent_outputs=agent_output_list,
-                final_result=json.loads(final_result),
-                status="completed"
-            )
+            update_data3 = CodeReviewUpdate(status="completed")
+            success = await self.code_review_service.update_review(review_id, update_data3)
             
-            # 一次性更新记录
-            success = await self.code_review_service.update_review(review_id, update_data)
+            update_data1 = CodeReviewUpdate(agent_outputs=agent_output_list)
+            success = await self.code_review_service.update_review(review_id, update_data1)
+
+            update_data2 = CodeReviewUpdate(final_result=json.loads(final_result))
+            success = await self.code_review_service.update_review(review_id, update_data2)
+
             if success:
                 logger.info("成功保存完整审查结果，审查ID: %s", review_id)
             else:
@@ -182,5 +196,7 @@ class AICodeReviewService:
                 
         except Exception as e:
             logger.exception("保存完整审查结果时出错: %s", e)
+            update_data3 = CodeReviewUpdate(status="failed")
+            success = await self.code_review_service.update_review(review_id, update_data3)
             return False
     

@@ -572,6 +572,7 @@ const AppBar = ({
                   color="inherit"
                   onClick={() => handleUserMenuItemClick('logout')}
                   sx={{ ml: 1 }}
+                  size="large"
                 >
                   <LogoutIcon />
                 </IconButton>

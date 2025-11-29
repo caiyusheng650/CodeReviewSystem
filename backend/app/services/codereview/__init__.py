@@ -6,8 +6,8 @@ review模块主入口
 
 from .service import AICodeReviewService
 from .models import AgentBuffer, ReviewResult, ReviewRequest
-from .factory import get_ai_code_review_service, create_ai_code_review_service, reset_singleton, is_singleton_initialized
-from .flow_builder import create_default_flow, get_flow_builder
+from .factory import get_ai_code_review_service, create_ai_code_review_service
+from .flow_builder import create_default_flow
 from .utils import JSONParser, ContentAnalyzer, ResultFormatter
 from .config import logger, setup_logger, silence_autogen_console, get_system_prompt
 from .database_service import CodeReviewService
@@ -26,9 +26,7 @@ __all__ = [
     
     # 工厂函数
     "get_ai_code_review_service",
-    "create_ai_code_review_service", 
-    "reset_singleton",
-    "is_singleton_initialized",
+    "create_ai_code_review_service",
     
     # GraphFlow构建
     "create_default_flow", 
