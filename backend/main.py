@@ -55,6 +55,8 @@ def read_root():
     return {"message": "智能代码审查系统API"}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app",  port=8000, reload=True, host="0.0.0.0",workers=10)
+    # 生产环境中应该用更合理的服务器配置
+    #uvicorn.run("main:app",  port=8000, host="0.0.0.0", workers=10, timeout_keep_alive=600, timeout_graceful_shutdown=600)
+    uvicorn.run("main:app",  port=8000, host="0.0.0.0", reload=True, timeout_keep_alive=600, timeout_graceful_shutdown=600)
 
 

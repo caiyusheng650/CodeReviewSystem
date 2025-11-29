@@ -1,15 +1,19 @@
 name: wanan codereview
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
+  # 允许从PR分支直接触发，即使目标分支没有此配置
+  workflow_dispatch:
 
 permissions:
   pull-requests: write
   contents: read
+  # 添加必要的权限以允许从PR分支运行
+  actions: read
 
 jobs:
-  ai_review:
+  wanan-codereview:
     runs-on: ubuntu-latest
 
     steps:
@@ -51,9 +55,13 @@ jobs:
       - name: Generate diff safely
         run: |
           BASE="${{ github.base_ref }}"
-          if [ -z "$BASE" ]; then BASE="origin/main"; fi
-
-          DIFF_RAW=$(git diff -U20 "origin/$BASE"...HEAD)
+          if [ -z "$BASE" ]; then BASE="main"; fi
+          
+          # 在pull_request_target事件中，HEAD指向目标分支，需要获取PR分支的SHA
+          PR_HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          
+          # 使用PR分支SHA与目标分支进行diff比较
+          DIFF_RAW=$(git diff -U3 "origin/$BASE"..."$PR_HEAD_SHA")
 
           # Prevent oversize
           DIFF_SIZE=$(echo "$DIFF_RAW" | wc -c)
@@ -102,21 +110,85 @@ jobs:
           cat payload.json
           echo "=================================="
 
-      # 7) Send to AI Review API
-      - name: Call AI Review API
+      # 7) Submit Review Task (Async)
+      - name: Submit Review Task
+        id: submit_task
         run: |
+          echo "使用的API URL: ${{ secrets.CODE_REVIEW_API_URL }}"
+          
+          # 提交异步任务
           curl -v -X POST \
             -H "X-Api-Key: ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
             -H "Content-Type: application/json" \
             --data-binary @payload.json \
-            "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/review" \
-            -o response.json
+            "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/submit" \
+            -o task_response.json
 
-          echo "=== API Response (response.json) ==-"
-          cat response.json
-          echo "===================================="
+          echo "=== Task Submission Response ==="
+          cat task_response.json
+          echo "================================"
+          
+          # 提取任务ID
+          TASK_ID=$(jq -r '.task_id' task_response.json)
+          echo "TASK_ID=$TASK_ID" >> $GITHUB_ENV
+          echo "Task ID: $TASK_ID"
 
-      # 8) Format markdown
+      # 8) Poll for Task Completion
+      - name: Poll for Task Completion
+        id: poll_task
+        run: |
+          MAX_POLLS=60  # 最大轮询次数（60次 * 30秒 = 30分钟）
+          POLL_INTERVAL=30  # 轮询间隔（秒）
+          
+          for i in $(seq 1 $MAX_POLLS); do
+            echo "Polling attempt $i/$MAX_POLLS..."
+            
+            # 查询任务状态
+            curl -s -X GET \
+              -H "X-Api-Key: ${{ secrets.CODE_REVIEW_API_TOKEN }}" \
+              "${{ secrets.CODE_REVIEW_API_URL }}/api/codereview/status/${{ env.TASK_ID }}" \
+              -o status_response.json
+            
+            STATUS=$(jq -r '.status' status_response.json)
+            echo "Current status: $STATUS"
+            
+            case $STATUS in
+              "completed")
+                echo "✅ Task completed successfully!"
+                # 直接从状态响应中提取结果，无需再调用/result接口
+                jq '.result' status_response.json > response.json
+                
+                echo "=== Final Response ==="
+                cat response.json
+                echo "====================="
+                exit 0
+                ;;
+              "failed")
+                echo "❌ Task failed!"
+                ERROR_MSG=$(jq -r '.error' status_response.json)
+                echo "Error: $ERROR_MSG"
+                exit 1
+                ;;
+              "processing")
+                echo "⏳ Task still processing..."
+                sleep $POLL_INTERVAL
+                ;;
+              "pending")
+                echo "⏳ Task still pending..."
+                sleep $POLL_INTERVAL
+                ;;
+              *)
+                echo "❓ Unknown status: $STATUS"
+                sleep $POLL_INTERVAL
+                ;;
+            esac
+          done
+          
+          # 如果达到最大轮询次数仍未完成
+          echo "❌ Timeout: Task did not complete within $((MAX_POLLS * POLL_INTERVAL / 60)) minutes"
+          exit 1
+
+      # 9) Format markdown
       - name: Generate Review Markdown
         run: |
           # 首先根据严重程度生成conclusion
@@ -143,7 +215,7 @@ jobs:
                 "  - 类型: **" + .value.bug_type + "**\n" +
                 "  - 程度: **" + .value.severity + "**\n" +
                 # 历史问题补充提示文字
-                (if .value.historical_mention == true then "  - ⚠️ 提示: 此问题已在历史审查中多次提及，请优先修复\n" else "" end) +
+                (if .value.historical_mention == true then "  - 提示: 此问题已在历史审查中多次提及，请优先修复\n" else "" end) +
                 "  - 描述: " + .value.description + "\n" +
                 "  - 建议: " + .value.suggestion + "\n"
               ) | join("\n")
@@ -154,10 +226,11 @@ jobs:
           cat comment.md
 
 
-      # 9) Add inline comments
+      # 10) Add inline comments
       - name: Add inline comments
         run: |
-          HEAD_SHA=$(git rev-parse HEAD)
+          # 在pull_request_target事件中，应该使用PR分支的SHA而不是目标分支的SHA
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           echo "HEAD_SHA=$HEAD_SHA"
 
           jq -c '.issues[]' response.json | while read -r issue; do
@@ -172,15 +245,15 @@ jobs:
 
             # 对历史未修复问题添加特殊前缀和提示
             if [ "$historical" = "true" ]; then
-              header="**⚠️ [历史未修复问题] ⚠️**\n"
-              extra_note="\n**提示**: 此问题已在历史审查中多次提及，请优先处理"
+              header="**AI 代码审查意见**"
+              extra_note=$'\n**提示**: 此问题已在历史审查中多次提及，请优先处理'
             else
-              header="**AI 代码审查意见**\n"
+              header="**AI 代码审查意见**"
               extra_note=""
             fi
 
             # 拼接评论内容（包含历史问题标识）
-            body=$(printf "%s**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s%s" \
+            body=$(printf "%s\n**类型**: %s\n**描述**: %s\n**建议**: %s\n**程度**: %s%s" \
               "$header" "$type" "$desc" "$sug" "$sev" "$extra_note")
 
             echo "Attempting to add inline comment to $file:$line"
@@ -202,7 +275,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 10) Create Summary Comment
+      # 11) Create Summary Comment
       - name: Create or update summary comment
         uses: peter-evans/create-or-update-comment@v3
         with:

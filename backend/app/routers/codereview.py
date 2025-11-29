@@ -1,8 +1,10 @@
 import code
-from fastapi import APIRouter, Depends, Header, HTTPException, status, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, status, Query, BackgroundTasks
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List, Tuple
 import logging
+from datetime import datetime
+import uuid
 from app.services.reputation import reputation_service
 from app.services.codereview import CodeReviewService
 from app.models.reputation import ReputationUpdatePayload
@@ -10,7 +12,7 @@ from app.models.user import UserResponse
 from app.models.codereview import (
     CodeReviewCreate, CodeReviewUpdate, CodeReviewResponse, 
     CodeReviewBaseResponse, CodeReviewDetailResponse,
-    SimpleCodeReviewListResponse
+    SimpleCodeReviewListResponse, AsyncTaskResponse, TaskStatusResponse
 )
 from app.utils.apikey import require_api_key
 from app.utils.userauth import require_bearer
@@ -82,7 +84,177 @@ class CodeReviewPayload(BaseModel):
         return parse_comments_from_base64(self.comments_b64)
     
 # ==============================
-# ⭐ 代码审查路由
+# ⭐ 异步任务处理
+# ==============================
+
+# 全局任务存储（生产环境应使用Redis或数据库）
+task_store = {}
+
+async def run_async_review_task(task_id: str, payload: CodeReviewPayload, username: str, code_review_service: CodeReviewService):
+    """异步运行代码审查任务"""
+    try:
+        # 更新任务状态为处理中
+        task_store[task_id]["status"] = "processing"
+        task_store[task_id]["updated_at"] = datetime.utcnow()
+        
+        # 使用payload中的author作为PR作者
+        author = payload.author or "unknown"
+        user_id = username or "anonymous"
+
+        # 使用新的信誉服务获取用户信誉信息
+        reputation = await reputation_service.get_programmer_reputation(author)
+        reputation_score = reputation["score"]
+        reputation_history = reputation["history"]
+
+        # 使用解码后的字段
+        diff_text = payload.diff_content
+        pr_title = payload.pr_title
+        pr_body = payload.pr_body
+        readme_content = payload.readme_content or "无README.md文档"
+        comments = payload.comments
+
+        # 记录审查请求日志
+        log_review_request(
+            author, reputation_score, reputation_history, 
+            diff_text, comments, readme_content, username
+        )
+
+        # 创建代码审查记录
+        review_data = CodeReviewCreate(
+            github_action_id=payload.githubactionid,
+            pr_number=payload.pr_number,
+            repo_owner=payload.repo_owner,
+            repo_name=payload.repo_name,
+            author=payload.author,
+            diff_content=diff_text,
+            pr_title=pr_title,
+            pr_body=pr_body,
+            readme_content=readme_content,
+            comments=comments,
+            username=username,
+            chat_history=[]
+        )
+        
+        review_id = await code_review_service.create_review(review_data, user_id)
+
+        # 导入AI代码审查服务
+        
+        # 启动AI代码审查流程（无并发限制）
+        ai_service = get_ai_code_review_service(code_review_service)
+        
+        # 使用AI服务进行代码审查
+        review_data = {
+            "review_id": review_id,
+            "code_diff": diff_text,
+            "pr_comments": comments,
+            "developer_reputation_score": reputation_score,
+            "developer_reputation_history": reputation_history,
+            "repository_readme": readme_content,
+            "author": author,
+            "github_action_id": payload.githubactionid,
+            "pr_number": payload.pr_number,
+            "repo_owner": payload.repo_owner,
+            "repo_name": payload.repo_name,
+            "pr_title": pr_title,
+            "pr_body": pr_body,
+            "user_id": user_id
+        }
+        
+        # 运行AI代码审查
+        ai_result = await ai_service.run_ai_code_review(review_data)
+        
+        # 获取AI审查结果
+        final_ai_output = ai_result.get("final_result", "")
+        
+        # 解析AI输出
+        issues, summary, defect_types = parse_ai_output(final_ai_output)
+        
+        # 计算信誉值变化
+        delta_reputation = calculate_reputation_delta(summary)
+        event = build_event_description(summary, defect_types, delta_reputation, payload.pr_number)
+        await reputation_service.update_programmer_reputation(author, event, delta_reputation=delta_reputation)
+
+        ai_chat_message = build_ai_chat_message(final_ai_output,diff_text,pr_title,pr_body)
+        await aicopilot_service.add_chat_message(review_id, ai_chat_message,'system')
+
+        # 更新任务结果为完成
+        task_store[task_id]["status"] = "completed"
+        task_store[task_id]["result"] = {"issues": issues}
+        task_store[task_id]["updated_at"] = datetime.utcnow()
+        
+    except Exception as e:
+        logger.error(f"Async task {task_id} failed: {str(e)}")
+        task_store[task_id]["status"] = "failed"
+        task_store[task_id]["error"] = str(e)
+        task_store[task_id]["updated_at"] = datetime.utcnow()
+
+# ==============================
+# ⭐ 异步任务API端点
+# ==============================
+
+@router.post("/submit", response_model=AsyncTaskResponse)
+async def submit_review_task(
+    payload: CodeReviewPayload,
+    background_tasks: BackgroundTasks,
+    username: str = Depends(require_api_key),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """提交异步代码审查任务"""
+    # 生成唯一任务ID
+    task_id = str(uuid.uuid4())
+    
+    # 初始化任务状态
+    task_store[task_id] = {
+        "status": "pending",
+        "created_at": datetime.utcnow(),
+        "updated_at": datetime.utcnow(),
+        "username": username
+    }
+    
+    # 在后台启动异步任务
+    background_tasks.add_task(
+        run_async_review_task, 
+        task_id, payload, username, code_review_service
+    )
+    
+    return AsyncTaskResponse(
+        task_id=task_id,
+        status="pending",
+        message="代码审查任务已提交，正在后台处理中"
+    )
+
+@router.get("/status/{task_id}", response_model=TaskStatusResponse)
+async def get_task_status(task_id: str):
+    """查询异步任务状态"""
+    if task_id not in task_store:
+        raise HTTPException(status_code=404, detail="任务未找到")
+    
+    task = task_store[task_id]
+    
+    return TaskStatusResponse(
+        task_id=task_id,
+        status=task["status"],
+        error=task.get("error"),
+        result=task.get("result"),
+        created_at=task["created_at"],
+        updated_at=task["updated_at"]
+    )
+
+@router.get("/result/{task_id}")
+async def get_task_result(task_id: str):
+    """获取异步任务结果"""
+    if task_id not in task_store:
+        raise HTTPException(status_code=404, detail="任务未找到")
+    
+    task = task_store[task_id]
+    
+    if task["status"] != "completed":
+        raise HTTPException(status_code=400, detail="任务尚未完成")
+    
+    return task["result"]
+
+# ==============================
+# ⭐ 代码审查路由（同步版本，保持向后兼容）
 # ==============================
 
 @router.post("/review")
@@ -91,6 +263,7 @@ async def review(
     username: str = Depends(require_api_key),
     code_review_service: CodeReviewService = Depends(get_code_review_service)
 ):
+    logger.info(f"Received review request for PR {payload.pr_number} by {username}")
     # 使用payload中的author作为PR作者
     author = payload.author or "unknown"
     user_id = username or "anonymous"
@@ -133,8 +306,8 @@ async def review(
 
     # 导入AI代码审查服务
     
-    # 启动AI代码审查流程（启用并发限制）
-    ai_service = get_ai_code_review_service(code_review_service, enable_concurrency_limit=True)
+    # 启动AI代码审查流程（无并发限制）
+    ai_service = get_ai_code_review_service(code_review_service)
     
     # 使用AI服务进行代码审查
     review_data = {
@@ -154,17 +327,8 @@ async def review(
         "user_id": user_id
     }
     
-    # 运行AI代码审查（带并发限制）
+    # 运行AI代码审查
     ai_result = await ai_service.run_ai_code_review(review_data)
-    
-    # 检查并发限制错误
-    if ai_result.get("status") == "error" and ai_result.get("error_code") == "CONCURRENCY_LIMIT_EXCEEDED":
-        # 并发限制错误，返回503状态码
-        raise HTTPException(
-            status_code=503,
-            detail=ai_result.get("error", "系统繁忙，请稍后重试"),
-            headers={"Retry-After": "60"}
-        )
     
     # 获取AI审查结果
     final_ai_output = ai_result.get("final_result", "")
@@ -182,7 +346,6 @@ async def review(
 
     return { 
         "issues": issues,
-        "concurrency_status": ai_result.get("concurrency_status", {})
     }
 
 
@@ -507,28 +670,3 @@ async def mark_issue(
 @router.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-# ==============================
-# ⭐ 并发状态检查
-# ==============================
-@router.get("/concurrency-status")
-async def get_concurrency_status(
-    username: str = Depends(require_bearer)
-):
-    """
-    获取当前并发限制状态
-    """
-    from app.utils.concurrency import code_review_limiter
-    
-    status = code_review_limiter.get_current_status()
-    
-    return {
-        "status": "success",
-        "concurrency_status": status,
-        "description": "代码审查服务并发状态",
-        "max_concurrent": status["max_concurrent"],
-        "current_active": status["active_tasks"],
-        "available_slots": status["available_slots"],
-        "active_task_ids": status["active_task_ids"]
-    }

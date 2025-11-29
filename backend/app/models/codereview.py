@@ -198,13 +198,31 @@ class CodeReviewListResponse(BaseModel):
     """代码审查列表响应模型
     
     用于API返回分页的代码审查列表数据。
-    包含当前页的审查记录以及分页信息。
     """
     reviews: List[CodeReviewBaseResponse]  # 当前页的审查记录列表
     total: int  # 总记录数
-    page: int  # 当前页码
-    size: int  # 每页大小
-    has_next: bool  # 是否有下一页
+
+class AsyncTaskResponse(BaseModel):
+    """异步任务提交响应模型
+    
+    用于异步任务提交的响应，包含任务ID和状态信息。
+    """
+    task_id: str = Field(..., description="异步任务ID")
+    status: ReviewStatus = Field(..., description="任务当前状态")
+    message: str = Field(..., description="任务提交成功消息")
+
+class TaskStatusResponse(BaseModel):
+    """任务状态查询响应模型
+    
+    用于查询异步任务状态的响应。
+    """
+    task_id: str = Field(..., description="异步任务ID")
+    status: ReviewStatus = Field(..., description="任务当前状态")
+    progress: Optional[float] = Field(None, description="任务进度百分比")
+    error: Optional[str] = Field(None, description="错误信息（如果任务失败）")
+    result: Optional[Dict] = Field(None, description="任务结果（如果已完成）")
+    created_at: datetime = Field(..., description="任务创建时间")
+    updated_at: datetime = Field(..., description="任务最后更新时间")
 
 # 新增：简化的审查记录列表响应模型
 class SimpleCodeReviewResponse(BaseModel):
