@@ -1,12 +1,13 @@
 # codereview/flow_builder.py
 
-from typing import List
+from typing import List, Sequence
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_core.models import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 
 try:
     # 尝试相对导入（当作为包的一部分时）
@@ -82,7 +83,15 @@ def build_agent(name: str, key: str) -> AssistantAgent:
     # 为关键agent设置更具体的描述
     descriptions = {
         "ReviewTaskDispatcherAgent": "代码审查任务调度器，负责分析PR内容并将审查任务分配给合适的专业审查agent",
-        "FinalReviewAggregatorAgent": "最终审查结果聚合器，负责收集和整合所有专业审查agent的意见，生成完整的最终审查报告"
+        "FinalReviewAggregatorAgent": "最终审查结果聚合器，负责收集和整合所有专业审查agent的意见，生成完整的最终审查报告",
+        "ReputationAssessmentAgent": "负责评估开发者声誉和历史表现",
+        "StaticAnalysisReviewAgent": "负责进行代码静态分析，检查语法和格式问题",
+        "LogicErrorReviewAgent": "负责检查代码逻辑错误和边界条件",
+        "MemorySafetyReviewAgent": "负责检查内存使用安全和资源管理问题",
+        "SecurityVulnerabilityReviewAgent": "负责识别潜在的安全漏洞和风险",
+        "PerformanceOptimizationReviewAgent": "负责评估代码性能和优化建议",
+        "MaintainabilityReviewAgent": "负责评估代码可维护性和最佳实践",
+        "ArchitectureReviewAgent": "负责评估系统架构和设计模式"
     }
     
     return AssistantAgent(
@@ -101,6 +110,8 @@ def build_deepseek_agent(name: str, key: str) -> AssistantAgent:
     
     # 根据agent名称设置描述
     descriptions = {
+        "ReviewTaskDispatcherAgent": "代码审查任务调度器，负责分析PR内容并将审查任务分配给合适的专业审查agent",
+        "FinalReviewAggregatorAgent": "最终审查结果聚合器，负责收集和整合所有专业审查agent的意见，生成完整的最终审查报告",
         "ReputationAssessmentAgent": "负责评估开发者声誉和历史表现",
         "StaticAnalysisReviewAgent": "负责进行代码静态分析，检查语法和格式问题",
         "LogicErrorReviewAgent": "负责检查代码逻辑错误和边界条件",
@@ -119,49 +130,64 @@ def build_deepseek_agent(name: str, key: str) -> AssistantAgent:
         tools=tools
     )
 
+
+def build_final_agent(name: str, key: str) -> AssistantAgent:
+    # 创建工具列表
+    model_client = OpenAIChatCompletionClient(
+                    model="gemini-2.5-pro",
+                    api_key=API_API_KEY,
+                    #base_url=API_API_BASE,
+                    model_info={
+                        "vision": False,
+                        "function_calling": False,
+                        "json_output": True,
+                        "family": ModelFamily.GEMINI_2_5_PRO,
+                        "structured_output": True,
+                    },
+                    max_retries=2,
+                    response_format={"type": "json_object"},
+                    
+                )
+
+    return AssistantAgent(
+        "FinalReviewAggregatorAgent",
+        description="最终审查结果聚合器，负责收集和整合所有专业审查agent的意见，生成完整的最终审查报告",
+        model_client=model_client,
+        system_message=get_system_prompt(key),
+    )
+
 model_client = OpenAIChatCompletionClient(
     #model=API_MODEL_NAME,
-    model="MiniMaxAI/MiniMax-M2",
+    model="gemini-2.5-flash-lite",
     api_key=API_API_KEY,
-    base_url=API_API_BASE,
+    #base_url=API_API_BASE,
     model_info={
         "vision": False,
         "function_calling": True,
         "json_output": True,
-        "family": ModelFamily.UNKNOWN,
+        "family": ModelFamily.GEMINI_2_5_FLASH,
         "structured_output": True,
     },
-    max_retries=2,
-    max_tokens=202750
-    # 移除response_format参数，以避免与前缀冲突
-    # 如果需要JSON输出，可以在系统提示中明确要求而不是使用response_format
+    max_retries=2,    
 )
 
 # DeepSeek-V3.1-Terminus model client for analysis agents
 deepseek_model_client = OpenAIChatCompletionClient(
-    model="MiniMaxAI/MiniMax-M2",
+    model=API_MODEL_NAME,
     api_key=API_API_KEY,
-    base_url=API_API_BASE,
+    #base_url=API_API_BASE,
     model_info={
         "vision": False,
         "function_calling": True,
         "json_output": True,
-        "family": ModelFamily.UNKNOWN,
+        "family": ModelFamily.GEMINI_2_5_FLASH,
         "structured_output": True,
     },
     max_retries=2,
-    max_tokens=163839
-    # 移除response_format参数，以避免与前缀冲突
-    # 如果需要JSON输出，可以在系统提示中明确要求而不是使用response_format
 )
 
-# 使用默认模型的agent
-review_task_dispatcher_agent = build_agent("ReviewTaskDispatcherAgent", "review_task_dispatcher_agent")
-
-final_review_aggregator_agent = build_agent("FinalReviewAggregatorAgent", "final_review_aggregator_agent")
-
-# 使用DeepSeek模型的8个分析agent
 reputation_assessment_agent = build_deepseek_agent("ReputationAssessmentAgent", "reputation_assessment_agent")
+review_task_dispatcher_agent = build_deepseek_agent("ReviewTaskDispatcherAgent", "review_task_dispatcher_agent")
 static_analysis_agent = build_deepseek_agent("StaticAnalysisReviewAgent", "static_analysis_agent")
 logic_error_agent = build_deepseek_agent("LogicErrorReviewAgent", "logic_error_agent")
 memory_safety_agent = build_deepseek_agent("MemorySafetyReviewAgent", "memory_safety_agent")
@@ -169,11 +195,13 @@ security_vulnerability_agent = build_deepseek_agent("SecurityVulnerabilityReview
 performance_optimization_agent = build_deepseek_agent("PerformanceOptimizationReviewAgent", "performance_optimization_agent")
 maintainability_agent = build_deepseek_agent("MaintainabilityReviewAgent", "maintainability_agent")
 architecture_agent = build_deepseek_agent("ArchitectureReviewAgent", "architecture_agent")
+final_review_aggregator_agent = build_final_agent("FinalReviewAggregatorAgent", "final_review_aggregator_agent")
 
 def create_default_flow() -> SelectorGroupChat:
     
     # 收集所有参与者
     participants = [
+        
         reputation_assessment_agent,
         review_task_dispatcher_agent,
         static_analysis_agent,
@@ -185,38 +213,27 @@ def create_default_flow() -> SelectorGroupChat:
         architecture_agent,
         final_review_aggregator_agent,
     ]
-    
-    # 自定义选择器提示，帮助模型更好地选择下一个发言者
-    custom_selector_prompt = """
-    基于当前对话历史和参与者的角色描述，选择最合适的下一个发言者。
-    
-    可用角色：
-    {roles}
-    
-    他们的职责描述：
-    {participants}
-    
-    当前对话历史：
-    {history}
-    
-    请根据以下规则选择下一个发言者：
-    1. 第一步：必须选择ReviewTaskDispatcherAgent分析任务并分配工作
-    2. 第二步：所有专业审查agent（除了ReviewTaskDispatcherAgent和FinalReviewAggregatorAgent）必须依次发言，提供他们的专业分析
-    3. 第三步：只有当所有专业审查agent都已发言完成后，才能选择FinalReviewAggregatorAgent来汇总最终结果
-    4. 确保不同的专业审查agent都有机会参与，避免重复选择同一专业领域的agent
-    5. 如果最后一个发言者是ReviewTaskDispatcherAgent，必须选择一个尚未发言的专业审查agent
-    6. 如果所有专业审查agent都已发言，则必须选择FinalReviewAggregatorAgent来结束讨论
-    7. 在专业审查阶段，优先选择与当前讨论主题最相关的专业agent
-    
-    请直接返回所选agent的名称，不要包含其他内容。
-    """
-    termination = TextMentionTermination("```json",sources=["FinalReviewAggregatorAgent"])
+    agentsname = [agent.name for agent in participants]
+    def selector_func(messages: Sequence[BaseChatMessage|BaseAgentEvent]) -> str | None:
+        if messages[-1].source == final_review_aggregator_agent.name:
+            return None
+        if messages[-1].source == 'user':
+            return participants[0].name
+        idx = agentsname.index(messages[-1].source)
+
+        if """{'success': """ not in messages[-1].content:
+            nextidx = (idx + 1) % len(participants)
+        else:
+            nextidx = idx
+        return participants[nextidx].name
+
+
+    termination = TextMentionTermination("{",sources=["FinalReviewAggregatorAgent"])
     # 创建SelectorGroupChat实例
     flow = SelectorGroupChat(
         participants=participants,
-        allow_repeated_speaker=False,
+        selector_func=selector_func,
         model_client=model_client,
-        selector_prompt=custom_selector_prompt,
         termination_condition=termination,
     )
     

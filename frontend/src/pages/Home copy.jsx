@@ -205,7 +205,7 @@ const Home = ({ isDarkMode, user: propUser }) => {
     return {
       [t('sidebar.criticalIssues')]: parsedFinalResult.filter(item => item.severity === '严重').length,
       [t('sidebar.moderateIssues')]: parsedFinalResult.filter(item => item.severity === '中等').length,
-      [t('sidebar.minorIssues')]: parsedFinalResult.filter(item => item.severity === '轻度').length,
+      [t('sidebar.minorIssues')]: parsedFinalResult.filter(item => item.severity === '轻微').length,
       [t('sidebar.highPraise')]: parsedFinalResult.filter(item => item.severity === '表扬').length,
       历史未修复: parsedFinalResult.filter(item => item.historical_mention).length
     };

@@ -47,7 +47,7 @@ const Documentation = ({ isDarkMode }) => {
         },
         {
           title: t('documentation.installation.method2.step2.title'),
-          command: `curl -s ${apiBaseUrl}/api/install/workflow/ai-review.yml -o .github/workflows/ai-review.yml`,
+          command: `curl -s ${apiBaseUrl}/api/install/workflow/wanan-codereview.yml -o .github/workflows/wanan-codereview.yml`,
           description: t('documentation.installation.method2.step2.description')
         },
         {

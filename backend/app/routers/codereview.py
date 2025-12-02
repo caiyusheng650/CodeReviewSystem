@@ -104,7 +104,7 @@ async def run_async_review_task(task_id: str, payload: CodeReviewPayload, userna
         # 使用新的信誉服务获取用户信誉信息
         reputation = await reputation_service.get_programmer_reputation(author)
         reputation_score = reputation["score"]
-        reputation_history = reputation["history"]
+        reputation_history = reputation["history"][-5:]
 
         # 使用解码后的字段
         diff_text = payload.diff_content
