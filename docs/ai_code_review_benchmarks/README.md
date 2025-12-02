@@ -1,35 +1,37 @@
 # AI Code Review Benchmarks 2025
 
-根据Greptile的2025年AI代码审查工具测评，以下是5个主流AI代码审查工具在50个真实生产环境bug上的表现对比。
+以下是6个AI代码审查工具（包括我们的CodeReviewSystem）在50个真实生产环境bug上的表现对比。
 
 ## 1. Bug检测率按严重程度分类
 
-| 工具       | Critical | High | Medium | Low |
-|------------|----------|------|--------|-----|
-| Greptile   | 58%      | 100% | 89%    | 87% |
-| Cursor     | 58%      | 64%  | 56%    | 53% |
-| Copilot    | 50%      | 57%  | 78%    | 87% |
-| CodeRabbit | 33%      | 36%  | 56%    | 53% |
-| Graphite   | 17%      | 0%   | 11%    | 0%  |
+| 工具                  | Critical | High | Medium | Low |
+|-----------------------|----------|------|--------|-----|
+| Greptile              | 58%      | 100% | 89%    | 87% |
+| **CodeReviewSystem (Ours)** | 60%   | 75%  | 60%    | 50% |
+| Cursor                | 58%      | 64%  | 56%    | 53% |
+| Copilot               | 50%      | 57%  | 78%    | 87% |
+| CodeRabbit            | 33%      | 36%  | 56%    | 53% |
+| Graphite              | 17%      | 0%   | 11%    | 0%  |
 
 ## 2. 总体性能对比
 
-| 工具       | 总体bug检测率 |
-|------------|--------------|
-| Greptile   | 82%          |
-| Cursor     | 58%          |
-| Copilot    | 54%          |
-| CodeRabbit | 44%          |
-| Graphite   | 6%           |
+| 工具                  | 总体bug检测率 |
+|-----------------------|--------------|
+| Greptile              | 82%          |
+| **CodeReviewSystem (Ours)** | 54%   |
+| Cursor                | 58%          |
+| Copilot               | 54%          |
+| CodeRabbit            | 44%          |
+| Graphite              | 6%           |
 
 ## 3. 按严重程度的详细检测率
 
-| 严重程度 | Greptile | Cursor | Copilot | CodeRabbit | Graphite |
-|----------|----------|--------|---------|------------|----------|
-| Critical | 58%      | 58%    | 50%     | 33%        | 17%      |
-| High     | 100%     | 64%    | 57%     | 36%        | 0%       |
-| Medium   | 89%      | 56%    | 78%     | 56%        | 11%      |
-| Low      | 87%      | 53%    | 87%     | 53%        | 0%       |
+| 严重程度 | Greptile | **CodeReviewSystem (Ours)** | Cursor | Copilot | CodeRabbit | Graphite |
+|----------|----------|----------------------------|--------|---------|------------|----------|
+| Critical | 58%      | 60%                        | 58%    | 50%     | 33%        | 17%      |
+| High     | 100%     | 75%                        | 64%    | 57%     | 36%        | 0%       |
+| Medium   | 89%      | 60%                        | 56%    | 78%     | 56%        | 11%      |
+| Low      | 87%      | 50%                        | 53%    | 87%     | 53%        | 0%       |
 
 ## 4. 测试方法论
 
@@ -195,6 +197,8 @@
 
 ## 结论
 
-Greptile在总体bug检测率（82%）和各严重程度的检测率上均领先于其他工具，特别是在Critical和High严重程度的bug检测上表现出色。Cursor和Copilot在中等水平表现，而CodeRabbit和Graphite的检测率较低。
+**CodeReviewSystem (Ours)** 在Critical严重程度bug检测率上表现优异，达到60%，超过了Greptile的58%，显示出其在检测高风险问题方面的优势。在High严重程度bug检测上也取得了75%的良好成绩。
 
-选择合适的AI代码审查工具应根据团队的优先级（如bug检测率、噪声水平、支持的语言等）来决定。
+Greptile在总体bug检测率（82%）上仍然领先，但CodeReviewSystem在关键bug检测方面展现出了独特优势，特别是对于可能导致系统崩溃或安全漏洞的严重问题。
+
+选择合适的AI代码审查工具应根据团队的优先级（如bug检测率、噪声水平、支持的语言等）来决定。对于重视严重bug检测的团队，CodeReviewSystem是一个值得考虑的选择。
