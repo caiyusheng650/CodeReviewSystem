@@ -42,9 +42,9 @@ def silence_autogen_console():
 # ---------------------------
 # API 配置
 # ---------------------------
-API_MODEL_NAME = os.getenv("AI_MODEL")
-API_API_KEY = os.getenv("AI_API_KEY")
-API_API_BASE = os.getenv("AI_API_URL")
+AI_MODEL_NAME = os.getenv("AI_MODEL")
+AI_API_KEY = os.getenv("AI_API_KEY")
+AI_API_BASE = os.getenv("AI_API_URL")
 
 # ---------------------------
 # 系统提示词

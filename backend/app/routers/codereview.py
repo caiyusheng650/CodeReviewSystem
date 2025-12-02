@@ -473,7 +473,7 @@ async def list_reviews(
     username: str = Depends(require_bearer),
     code_review_service: CodeReviewService = Depends(get_code_review_service),
     page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量")
+    size: int = Query(10, ge=1, le=100, description="每页数量")
 ):
     """获取代码审查记录列表"""
     skip = (page - 1) * size

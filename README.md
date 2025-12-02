@@ -11,6 +11,8 @@
 
 **🚀 在线演示**: [https://code-review-system-orpin.vercel.app/](https://code-review-system-orpin.vercel.app/)
 
+**📊 测评结果**: [AI代码审查基准测评](/docs/ai_code_review_benchmarks/README.md)
+
 > 一个基于AI的智能代码审查系统，通过GitHub Actions集成，为开发团队提供自动化的代码质量分析和审查服务
 
 </div>
@@ -64,16 +66,16 @@ graph TB
 ### 🤖 多智能体系统架构
 ```mermaid
 graph TB
-    A[代码审查任务调度器<br/>ReviewTaskDispatcherAgent] --> B[静态分析智能体<br/>StaticAnalysisReviewAgent]
-    A --> C[逻辑错误智能体<br/>LogicErrorReviewAgent]
-    A --> D[内存安全智能体<br/>MemorySafetyReviewAgent]
-    A --> E[安全漏洞智能体<br/>SecurityVulnerabilityReviewAgent]
-    A --> F[性能优化智能体<br/>PerformanceOptimizationReviewAgent]
-    A --> G[可维护性智能体<br/>MaintainabilityReviewAgent]
-    A --> H[架构设计智能体<br/>ArchitectureReviewAgent]
-    A --> I[信誉评估智能体<br/>ReputationAssessmentAgent]
+    A[代码审查任务调度器] --> B[静态分析智能体]
+    A --> C[逻辑错误智能体]
+    A --> D[内存安全智能体]
+    A --> E[安全漏洞智能体]
+    A --> F[性能优化智能体]
+    A --> G[可维护性智能体]
+    A --> H[架构设计智能体]
+    A --> I[信誉评估智能体]
     
-    B --> J[最终聚合智能体<br/>FinalReviewAggregatorAgent]
+    B --> J[最终聚合智能体]
     C --> J
     D --> J
     E --> J
@@ -84,8 +86,8 @@ graph TB
     
     J --> K[审查报告输出]
     
-    subgraph "共享工具"
-        L[行号计算工具<br/>calculate_line_number_tool]
+    subgraph "各司其职的专业审查团队"
+        L[行号计算工具]
         B -.-> L
         C -.-> L
         D -.-> L
@@ -97,8 +99,8 @@ graph TB
     end
     
     subgraph "AI模型服务"
-        M[Gemini-2.5-Pro<br/>最终聚合]
-        N[DeepSeek-V3.1<br/>专业分析]
+        M[GLM<br/>最终聚合]
+        N[MiniMax<br/>专业分析]
     end
     
     J -.-> M
@@ -114,18 +116,18 @@ graph TB
 
 #### 多智能体功能说明
 
-| 智能体名称 | 主要职责 | 核心工作内容 | 拥有的工具 |
-|-----------|---------|-------------|----------|
-| **任务调度器**<br/>ReviewTaskDispatcherAgent | 整体流程协调 | • 接收审查请求<br/>• 智能体任务分发<br/>• 流程进度控制<br/>• 结果收集整合 | • 任务队列管理<br/>• 进度追踪工具<br/>• 异步协调工具 |
-| **静态分析智能体**<br/>StaticAnalysisReviewAgent | 代码结构分析 | • 语法错误检查<br/>• 代码风格分析<br/>• 潜在问题识别 | • 行号计算工具<br/>• 语法解析器<br/>• AST分析工具 |
-| **逻辑错误智能体**<br/>LogicErrorReviewAgent | 逻辑缺陷检测 | • 算法逻辑分析<br/>• 边界条件检查<br/>• 错误处理评估 | • 行号计算工具<br/>• 逻辑分析器<br/>• 模式匹配工具 |
-| **内存安全智能体**<br/>MemorySafetyReviewAgent | 内存管理审查 | • 内存泄漏检测<br/>• 指针安全性分析<br/>• 缓冲区溢出检查 | • 行号计算工具<br/>• 内存分析器<br/>• 指针追踪工具 |
-| **安全漏洞智能体**<br/>SecurityVulnerabilityReviewAgent | 安全性评估 | • 安全漏洞扫描<br/>• 输入验证检查<br/>• 权限控制分析 | • 安全扫描工具<br/>• 漏洞数据库<br/>• 威胁模型分析器 |
-| **性能优化智能体**<br/>PerformanceOptimizationReviewAgent | 性能瓶颈识别 | • 复杂度分析<br/>• 性能热点检测<br/>• 优化建议生成 | • 性能分析器<br/>• 复杂度计算器<br/>• 资源监控工具 |
-| **可维护性智能体**<br/>MaintainabilityReviewAgent | 代码质量评估 | • 模块化程度分析<br/>• 重复代码检测<br/>• 文档完整性检查 | • 质量度量工具<br/>• 重构建议器<br/>• 依赖分析器 |
-| **架构设计智能体**<br/>ArchitectureReviewAgent | 架构合理性审查 | • 设计模式检查<br/>• 架构一致性分析<br/>• 模块耦合度评估 | • 架构分析器<br/>• 模式识别工具<br/>• 依赖图生成器 |
-| **信誉评估智能体**<br/>ReputationAssessmentAgent | 贡献者信誉分析 | • 代码质量历史<br/>• 贡献频率统计<br/>• 同行评议记录 | • 信誉数据库<br/>• 历史记录分析器<br/>• 信誉计算工具 |
-| **最终聚合智能体**<br/>FinalReviewAggregatorAgent | 综合结果整合 | • 多维度结果汇总<br/>• 风险等级评估<br/>• 审查报告生成 | • 报告生成器<br/>• 数据聚合工具<br/>• 可视化工具 |
+| 智能体名称 | 主要职责 | 核心工作内容 |
+|-----------|---------|-------------|
+| **任务调度器**<br/>ReviewTaskDispatcherAgent | 整体流程协调 | • 接收审查请求<br/>• 智能体任务分发<br/>• 流程进度控制<br/>• 结果收集整合 |
+| **静态分析智能体**<br/>StaticAnalysisReviewAgent | 代码结构分析 | • 语法错误检查<br/>• 代码风格分析<br/>• 潜在问题识别 |
+| **逻辑错误智能体**<br/>LogicErrorReviewAgent | 逻辑缺陷检测 | • 算法逻辑分析<br/>• 边界条件检查<br/>• 错误处理评估 |
+| **内存安全智能体**<br/>MemorySafetyReviewAgent | 内存管理审查 | • 内存泄漏检测<br/>• 指针安全性分析<br/>• 缓冲区溢出检查 |
+| **安全漏洞智能体**<br/>SecurityVulnerabilityReviewAgent | 安全性评估 | • 安全漏洞扫描<br/>• 输入验证检查<br/>• 权限控制分析 |
+| **性能优化智能体**<br/>PerformanceOptimizationReviewAgent | 性能瓶颈识别 | • 复杂度分析<br/>• 性能热点检测<br/>• 优化建议生成 |
+| **可维护性智能体**<br/>MaintainabilityReviewAgent | 代码质量评估 | • 模块化程度分析<br/>• 重复代码检测<br/>• 文档完整性检查 |
+| **架构设计智能体**<br/>ArchitectureReviewAgent | 架构合理性审查 | • 设计模式检查<br/>• 架构一致性分析<br/>• 模块耦合度评估 |
+| **信誉评估智能体**<br/>ReputationAssessmentAgent | 贡献者信誉分析 | • 代码质量历史<br/>• 贡献频率统计<br/>• 同行评议记录 |
+| **最终聚合智能体**<br/>FinalReviewAggregatorAgent | 综合结果整合 | • 多维度结果汇总<br/>• 风险等级评估<br/>• 审查报告生成 |
 
 
 
