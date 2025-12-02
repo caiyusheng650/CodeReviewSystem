@@ -13,6 +13,7 @@ from .models import AgentBuffer, ReviewResult, ReviewRequest
 from .utils import JSONParser, ContentAnalyzer, ResultFormatter
 from .database_service import CodeReviewService
 from app.models.codereview import AgentOutput, CodeReviewUpdate
+from autogen_agentchat.ui import Console
 
 
 
@@ -125,7 +126,8 @@ class AICodeReviewService:
         agent_buffers: Dict[str, AgentBuffer] = {}
         agent_outputs: Dict[str, str] = {}
 
-        async for message in self.flow.run_stream(task=task):
+        stream = self.flow.run_stream(task=task)
+        async for message in stream:
             try:
                 ts = time.time()
                 agent_name = getattr(message, "source", None) or getattr(message, "agent_name", None) or "unknown_agent"

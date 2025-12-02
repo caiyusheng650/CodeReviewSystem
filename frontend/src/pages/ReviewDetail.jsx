@@ -286,7 +286,7 @@ const ReviewDetail = ({ isDarkMode }) => {
     return {
       严重: parsedFinalResult.filter(item => item.severity === '严重').length,
       中等: parsedFinalResult.filter(item => item.severity === '中等').length,
-      轻微: parsedFinalResult.filter(item => item.severity === '轻度').length,
+      轻微: parsedFinalResult.filter(item => item.severity === '轻微').length,
       表扬: parsedFinalResult.filter(item => item.severity === '表扬').length,
       历史未修复: parsedFinalResult.filter(item => item.historical_mention).length
     };

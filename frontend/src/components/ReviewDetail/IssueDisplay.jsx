@@ -104,7 +104,14 @@ const IssueDisplay = ({
         {issue.bug_code_example && (
           <Grid size={12}>
             <Typography color="error" sx={{ mb: 0.5, textAlign: 'left', fontWeight: 'bold' }}>{t('common.problemCode')}</Typography>
-            <Box sx={{ bgcolor: isDarkMode ? '#333' : '#f5f5f5', p: 2, borderRadius: 1, fontFamily: '"Fira Code", "JetBrains Mono", "Cascadia Code", "Source Code Pro", Consolas, monospace', whiteSpace: 'pre-wrap' }}>
+            <Box sx={{ 
+              bgcolor: isDarkMode ? '#333' : '#f5f5f5', 
+              p: 2, 
+              borderRadius: 1, 
+              fontFamily: '"Fira Code", "JetBrains Mono", "Cascadia Code", "Source Code Pro", Consolas, monospace',
+              overflowX: 'auto',
+              whiteSpace: 'pre'
+            }}>
               <Typography sx={{ textAlign: 'left' }}>{issue.bug_code_example}</Typography>
             </Box>
           </Grid>
@@ -115,8 +122,14 @@ const IssueDisplay = ({
             <Typography color="success" sx={{ mb: 0.5, textAlign: 'left', fontWeight: 'bold' }}>
               {issue.optimized_code_example ? t('common.optimizedCode') : t('common.goodCode')}
             </Typography>
-            <Box sx={{ bgcolor: isDarkMode ? '#333' : '#f5f5f5', p: 2, borderRadius: 1, fontFamily: '"Fira Code", "JetBrains Mono", "Cascadia Code", "Source Code Pro", Consolas, monospace', whiteSpace: 'pre-wrap' }}>
-              
+            <Box sx={{ 
+              bgcolor: isDarkMode ? '#333' : '#f5f5f5', 
+              p: 2, 
+              borderRadius: 1, 
+              fontFamily: '"Fira Code", "JetBrains Mono", "Cascadia Code", "Source Code Pro", Consolas, monospace',
+              overflowX: 'auto',
+              whiteSpace: 'pre'
+            }}>
               <Typography sx={{ textAlign: 'left' }}>
                 {issue.optimized_code_example || issue.good_code_example}
               </Typography>

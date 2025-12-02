@@ -140,7 +140,7 @@ npm run dev
 
 #### 1️⃣ 配置工作流文件
 
-下载 http://localhost:8000/api/install/workflow/ai-review.yml 链接中的文件，保存为 `.github/workflows/ai-review.yml`：
+下载 http://localhost:8000/api/install/workflow/wanan-codereview.yml 链接中的文件，保存为 `.github/workflows/wanan-codereview.yml`：
 
 #### 2️⃣ 配置GitHub Secrets
 在GitHub仓库设置中添加以下secrets：
@@ -223,7 +223,7 @@ CodeReviewSystem/
 │   ├── 📄 package.json        # 📦 Node.js依赖
 │   └── ⚙️ vite.config.js      # 🛠️ Vite配置
 └── 📁 .github/workflows/      # GitHub Actions
-    ├── ⚙️ ai-review.yml       # 🔄 主工作流
+    ├── ⚙️ wanan-codereview.yml       # 🔄 主工作流
     └── 📄 docs.txt            # 📚 文档说明
 ```
 
@@ -323,6 +323,8 @@ git push origin feature/your-amazing-feature
 **立即开始提升你的代码质量！**
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/caiyusheng650/CodeReviewSystem)
+
+
 [![Star on GitHub](https://img.shields.io/github/stars/caiyusheng650/CodeReviewSystem?style=social)](https://github.com/caiyusheng650/CodeReviewSystem)
 
 ---

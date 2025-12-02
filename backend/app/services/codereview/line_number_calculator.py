@@ -120,7 +120,7 @@ class LineNumberCalculator:
         
         return None
     
-    def _fuzzy_match(self, line_content: str, target_content: str, threshold: float = 0.8) -> bool:
+    def _fuzzy_match(self, line_content: str, target_content: str, threshold: float = 0.5) -> bool:
         """
         模糊匹配算法，使用difflib的SequenceMatcher
         
