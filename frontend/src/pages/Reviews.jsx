@@ -31,6 +31,7 @@ const Reviews = ({ isDarkMode }) => {
   const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(0); // 0-based page index
   const [rowsPerPage, setRowsPerPage] = useState(10); // 每页显示10条数据
+  const [totalRecords, setTotalRecords] = useState(0); // 总记录数
   const { t, i18n } = useTranslation();
   
   // 排序状态
@@ -46,10 +47,15 @@ const Reviews = ({ isDarkMode }) => {
         setLoading(true);
         setError(null);
         
-        // 直接从API获取最新数据
-        const response = await codeReviewAPI.getReviewHistory({});
+        // 传递分页参数给API，后端使用1-based页码，前端使用0-based，所以需要page + 1
+        const response = await codeReviewAPI.getReviewHistory({
+          page: page + 1,
+          size: rowsPerPage,
+          search: searchText
+        });
         const latestReviews = response.reviews || [];
         setReviews(latestReviews);
+        setTotalRecords(response.total || 0); // 设置总记录数
         
         // 保存数据到localStorage供AppBar使用
         localStorage.setItem('cachedReviews', JSON.stringify(latestReviews));
@@ -69,7 +75,7 @@ const Reviews = ({ isDarkMode }) => {
     if (user) {
       fetchReviews();
     }
-  }, [user]);
+  }, [user, page, rowsPerPage, searchText]);
 
   // 重置到第一页当搜索文本改变时
   useEffect(() => {
@@ -146,11 +152,8 @@ const Reviews = ({ isDarkMode }) => {
     });
   }, [filteredReviews, sortConfig]);
 
-  // 分页后的数据
-  const paginatedReviews = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    return sortedReviews.slice(startIndex, startIndex + rowsPerPage);
-  }, [sortedReviews, page, rowsPerPage]);
+  // 当前页显示的数据（由后端处理分页）
+  const paginatedReviews = sortedReviews;
 
   // 处理页面切换
   const handleChangePage = (event, newPage) => {
@@ -381,7 +384,7 @@ const Reviews = ({ isDarkMode }) => {
         {/* 分页控件 */}
         <TablePagination
           component="div"
-          count={sortedReviews.length} // 使用排序后的数据总数
+          count={totalRecords} // 使用后端返回的总记录数
           page={page}
           onPageChange={handleChangePage}
           rowsPerPage={rowsPerPage}
@@ -399,7 +402,7 @@ const Reviews = ({ isDarkMode }) => {
             {t('home.filteredRecords', { count: sortedReviews.length })}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {t('home.totalRecords', { count: reviews.length })}
+            {t('home.totalRecords', { count: totalRecords })}
           </Typography>
         </Box>
       </Box>

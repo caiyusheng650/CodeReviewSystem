@@ -11,11 +11,11 @@ from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 
 try:
     # 尝试相对导入（当作为包的一部分时）
-    from .config import API_MODEL_NAME, API_API_KEY, API_API_BASE, get_system_prompt
+    from .config import AI_MODEL_NAME, AI_API_KEY, AI_API_BASE, get_system_prompt
     from .line_number_calculator import LineNumberAgent
 except ImportError:
     # 绝对导入（当直接运行脚本时）
-    from config import API_MODEL_NAME, API_API_KEY, API_API_BASE, get_system_prompt
+    from config import AI_MODEL_NAME, AI_API_KEY, AI_API_BASE, get_system_prompt
     from line_number_calculator import LineNumberAgent
 
 # 全局行号智能体实例
@@ -134,14 +134,14 @@ def build_deepseek_agent(name: str, key: str) -> AssistantAgent:
 def build_final_agent(name: str, key: str) -> AssistantAgent:
     # 创建工具列表
     model_client = OpenAIChatCompletionClient(
-                    model="gemini-2.5-pro",
-                    api_key=API_API_KEY,
-                    #base_url=API_API_BASE,
+                    model=AI_MODEL_NAME,
+                    api_key=AI_API_KEY,
+                    base_url=AI_API_BASE,
                     model_info={
                         "vision": False,
                         "function_calling": False,
                         "json_output": True,
-                        "family": ModelFamily.GEMINI_2_5_PRO,
+                        "family": ModelFamily.UNKNOWN,
                         "structured_output": True,
                     },
                     max_retries=5,
@@ -157,30 +157,29 @@ def build_final_agent(name: str, key: str) -> AssistantAgent:
     )
 
 model_client = OpenAIChatCompletionClient(
-    #model=API_MODEL_NAME,
-    model="gemini-2.5-flash-lite",
-    api_key=API_API_KEY,
-    #base_url=API_API_BASE,
-    model_info={
-        "vision": False,
-        "function_calling": True,
-        "json_output": True,
-        "family": ModelFamily.GEMINI_2_5_FLASH,
-        "structured_output": True,
-    },
-    max_retries=5,    
-)
+                    model=AI_MODEL_NAME,
+                    api_key=AI_API_KEY,
+                    base_url=AI_API_BASE,
+                    model_info={
+                        "vision": False,
+                        "function_calling": True,
+                        "json_output": True,
+                        "family": ModelFamily.UNKNOWN,
+                        "structured_output": True,
+                    },
+                    max_retries=5,    
+                )
 
 # DeepSeek-V3.1-Terminus model client for analysis agents
 deepseek_model_client = OpenAIChatCompletionClient(
-    model=API_MODEL_NAME,
-    api_key=API_API_KEY,
-    #base_url=API_API_BASE,
+    model=AI_MODEL_NAME,
+    api_key=AI_API_KEY,
+    base_url=AI_API_BASE,
     model_info={
         "vision": False,
         "function_calling": True,
         "json_output": True,
-        "family": ModelFamily.GEMINI_2_5_FLASH,
+        "family": ModelFamily.UNKNOWN,
         "structured_output": True,
     },
     max_retries=5,
