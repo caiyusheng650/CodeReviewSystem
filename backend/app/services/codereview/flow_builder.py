@@ -144,7 +144,7 @@ def build_final_agent(name: str, key: str) -> AssistantAgent:
                         "family": ModelFamily.GEMINI_2_5_PRO,
                         "structured_output": True,
                     },
-                    max_retries=2,
+                    max_retries=5,
                     response_format={"type": "json_object"},
                     
                 )
@@ -168,7 +168,7 @@ model_client = OpenAIChatCompletionClient(
         "family": ModelFamily.GEMINI_2_5_FLASH,
         "structured_output": True,
     },
-    max_retries=2,    
+    max_retries=5,    
 )
 
 # DeepSeek-V3.1-Terminus model client for analysis agents
@@ -183,7 +183,7 @@ deepseek_model_client = OpenAIChatCompletionClient(
         "family": ModelFamily.GEMINI_2_5_FLASH,
         "structured_output": True,
     },
-    max_retries=2,
+    max_retries=5,
 )
 
 reputation_assessment_agent = build_deepseek_agent("ReputationAssessmentAgent", "reputation_assessment_agent")
