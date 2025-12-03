@@ -7,7 +7,7 @@ load_dotenv()
 
 # MongoDB Atlas 连接配置
 MONGODB_URI = os.getenv("MONGODB_URI")
-DATABASE_NAME = "code_review_db"
+DATABASE_NAME = os.getenv("DATABASE_NAME")
 
 # 创建MongoDB客户端
 client = AsyncIOMotorClient(MONGODB_URI)
