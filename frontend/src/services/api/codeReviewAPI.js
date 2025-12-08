@@ -68,5 +68,14 @@ export const codeReviewAPI = {
       marked: marked
     });
     return response.data;
+  },
+
+  // 同步问题到Jira
+  syncIssueToJira: async (reviewId, issueId, connectionId, jiraFields) => {
+    const response = await apiClient.post(`/api/codereview/reviews/${reviewId}/issues/${issueId}/sync-to-jira`, {
+      connection_id: connectionId,
+      jira_fields: jiraFields
+    });
+    return response.data;
   }
 };

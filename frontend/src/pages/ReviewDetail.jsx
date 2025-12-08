@@ -538,6 +538,7 @@ const ReviewDetail = ({ isDarkMode }) => {
               SeverityMap={SeverityMap}
               chatHistory={chatHistory}
               chatHistoryLoading={chatHistoryLoading}
+              reviewId={reviewId}
             />
           </Box>
         </Box>

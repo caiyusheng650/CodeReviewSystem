@@ -624,6 +624,14 @@ class MarkIssuePayload(BaseModel):
     issue_id: str = Field(..., description="问题项序号")
     marked: bool = Field(..., description="是否标记")
 
+# ==============================
+# ⭐ 同步问题到Jira
+# ==============================
+class SyncIssueToJiraPayload(BaseModel):
+    """同步问题到Jira请求模型"""
+    connection_id: str = Field(..., description="Jira连接ID")
+    jira_fields: Dict[str, Any] = Field(..., description="Jira Issue字段")
+
 @router.post("/reviews/{review_id}/mark-issue")
 async def mark_issue(
     review_id: str,
@@ -662,6 +670,48 @@ async def mark_issue(
         "marked": payload.marked,
         "marked_issues": current_marked_issues
     }
+
+# ==============================
+# ⭐ 同步问题到Jira
+# ==============================
+@router.post("/reviews/{review_id}/issues/{issue_id}/sync-to-jira")
+async def sync_issue_to_jira(
+    review_id: str,
+    issue_id: str,
+    payload: SyncIssueToJiraPayload,
+    username: str = Depends(require_bearer),
+    code_review_service: CodeReviewService = Depends(get_code_review_service)
+):
+    """将标记的问题同步到Jira"""
+    try:
+        # 导入AI代码审查服务
+        from app.services.codereview import get_ai_code_review_service
+        ai_service = get_ai_code_review_service(code_review_service)
+        
+        # 调用服务层的同步功能
+        result = await ai_service.sync_issue_to_jira(
+            review_id=review_id,
+            issue_id=issue_id,
+            connection_id=payload.connection_id,
+            user_id=username,
+            jira_fields=payload.jira_fields
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=500, detail=result["message"])
+        
+        return {
+            "success": True,
+            "review_id": review_id,
+            "issue_id": issue_id,
+            "jira_issue": result["issue"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"同步问题到Jira失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"同步失败: {str(e)}")
 
 
 # ==============================

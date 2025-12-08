@@ -14,3 +14,5 @@ autogen-agentchat==0.7.5
 autogen-core==0.7.5
 autogen-ext==0.7.5
 pyjson5
+requests==2.31.0
+httpx==0.25.2

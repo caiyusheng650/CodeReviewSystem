@@ -37,3 +37,7 @@ async def close_mongo_connection():
 def get_database():
     """FastAPI依赖函数：获取数据库实例"""
     return database
+
+def get_collection(collection_name: str):
+    """获取指定名称的集合"""
+    return database[collection_name]

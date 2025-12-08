@@ -11,10 +11,11 @@ import Reviews from './pages/Reviews'
 import ReviewDetail from './pages/ReviewDetail'
 import Settings from './pages/Settings'
 import Documentation from './pages/Documentation'
-import Support from './pages/Support'
 import NotFound from './pages/NotFound'
+import JiraCallback from './components/Settings/JiraCallback'
 import AppBar from './components/AppBar/AppBar'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { SnackbarProvider } from './contexts/SnackbarContext'
 import { I18nextProvider, useTranslation } from 'react-i18next'
 import i18n from './i18n'
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute'
@@ -34,7 +35,6 @@ function Layout({ children, onThemeToggle, isDarkMode }) {
     { label: t('navigation.reviews'), path: '/reviews' },
     { label: t('navigation.documentation'), path: '/documentation' },
     { label: t('navigation.settings'), path: '/settings' },
-    { label: t('navigation.support'), path: '/support' },
   ];
 
   // 语言切换处理函数
@@ -224,12 +224,19 @@ function AppContent() {
                   />
                 }
               />
-
-              {/* 支持页面路由 - 直接渲染，支持所有用户访问 */}
+              
+              {/* Jira OAuth回调路由 - 使用ProtectedRoute */}
               <Route
-                path="/support"
-                element={<Support isDarkMode={isDarkMode} />}
+                path="/settings/jira/callback"
+                element={
+                  <ProtectedRoute
+                    component={JiraCallback}
+                    props={{ isDarkMode }}
+                  />
+                }
               />
+
+              
 
               <Route
                 path="/not-found"
@@ -252,11 +259,13 @@ function AppContent() {
   )
 }
 
-// 主应用组件，包装认证提供者
+// 主应用组件，包装认证提供者和Snackbar提供者
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <SnackbarProvider>
+        <AppContent />
+      </SnackbarProvider>
     </AuthProvider>
   )
 }

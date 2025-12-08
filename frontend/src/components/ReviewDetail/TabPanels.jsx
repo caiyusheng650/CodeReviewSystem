@@ -16,7 +16,8 @@ const TabPanels = ({
   markedIssues, 
   handleMarkIssue,
   chatHistory,
-  chatHistoryLoading
+  chatHistoryLoading,
+  reviewId
 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -68,14 +69,15 @@ const TabPanels = ({
                 <Box>
                   {filteredIssues.map((issue, idx) => (
                     <IssueDisplay
-                      key={idx}
-                      issue={issue}
-                      isDarkMode={isDarkMode}
-                      markedIssues={markedIssues}
-                      handleMarkIssue={handleMarkIssue}
-                      SeverityMap={SeverityMap}
-                    />
-                  ))}
+                  key={idx}
+                  issue={issue}
+                  reviewId={reviewId}
+                  isDarkMode={isDarkMode}
+                  markedIssues={markedIssues}
+                  handleMarkIssue={handleMarkIssue}
+                  SeverityMap={SeverityMap}
+                />
+              ))}
                 </Box>
               </AccordionDetails>
             </Accordion>

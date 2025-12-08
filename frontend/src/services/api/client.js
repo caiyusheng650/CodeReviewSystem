@@ -41,7 +41,6 @@ apiClient.createSSERequest = (url, options = {}) => {
 apiClient.interceptors.response.use(
   response => response,
   error => {
-    console.error('API Error:', error.response ? error.response.data : error.message);
     return Promise.reject(error);
   }
 );

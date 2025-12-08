@@ -2,7 +2,7 @@ import uvicorn
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, apikey, codereview, reputation, install, aicopilot
+from app.routers import auth, apikey, codereview, reputation, install, aicopilot, jira
 from app.utils.database import connect_to_mongo, close_mongo_connection
 
 from contextlib import asynccontextmanager
@@ -49,6 +49,7 @@ app.include_router(codereview.router, prefix="/api/codereview", tags=["代码审
 app.include_router(reputation.router, prefix="/api", tags=["信誉查询"])
 app.include_router(install.router, prefix="/api/install", tags=["安装"])
 app.include_router(aicopilot.router, prefix="/api/aicopilot", tags=["智能助手"])
+app.include_router(jira.router, prefix="/api/jira", tags=["Jira集成"])
 
 @app.get("/")
 def read_root():
@@ -56,7 +57,7 @@ def read_root():
 
 if __name__ == "__main__":
     # 生产环境中应该用更合理的服务器配置
-    uvicorn.run("main:app",  port=8000, host="0.0.0.0", workers=1, timeout_keep_alive=600, timeout_graceful_shutdown=600)
-    #uvicorn.run("main:app",  port=8000, host="0.0.0.0", reload=True, timeout_keep_alive=600, timeout_graceful_shutdown=600)
+    #uvicorn.run("main:app",  port=8000, host="0.0.0.0", workers=1, timeout_keep_alive=600, timeout_graceful_shutdown=600)
+    uvicorn.run("main:app",  port=8000, host="0.0.0.0", reload=True, timeout_keep_alive=600, timeout_graceful_shutdown=600)
 
 
