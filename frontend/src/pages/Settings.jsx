@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import SettingsMain from '../components/Settings/SettingsMain';
-import { Breadcrumbs, Typography } from '@mui/material';
+import { Breadcrumbs, Typography, Box } from '@mui/material';
 import { useSnackbar } from '../contexts/SnackbarContext';
 
 const Settings = ({ isDarkMode }) => {
@@ -18,12 +18,14 @@ const Settings = ({ isDarkMode }) => {
   }, [location.state, showSnackbar, t]);
 
   return (
-    <div>
+    <Box sx={{ p: 3, mx: 'auto', mt: 6, position: 'relative' }}>
       <Breadcrumbs sx={{ mb: 3 }}>
-        <Typography>{t('settings.pageTitle')}</Typography>
+        <Typography linkComponent="button" onClick={() => navigate('/settings')} sx={{ cursor: 'pointer' }}>
+          {t('settings.pageTitle')}
+        </Typography>
       </Breadcrumbs>
       <SettingsMain />
-    </div>
+    </Box>
   );
 };
 

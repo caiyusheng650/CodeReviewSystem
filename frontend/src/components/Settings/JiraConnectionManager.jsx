@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Paper,
   Table,
@@ -12,7 +12,8 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Tooltip
+  Tooltip,
+  TablePagination
 } from '@mui/material';
 import {
   Link as LinkIcon,
@@ -35,6 +36,8 @@ const JiraConnectionManager = () => {
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Fetch Jira connections when component mounts
   useEffect(() => {
@@ -47,7 +50,10 @@ const JiraConnectionManager = () => {
       setLoading(true);
       const connections = await jiraAPI.getConnections();
       // Ensure connections is always an array
-      setJiraConnections(Array.isArray(connections) ? connections : []);
+      const connectionsArray = Array.isArray(connections) ? connections : [];
+      setJiraConnections(connectionsArray);
+      // 重置到第一页当数据更新时
+      setPage(0);
     } catch (error) {
       console.error('Failed to fetch Jira connections:', error);
       showSnackbar(t('settings.jiraFetchFailed'), 'error');
@@ -57,6 +63,23 @@ const JiraConnectionManager = () => {
       setLoading(false);
     }
   };
+
+  // 处理页面切换
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  // 处理每页显示数量变化
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // 重置到第一页
+  };
+
+  // 分页后的数据
+  const paginatedJiraConnections = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return jiraConnections.slice(startIndex, startIndex + rowsPerPage);
+  }, [jiraConnections, page, rowsPerPage]);
 
 
 
@@ -153,7 +176,7 @@ const JiraConnectionManager = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {jiraConnections.map((connection) => (
+              {paginatedJiraConnections.map((connection) => (
                 <TableRow
                   key={connection.id}
                   sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -203,6 +226,35 @@ const JiraConnectionManager = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* 分页控件 */}
+        <TablePagination
+          component="div"
+          count={jiraConnections.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[10, 25, 50, 100]} // 可选择的每页显示数量
+          labelRowsPerPage={t('common.rowsPerPage')}
+          labelDisplayedRows={({ from, to, count }) => {
+            return `${from}-${to} ${t('common.of')} ${count !== -1 ? count : `>${to}`}`;
+          }}
+        />
+
+        {/* 统计信息 */}
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            {t('common.displayedRecords', { 
+              from: jiraConnections.length > 0 ? (page * rowsPerPage + 1) : 0, 
+              to: Math.min((page + 1) * rowsPerPage, jiraConnections.length), 
+              total: jiraConnections.length 
+            })}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('common.totalRecords', { count: jiraConnections.length })}
+          </Typography>
+        </Box>
       </Paper>
 
     </>
