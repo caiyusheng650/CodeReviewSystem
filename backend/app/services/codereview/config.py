@@ -51,6 +51,16 @@ AI_API_BASE = os.getenv("AI_API_URL")
 # ---------------------------
 JSON_ONLY_INSTRUCTION = "\n\n重要强制要求：您的输出必须是**仅包含一个有效JSON对象的纯文本**，不能有任何多余内容（包括解释、换行、注释）。即使是优质代码的表扬，也必须嵌入JSON结构中。**文件忽略**：.github/workflows/wanan-codereview.yml 中的代码问题禁止提及"
 
+# 示例代码简洁化指令
+EXAMPLES_CONCISE_INSTRUCTION = """
+**示例代码简洁化要求**：
+- `bug_code_example`：仅展示核心问题代码，不超过1行
+- `optimized_code_example`：仅展示核心修复方案，不超过2行  
+- `good_code_example`：仅展示最佳实践代码，不超过1行
+- 避免冗长的import语句和复杂上下文，聚焦核心代码差异
+- 使用简洁的变量名和最小化代码片段
+"""
+
 LINE_NUMBER_TOOLS_INSTRUCTION = """
 **智能行号计算工具使用规范**：
 - **工具推荐**：当diff内容较多或复杂时，强烈推荐使用 `calculate_line_number_tool` 进行精确行号定位
@@ -159,6 +169,8 @@ SYSTEM_PROMPTS: Dict[str, str] = {
 **特别重点关注**：变量命名风格不一致问题，例如同一项目中混用user_name和userName
 """ + LINE_NUMBER_TOOLS_INSTRUCTION + """
 
+### 示例代码简洁化要求：
+""" + EXAMPLES_CONCISE_INSTRUCTION + """
 
 ### 具体示例：
 以下是符合格式要求的**有效JSON输出示例**：
@@ -237,6 +249,8 @@ SYSTEM_PROMPTS: Dict[str, str] = {
 - 使用 `get_line_context_tool` 工具来获取指定行号前后的代码上下文，帮助更准确地分析逻辑缺陷
 - 当分析异常处理、分支逻辑等问题时，先用工具计算行号，再结合上下文验证
 
+### 示例代码简洁化要求：
+""" + EXAMPLES_CONCISE_INSTRUCTION + """
 
 ### 具体示例：
 以下是符合格式要求的**有效JSON输出示例**：
@@ -313,6 +327,9 @@ SYSTEM_PROMPTS: Dict[str, str] = {
 **重视这方面问题**：访问不安全的内存区域，如未初始化的指针、数组越界访问等。
 """ + LINE_NUMBER_TOOLS_INSTRUCTION + """
 
+### 示例代码简洁化要求：
+""" + EXAMPLES_CONCISE_INSTRUCTION + """
+
 ### 具体示例：
 以下是符合格式要求的**有效JSON输出示例**：
 
@@ -388,6 +405,9 @@ SYSTEM_PROMPTS: Dict[str, str] = {
 **重点关注问题**：尝试访问不存在的键，比如object["nonexistent_key"]，可能导致运行时错误，应用object.get("nonexistent_key", default_value)。
 """ + LINE_NUMBER_TOOLS_INSTRUCTION + """
 
+### 示例代码简洁化要求：
+""" + EXAMPLES_CONCISE_INSTRUCTION + """
+
 ### 具体示例：
 以下是符合格式要求的**有效JSON输出示例**：
 
@@ -461,6 +481,9 @@ SYSTEM_PROMPTS: Dict[str, str] = {
         """
 你是「性能优化分析专家」，专注于全面检查代码中的性能瓶颈、资源使用效率低下、算法复杂度不合理、内存使用不当等性能相关问题。你的职责是识别可能导致系统响应缓慢、资源利用率低下或扩展性受限的性能隐患。
 """ + LINE_NUMBER_TOOLS_INSTRUCTION + """
+
+### 示例代码简洁化要求：
+""" + EXAMPLES_CONCISE_INSTRUCTION + """
 
 ### 具体示例：
 以下是符合格式要求的**有效JSON输出示例**：
@@ -536,6 +559,9 @@ SYSTEM_PROMPTS: Dict[str, str] = {
 你是「可维护性分析专家」，专注于全面评估代码的可维护性水平，识别影响代码可读性、可理解性、可扩展性和可测试性的各类问题，包括但不限于代码注释缺失、函数过长、魔法数字使用、重复代码、命名不规范、过于复杂的条件语句等。
 """ + LINE_NUMBER_TOOLS_INSTRUCTION + """
 
+### 示例代码简洁化要求：
+""" + EXAMPLES_CONCISE_INSTRUCTION + """
+
 ### 具体示例：
 以下是符合格式要求的**有效JSON输出示例**：
 
@@ -609,6 +635,9 @@ SYSTEM_PROMPTS: Dict[str, str] = {
         """
 你是「架构设计分析专家」，专注于全面评估代码的整体架构设计质量，识别影响系统可扩展性、可维护性和可演化性的架构层面问题，包括但不限于模块划分不合理、组件间耦合度过高、依赖关系混乱、职责边界模糊、架构模式选择不当等。
 """ + LINE_NUMBER_TOOLS_INSTRUCTION + """
+
+### 示例代码简洁化要求：
+""" + EXAMPLES_CONCISE_INSTRUCTION + """
 
 ### 具体示例：
 以下是符合格式要求的**有效JSON输出示例**：
@@ -785,7 +814,7 @@ SYSTEM_PROMPTS: Dict[str, str] = {
 - 省略任何必需的字段信息
 - 使用 null、undefined 或空字符串表示布尔字段
 - 严禁使用工具
-- 请完整总结各审查专家的意见，严禁缺漏，严禁缺漏，严禁缺漏，严禁缺漏
+- 请完整总结各审查智能体的意见。如果问题数超过10个，请只总结前10个问题的意见，并尽量减少重复。
         """
     )
 }

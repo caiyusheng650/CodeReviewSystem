@@ -35,20 +35,20 @@ const JiraCallback = () => {
         // Exchange authorization code for access token and create connection
         const response = await jiraAPI.exchangeToken(
           code,
-          import.meta.env.VITE_JIRA_CLIENT_ID,
-          import.meta.env.VITE_JIRA_CLIENT_SECRET,
           import.meta.env.VITE_JIRA_REDIRECT_URI
         );
 
         // Mark this code as processed to prevent duplicate requests
         localStorage.setItem('jira_oauth_processed_code', code);
 
+        // Wait 2 seconds to ensure backend has time to update database
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
         // Navigate back to Jira settings with success message
-        navigate('/settings', { state: { message: 'settings.jiraConnectionSuccess' } });
+        navigate('/settings', { state: { message: t('settings.jiraConnectionSuccess') } });
       } catch (error) {
         console.error('Jira OAuth token exchange failed:', error);
         const errorMessage = error.response?.data?.detail || error.message || t('settings.jiraOAuthFailed');
-        showSnackbar(`${t('settings.jiraOAuthFailed')}: ${errorMessage}`, 'error');
         navigate('/settings');
       }
     };

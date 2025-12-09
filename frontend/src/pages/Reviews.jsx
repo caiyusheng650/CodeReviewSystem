@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { codeReviewAPI } from '../services/api/codeReviewAPI';
+import codeReviewAPI from '../services/api/codeReviewAPI';
 import { formatDateTime } from '../utils/dateUtils';
 import { useTranslation } from 'react-i18next';
 import {

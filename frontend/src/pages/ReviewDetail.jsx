@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { codeReviewAPI } from '../services/api/codeReviewAPI';
+import codeReviewAPI from '../services/api/codeReviewAPI';
 import { aicopilotAPI } from '../services/api/AICopilotAPI';
 import { useTranslation } from 'react-i18next';
+import { useSnackbar } from '../contexts/SnackbarContext';
 import {
   Box, Breadcrumbs, Button, Card, CardContent, Chip, CircularProgress,
   Tabs, Tab, Typography, Alert, Divider, IconButton, Tooltip, TextField,
@@ -31,6 +32,7 @@ const ReviewDetail = ({ isDarkMode }) => {
   const { reviewId } = useParams();
   const { user } = useAuth();
   const theme = useTheme();
+  const { showSnackbar } = useSnackbar();
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,7 +44,7 @@ const ReviewDetail = ({ isDarkMode }) => {
   const [isPending, setIsPending] = useState(false);
   
   // ChatPanel相关状态
-  const [isChatPanelCollapsed, setIsChatPanelCollapsed] = useState(false);
+  const [isChatPanelCollapsed, setIsChatPanelCollapsed] = useState(true);
   const [chatMessages, setChatMessages] = useState([]);
   
   const { t, i18n } = useTranslation();
@@ -154,9 +156,16 @@ const ReviewDetail = ({ isDarkMode }) => {
         marked_issues: response.marked_issues
       });
       
+      // 显示成功提示
+      showSnackbar(
+        marked ? t('reviewDetail.issueMarkedAsProcessed') : t('reviewDetail.issueUnmarked'), 
+        'success'
+      );
+      
     } catch (err) {
       console.error('标记问题失败：', err);
-      // 可以添加错误提示
+      // 显示错误提示
+      showSnackbar(t('reviewDetail.markIssueFailed'), 'error');
     }
   };
 
@@ -218,7 +227,7 @@ const ReviewDetail = ({ isDarkMode }) => {
             // 提示用户重新登录
             const authErrorMessage = {
               role: 'assistant',
-              content: '登录已过期，请刷新页面重新登录后使用AI助手功能。',
+              content: t('reviewDetail.loginExpired'),
               timestamp: new Date().toISOString(),
               error: true
             };
@@ -230,7 +239,7 @@ const ReviewDetail = ({ isDarkMode }) => {
               if (updated[aiMessageIndex]) {
                 updated[aiMessageIndex] = {
                   ...updated[aiMessageIndex],
-                  text: '抱歉，AI助手暂时无法回复，请稍后再试。',
+                  text: t('reviewDetail.aiAssistantUnavailable'),
                   error: true
                 };
               }
@@ -252,7 +261,7 @@ const ReviewDetail = ({ isDarkMode }) => {
       if (err.message.includes('未登录') || err.message.includes('unauthorized') || err.message.includes('401')) {
         const errorMessage = {
           role: 'ai',
-          text: '登录已过期，请刷新页面重新登录。',
+          text: t('reviewDetail.loginExpired'),
           timestamp: new Date().toISOString(),
           error: true
         };
@@ -261,7 +270,7 @@ const ReviewDetail = ({ isDarkMode }) => {
         // 添加错误消息
         const errorMessage = {
           role: 'ai',
-          text: '抱歉，发送消息失败，请检查网络连接后重试。',
+          text: t('reviewDetail.sendMessageFailed'),
           timestamp: new Date().toISOString(),
           error: true
         };
@@ -276,7 +285,7 @@ const ReviewDetail = ({ isDarkMode }) => {
     try {
       return Object.values(finalResult);
     } catch (err) {
-      console.error('解析final_result失败:', err);
+      console.error(t('reviewDetail.parseFinalResultFailed'), err);
       return [];
     }
   };
@@ -296,9 +305,9 @@ const ReviewDetail = ({ isDarkMode }) => {
   const getMergeSuggestion = (issueCount) => {
     const { 严重, 中等 } = issueCount;
     if (严重 > 0 || 中等 > 0) {
-      return { suggestion: '不建议合并', color: 'error' };
+      return { suggestion: t('reviewDetail.notRecommendedToMerge'), color: 'error' };
     }
-    return { suggestion: '建议合并', color: 'success' };
+    return { suggestion: t('reviewDetail.recommendedToMerge'), color: 'success' };
   };
 
   // 分组问题数据
@@ -455,7 +464,7 @@ const ReviewDetail = ({ isDarkMode }) => {
       {/* 页面标题+操作按钮 */}
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3,maxWidth: '1200px' }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          PR #{review.pr_number} {t('reviewDetail.intelligentCodeReview')} {t('reviewDetail.reviewResults')}
+          PR #{review.pr_number} {review.pr_title} {t('reviewDetail.intelligentCodeReview')} {t('reviewDetail.reviewResults')}
         </Typography>
         <Box display="flex" gap={2}>
           <Tooltip title={t('reviewDetail.exportReport')}>
@@ -539,6 +548,9 @@ const ReviewDetail = ({ isDarkMode }) => {
               chatHistory={chatHistory}
               chatHistoryLoading={chatHistoryLoading}
               reviewId={reviewId}
+              prNumber={review.pr_number}
+              prTitle={review.pr_title}
+              repository={review.repository}
             />
           </Box>
         </Box>

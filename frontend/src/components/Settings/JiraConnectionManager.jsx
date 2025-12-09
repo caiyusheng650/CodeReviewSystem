@@ -81,23 +81,6 @@ const JiraConnectionManager = () => {
     return jiraConnections.slice(startIndex, startIndex + rowsPerPage);
   }, [jiraConnections, page, rowsPerPage]);
 
-
-
-  const handleTestJiraConnection = async (connection) => {
-    try {
-      setTestingConnection(true);
-      setConnectionTestResult(null);
-      const result = await jiraAPI.testConnection(connection);
-      setConnectionTestResult({ success: true, message: result.message });
-      showSnackbar(t('settings.jiraTestSuccess'), 'success');
-    } catch (error) {
-      setConnectionTestResult({ success: false, message: error.response?.data?.message || t('settings.jiraTestFailed') });
-      showSnackbar(t('settings.jiraTestFailed'), 'error');
-    } finally {
-      setTestingConnection(false);
-    }
-  };
-
   const handleDeleteJiraConnection = async (connectionId) => {
     try {
       setLoading(true);
@@ -116,10 +99,10 @@ const JiraConnectionManager = () => {
       setLoading(true);
       // Construct the authorization URL according to Atlassian OAuth 2.0 (3LO) documentation
       const state = `jira_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Define the scopes needed for Jira API access
       const scopes = ['read:jira-work', 'write:jira-work', 'read:jira-user'];
-      
+
       // Construct the authorization URL
       const authUrl = new URL('https://auth.atlassian.com/authorize');
       authUrl.searchParams.append('audience', 'api.atlassian.com');
@@ -129,7 +112,7 @@ const JiraConnectionManager = () => {
       authUrl.searchParams.append('state', state);
       authUrl.searchParams.append('response_type', 'code');
       authUrl.searchParams.append('prompt', 'consent');
-      
+
       // Redirect the user to the authorization URL
       window.location.href = authUrl.toString();
     } catch (error) {
@@ -185,21 +168,32 @@ const JiraConnectionManager = () => {
                     {connection.name}
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {connection.jira_url}
+                    <Box sx={{ maxWidth: 300 }}>
+                      <Box>
+                        {connection.accessible_resources.map((resource, index) => (
+                          <Box key={resource.id} sx={{ mb: 0.5 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontSize: '0.875rem'
+                              }}
+                              title={resource.url}
+                            >
+                              {resource.url}
+                            </Typography>
+
+                          </Box>
+                        ))}
+                      </Box>
                     </Box>
                   </TableCell>
                   <TableCell>{formatSmartTime(connection.created_at, t)}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleTestJiraConnection(connection)}
-                        disabled={loading || testingConnection}
-                      >
-                        {testingConnection ? t('settings.jiraTesting') : t('settings.jiraTestConnection')}
-                      </Button>
+
                       <Button
                         size="small"
                         variant="outlined"
@@ -209,7 +203,7 @@ const JiraConnectionManager = () => {
                       >
                         {t('settings.delete')}
                       </Button>
-                      
+
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -245,10 +239,10 @@ const JiraConnectionManager = () => {
         {/* 统计信息 */}
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="body2" color="text.secondary">
-            {t('common.displayedRecords', { 
-              from: jiraConnections.length > 0 ? (page * rowsPerPage + 1) : 0, 
-              to: Math.min((page + 1) * rowsPerPage, jiraConnections.length), 
-              total: jiraConnections.length 
+            {t('common.displayedRecords', {
+              from: jiraConnections.length > 0 ? (page * rowsPerPage + 1) : 0,
+              to: Math.min((page + 1) * rowsPerPage, jiraConnections.length),
+              total: jiraConnections.length
             })}
           </Typography>
           <Typography variant="body2" color="text.secondary">

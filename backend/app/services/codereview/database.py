@@ -1,8 +1,3 @@
-"""
-数据库服务模块
-处理代码审查记录的CRUD操作
-"""
-
 import logging
 from motor.motor_asyncio import AsyncIOMotorCollection
 from typing import List, Optional, Dict, Any
@@ -18,8 +13,8 @@ from app.models.codereview import (
 logger = logging.getLogger(__name__)
 
 
-class CodeReviewService:
-    """代码审查服务类"""
+class AICodeReviewDatabaseService:
+    """代码审查数据库服务类 - 专门处理代码审查相关的数据库操作"""
     
     def __init__(self, collection):
         self.collection = collection

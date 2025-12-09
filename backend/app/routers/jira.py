@@ -3,8 +3,9 @@ from typing import List, Optional
 from bson import ObjectId
 from app.models.jira import JiraConnection, JiraConnectionCreate, JiraConnectionUpdate, JiraConnectionTest
 from app.services.jira import (
-    get_connections,
+    get_user_connections,
     get_connection_by_id,
+    get_connection_by_id_with_tokens,  # 新增导入
     create_connection,
     update_connection,
     delete_connection,
@@ -17,16 +18,14 @@ from app.utils.database import users_collection
 import httpx
 from fastapi.responses import RedirectResponse
 import os
+import datetime
 
 router = APIRouter()
 
 @router.get("/connections", response_model=List[JiraConnection])
 async def list_jira_connections(username: str = Depends(require_bearer)):
     """获取用户的所有Jira连接"""
-    user = await users_collection.find_one({"username": username})
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    return await get_connections(user["_id"])
+    return await get_user_connections(username)
 
 @router.post("/connections", response_model=JiraConnection)
 async def create_jira_connection(
@@ -34,10 +33,7 @@ async def create_jira_connection(
     username: str = Depends(require_bearer)
 ):
     """创建新的Jira连接"""
-    user = await users_collection.find_one({"username": username})
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    return await create_connection(connection_data, user["_id"])
+    return await create_connection(connection_data, username)
 
 @router.get("/connections/{id}", response_model=JiraConnection)
 async def get_jira_connection(
@@ -45,8 +41,8 @@ async def get_jira_connection(
     username: str = Depends(require_bearer)
 ):
     """根据ID获取特定的Jira连接"""
-    user = await users_collection.find_one({"username": username})
-    if not user:
+    connection = await get_connection_by_id(ObjectId(id), username)
+    if not connection:
         raise HTTPException(status_code=404, detail="用户不存在")
     connection = await get_connection_by_id(ObjectId(id), user["_id"])
     if not connection:
@@ -60,10 +56,7 @@ async def update_jira_connection(
     username: str = Depends(require_bearer)
 ):
     """更新Jira连接"""
-    user = await users_collection.find_one({"username": username})
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    connection = await update_connection(ObjectId(id), connection_data, user["_id"])
+    connection = await update_connection(ObjectId(id), connection_data, username)
     if not connection:
         raise HTTPException(status_code=404, detail="Jira连接不存在")
     return connection
@@ -74,10 +67,7 @@ async def delete_jira_connection(
     username: str = Depends(require_bearer)
 ):
     """删除Jira连接"""
-    user = await users_collection.find_one({"username": username})
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
-    result = await delete_connection(ObjectId(id), user["_id"])
+    result = await delete_connection(ObjectId(id), username)
     if not result:
         raise HTTPException(status_code=404, detail="Jira连接不存在")
     return {"message": "Jira连接已成功删除"}
@@ -89,9 +79,6 @@ async def test_jira_connection(
 ):
     """测试Jira连接"""
     # 获取当前用户
-    user = await users_collection.find_one({"username": username})
-    if not user:
-        raise HTTPException(status_code=404, detail="用户不存在")
     
     # 检查请求参数，支持两种格式：
     # 1. 直接发送connection_id字符串
@@ -107,7 +94,7 @@ async def test_jira_connection(
         raise HTTPException(status_code=422, detail="无效的请求格式，期望connection_id或连接对象")
     
     # 获取Jira连接配置（包含解密后的令牌）
-    connection = await get_connection_by_id(ObjectId(connection_id), user["_id"], include_tokens=True)
+    connection = await get_connection_by_id_with_tokens(ObjectId(connection_id))  # 使用新的函数
     if not connection:
         raise HTTPException(status_code=404, detail="Jira连接不存在")
     
@@ -175,40 +162,103 @@ async def get_jira_oauth_url(
 
 @router.post("/oauth/refresh-token")
 async def refresh_jira_oauth_token(
-    refresh_token: str = Body(..., embed=True),
-    client_id: str = Body(..., embed=True),
-    client_secret: str = Body(..., embed=True)
+    connection_id: str = Body(..., embed=True),
+    username: str = Depends(require_bearer)
 ):
-    """刷新OAuth令牌"""
+    """刷新Jira OAuth访问令牌"""
     try:
-        # 向Atlassian认证服务器发送刷新令牌请求
-        # 注意：这只是一个示例实现，实际的刷新令牌流程可能有所不同
+        import httpx
+        
+        # 获取当前用户
+        user = await users_collection.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="用户不存在")
+        
+        # 获取连接信息
+        connection = await get_connection_by_id(ObjectId(connection_id), user["_id"])
+        if not connection:
+            raise HTTPException(status_code=404, detail="Jira连接不存在")
+        
+        # 解密刷新令牌
+        from app.utils.encryption import decrypt_refresh_token
+        refresh_token = decrypt_refresh_token(connection.refresh_token) if connection.refresh_token else None
+        
+        if not refresh_token:
+            raise HTTPException(status_code=400, detail="刷新令牌不存在")
+        
+        # 获取客户端配置
+        from app.config import settings
+        client_id = settings.atlassian_client_id
+        client_secret = settings.atlassian_client_secret
+        
+        # 向Atlassian认证服务器发送刷新请求
         token_url = "https://auth.atlassian.com/oauth/token"
+        
+        # 创建基本认证头
+        import base64
+        auth_header = "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 token_url,
                 data={
                     "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
                     "client_id": client_id,
-                    "client_secret": client_secret,
-                    "refresh_token": refresh_token
+                    "client_secret": client_secret
                 },
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": auth_header
+                }
             )
-            
+        
         if response.status_code == 200:
-            return response.json()
+            token_data = response.json()
+            
+            # 更新连接信息
+            import datetime
+            expires_in = token_data.get("expires_in", 3600)
+            token_expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=expires_in)
+            
+            update_data = {
+                "access_token": token_data.get("access_token"),
+                "refresh_token": token_data.get("refresh_token", refresh_token),
+                "token_expires_at": token_expires_at,
+                "token_type": token_data.get("token_type", "Bearer"),
+                "scope": token_data.get("scope", ""),
+                "updated_at": datetime.datetime.utcnow()
+            }
+            
+            # 加密新的访问令牌
+            from app.utils.encryption import encrypt_access_token, encrypt_refresh_token
+            if update_data["access_token"]:
+                update_data["access_token"] = encrypt_access_token(update_data["access_token"])
+            if update_data["refresh_token"] != refresh_token:
+                update_data["refresh_token"] = encrypt_refresh_token(update_data["refresh_token"])
+            
+            # 更新连接
+            updated_connection = await update_connection(ObjectId(connection_id), JiraConnectionUpdate(**update_data), user["_id"])
+            
+            return {
+                "success": True,
+                "connection": updated_connection,
+                "token_data": token_data
+            }
         else:
-            raise HTTPException(status_code=response.status_code, detail=f"刷新令牌失败: {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=f"令牌刷新失败: {response.text}")
+            
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"刷新OAuth令牌失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"服务器内部错误: {str(e)}")
 
 @router.post("/oauth/revoke-token")
 async def revoke_jira_oauth_token(
     token: str = Body(..., embed=True),
     client_id: str = Body(..., embed=True),
-    client_secret: str = Body(..., embed=True)
+    client_secret: str = Body(..., embed=True),
+    username: str = Depends(require_bearer)
 ):
     """撤销OAuth令牌"""
     try:
@@ -237,44 +287,40 @@ async def revoke_jira_oauth_token(
 @router.post("/oauth/exchange-token")
 async def exchange_jira_oauth_token(
     code: str = Body(..., embed=True),
-    client_id: str = Body(..., embed=True),
-    client_secret: str = Body(..., embed=True),
     redirect_uri: str = Body(..., embed=True),
     username: str = Depends(require_bearer)
 ):
     """交换授权码为访问令牌和刷新令牌，并创建Jira连接"""
     try:
-        import datetime
         
-        # 获取当前用户
-        user = await users_collection.find_one({"username": username})
-        if not user:
-            raise HTTPException(status_code=404, detail="用户不存在")
+        # 从环境变量获取客户端配置
+        client_id = os.getenv("VITE_JIRA_CLIENT_ID")
+        client_secret = os.getenv("VITE_JIRA_CLIENT_SECRET")
+        
+        if not client_id or not client_secret:
+            raise HTTPException(status_code=500, detail="Jira OAuth配置缺失")
         
         # 向Atlassian认证服务器发送令牌交换请求
         token_url = "https://auth.atlassian.com/oauth/token"
         
-        # 创建基本认证头
-        import base64
-        auth_header = "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
+        # 创建请求数据
+        token_request_data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "redirect_uri": redirect_uri
+        }
         
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 token_url,
-                data={
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "redirect_uri": redirect_uri
-                },
+                json=token_request_data,
                 headers={
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Authorization": auth_header
+                    "Content-Type": "application/json"
                 }
             )
-            
-        # Log the response for debugging
-        print(f"Atlassian token exchange response: {response.status_code}, {response.text}")
-            
+                        
         if response.status_code == 200:
             token_data = response.json()
             
@@ -292,40 +338,32 @@ async def exchange_jira_oauth_token(
                             "Accept": "application/json"
                         }
                     )
-                    
+                                        
                 if userinfo_response.status_code == 200:
                     accessible_resources = userinfo_response.json()
                     
                     # 获取第一个可访问的资源作为默认Jira实例
                     if accessible_resources and len(accessible_resources) > 0:
                         jira_resource = accessible_resources[0]
-                        jira_url = jira_resource.get("url", "")
                         jira_name = jira_resource.get("name", "Jira Connection")
-                        
-                        # 创建Jira连接记录
-                        expires_in = token_data.get("expires_in", 3600)
-                        token_expires_at = datetime.datetime.utcnow() + datetime.timedelta(seconds=expires_in)
-                        
+                                                
                         connection_data = {
                             "name": jira_name,
-                            "description": f"通过OAuth连接的Jira实例",
-                            "jira_url": jira_url,
-                            "auth_type": "oauth2",
+                            "jira_resource_id": jira_resource.get("id", ""),
                             "client_id": client_id,
                             "access_token": access_token,
-                            "refresh_token": token_data.get("refresh_token", ""),
-                            "token_expires_at": token_expires_at,
+                            "token_type": token_data.get("token_type", "Bearer"),
+                            "scope": token_data.get("scope", ""),
                             "is_cloud": True,
-                            "user_id": user["_id"]
+                            "accessible_resources": accessible_resources,
+                            "username": username
                         }
-                        
                         # 创建连接
-                        connection = await create_connection(JiraConnectionCreate(**connection_data), user["_id"])
+                        connection = await create_connection(JiraConnectionCreate(**connection_data), username)
                         
                         # 返回包含连接信息和令牌的响应
                         return {
                             "connection": connection,
-                            "token_data": token_data
                         }
                     else:
                         raise HTTPException(status_code=400, detail="未找到可访问的Jira资源")
@@ -341,5 +379,4 @@ async def exchange_jira_oauth_token(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"服务器内部错误: {str(e)}")
-
 

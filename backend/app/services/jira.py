@@ -3,51 +3,51 @@ from bson import ObjectId
 from app.models.jira import JiraConnection, JiraConnectionCreate, JiraConnectionUpdate, JiraConnectionTest
 from app.models.jira import JiraConnection, JiraConnectionWithToken
 from app.utils.encryption import decrypt_access_token, decrypt_refresh_token
+from app.utils.encryption import encrypt_access_token, encrypt_refresh_token
 from app.utils.database import get_collection
 import datetime
 import requests
+import json
 from requests.auth import HTTPBasicAuth
 
+
+# 获取Jira连接集合
 def get_jira_collection():
     return get_collection("jira_connections")
 
-async def get_connections(user_id: ObjectId) -> List[JiraConnection]:
-    """获取用户的所有Jira连接"""
-    
-    
-    collection = get_jira_collection()
-    connections = []
-    async for doc in collection.find({"user_id": user_id}):
-        # 解密敏感令牌数据
-        if doc.get("access_token"):
-            doc["access_token"] = decrypt_access_token(doc["access_token"])
-        if doc.get("refresh_token"):
-            doc["refresh_token"] = decrypt_refresh_token(doc["refresh_token"])
-        connections.append(JiraConnection(**doc))
-    return connections
 
-async def get_connection_by_id(id: ObjectId, user_id: ObjectId, include_tokens: bool = False) -> Optional[JiraConnection]:
-    """根据ID获取特定的Jira连接"""
-    
-    
+async def get_user_connections(username: str) -> List[JiraConnection]:
+    """获取用户的所有Jira连接"""
     collection = get_jira_collection()
-    doc = await collection.find_one({"_id": id, "user_id": user_id})
-    if doc:
-        if include_tokens:
-            # 解密敏感令牌数据并返回包含令牌的模型
-            if doc.get("access_token"):
-                doc["access_token"] = decrypt_access_token(doc["access_token"])
-            if doc.get("refresh_token"):
-                doc["refresh_token"] = decrypt_refresh_token(doc["refresh_token"])
-            return JiraConnectionWithToken(**doc)
-        else:
-            # 不包含令牌数据，返回标准模型
-            return JiraConnection(**doc)
+    connections = await collection.find({"username": username}).to_list(length=None)
+    return [JiraConnection(**connection) for connection in connections]
+
+
+async def get_connection_by_id(id: ObjectId) -> Optional[JiraConnection]:
+    """根据ID获取Jira连接"""
+    collection = get_jira_collection()
+    connection = await collection.find_one({"_id": id})
+    if connection:
+        return JiraConnection(**connection)
     return None
 
-async def create_connection(connection_data: JiraConnectionCreate, user_id: ObjectId) -> JiraConnection:
+
+async def get_connection_by_id_with_tokens(id: ObjectId) -> Optional[JiraConnectionWithToken]:
+    """根据ID获取Jira连接（包含解密后的令牌）"""    
+    collection = get_jira_collection()
+    connection = await collection.find_one({"_id": ObjectId(id)})
+    if connection:
+        # 解密令牌数据
+        if connection.get("access_token"):
+            connection["access_token"] = decrypt_access_token(connection["access_token"])
+        if connection.get("refresh_token"):
+            connection["refresh_token"] = decrypt_refresh_token(connection["refresh_token"])
+        return JiraConnectionWithToken(**connection)
+    return None
+
+
+async def create_connection(connection_data: JiraConnectionCreate, username: str) -> JiraConnection:
     """创建新的Jira连接"""
-    from app.utils.encryption import encrypt_access_token, encrypt_refresh_token
     
     collection = get_jira_collection()
     connection_dict = connection_data.dict()
@@ -58,41 +58,69 @@ async def create_connection(connection_data: JiraConnectionCreate, user_id: Obje
     if connection_dict.get("refresh_token"):
         connection_dict["refresh_token"] = encrypt_refresh_token(connection_dict["refresh_token"])
     
-    connection_dict["user_id"] = user_id
+    connection_dict["username"] = username
     connection_dict["created_at"] = datetime.datetime.utcnow()
     connection_dict["updated_at"] = datetime.datetime.utcnow()
     result = await collection.insert_one(connection_dict)
     connection_dict["_id"] = result.inserted_id
     return JiraConnection(**connection_dict)
 
-async def update_connection(id: ObjectId, connection_data: JiraConnectionUpdate, user_id: ObjectId) -> Optional[JiraConnection]:
+
+async def update_connection(id: ObjectId, connection_data: JiraConnectionUpdate, username: str) -> Optional[JiraConnection]:
     """更新Jira连接"""
-    from app.utils.encryption import encrypt_access_token, encrypt_refresh_token
     
     collection = get_jira_collection()
-    update_data = connection_data.dict(exclude_unset=True)
+    update_dict = connection_data.dict(exclude_unset=True)
     
-    # 加密敏感令牌数据（如果提供了）
-    if update_data.get("access_token"):
-        update_data["access_token"] = encrypt_access_token(update_data["access_token"])
-    if update_data.get("refresh_token"):
-        update_data["refresh_token"] = encrypt_refresh_token(update_data["refresh_token"])
+    # 加密敏感令牌数据
+    if update_dict.get("access_token"):
+        update_dict["access_token"] = encrypt_access_token(update_dict["access_token"])
+    if update_dict.get("refresh_token"):
+        update_dict["refresh_token"] = encrypt_refresh_token(update_dict["refresh_token"])
     
-    update_data["updated_at"] = datetime.datetime.utcnow()
+    update_dict["updated_at"] = datetime.datetime.utcnow()
+    
     result = await collection.update_one(
-        {"_id": id, "user_id": user_id},
-        {"$set": update_data}
+        {"_id": id, "username": username},
+        {"$set": update_dict}
     )
+    
     if result.modified_count > 0:
-        updated_doc = await collection.find_one({"_id": id})
-        return JiraConnection(**updated_doc)
+        connection = await collection.find_one({"_id": id, "username": username})
+        if connection:
+            return JiraConnection(**connection)
     return None
 
-async def delete_connection(id: ObjectId, user_id: ObjectId) -> bool:
+
+async def delete_connection(id: ObjectId, username: str) -> bool:
     """删除Jira连接"""
     collection = get_jira_collection()
-    result = await collection.delete_one({"_id": id, "user_id": user_id})
+    result = await collection.delete_one({"_id": id, "username": username})
     return result.deleted_count > 0
+
+
+async def check_and_refresh_token(connection: JiraConnection) -> Optional[JiraConnection]:
+    """检查令牌是否过期，如果过期则尝试刷新"""
+    if not connection.token_expires_at:
+        return connection
+    
+    # 检查令牌是否即将过期（5分钟内）
+    now = datetime.datetime.utcnow()
+    expires_at = connection.token_expires_at
+    time_until_expiry = expires_at - now
+    
+    # 如果令牌在5分钟内过期，尝试刷新
+    if time_until_expiry.total_seconds() < 300:
+        try:
+            # 这里应该实现刷新令牌的逻辑
+            # 由于循环导入问题，我们暂时标记为需要手动刷新
+            connection.is_active = False
+            return connection
+        except Exception as e:
+            return connection
+    
+    return connection
+
 
 async def test_connection(connection_data: JiraConnectionTest) -> dict:
     """测试Jira连接"""
@@ -135,40 +163,34 @@ async def get_fields() -> List[dict]:
         {"id": "assignee", "name": "Assignee", "required": False}
     ]
 
-async def create_issue(connection_id: ObjectId, user_id: ObjectId, issue_data: dict) -> dict:
+async def create_issue(connection_id, issue_data: dict) -> dict:
     """在Jira中创建Issue"""
     try:
-        # 获取Jira连接配置
-        connection = await get_connection_by_id(connection_id, user_id)
+        # 获取Jira连接配置（包含解密后的令牌）
+        connection = await get_connection_by_id_with_tokens(connection_id[0])
+        
         if not connection:
             return {"success": False, "message": "Jira连接不存在"}
         
         # 只支持OAuth2认证
-        headers = {"Content-Type": "application/json"}
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
         
         if not connection.access_token:
             return {"success": False, "message": "访问令牌不能为空"}
         headers["Authorization"] = f"Bearer {connection.access_token}"
+
         
-        # 构建API端点URL
-        if connection.is_cloud:
-            api_url = f"{connection.jira_url}/rest/api/3/issue"
-        else:
-            api_url = f"{connection.jira_url}/rest/api/2/issue"
-        
-        # 获取项目密钥，优先使用issue_data中的，否则使用连接中的
-        project_key = issue_data.get("project_key") or connection.project_key
-        if not project_key:
-            return {"success": False, "message": "项目密钥不能为空，请在请求中指定project_key"}
+        api_url = f"https://api.atlassian.com/ex/jira/{connection_id[2]}/rest/api/2/issue"
+
         
         # 构建Jira Issue数据结构
         jira_issue = {
             "fields": {
                 "project": {
-                    "key": project_key
+                    "key": issue_data.get("projectkey")
                 },
-                "summary": issue_data.get("summary", "未命名问题"),
-                "description": issue_data.get("description", ""),
+                "summary": issue_data.get("summary",""),
+                "description": issue_data.get("description",""),
                 "issuetype": {
                     "name": issue_data.get("issuetype", "Bug")
                 },

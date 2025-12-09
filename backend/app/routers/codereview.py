@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 import uuid
 from app.services.reputation import reputation_service
-from app.services.codereview import CodeReviewService
+from app.services.codereview import AICodeReviewDatabaseService
 from app.models.reputation import ReputationUpdatePayload
 from app.models.user import UserResponse
 from app.models.codereview import (
@@ -24,7 +24,7 @@ from app.utils.codereview import (
 from app.utils.database import get_database
 from app.services.codereview import get_ai_code_review_service
 from app.services.aicopilot import aicopilot_service
-
+from app.services.jira import create_issue
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ router = APIRouter()
 async def get_code_review_service(db=Depends(get_database)):
     """获取代码审查服务的依赖函数"""
     collection = db.codereviews
-    return CodeReviewService(collection)
+    return AICodeReviewDatabaseService(collection)
 
 
 # ==============================
@@ -90,7 +90,7 @@ class CodeReviewPayload(BaseModel):
 # 全局任务存储（生产环境应使用Redis或数据库）
 task_store = {}
 
-async def run_async_review_task(task_id: str, payload: CodeReviewPayload, username: str, code_review_service: CodeReviewService):
+async def run_async_review_task(task_id: str, payload: CodeReviewPayload, username: str, code_review_service: AICodeReviewDatabaseService):
     """异步运行代码审查任务"""
     try:
         # 更新任务状态为处理中
@@ -197,7 +197,7 @@ async def submit_review_task(
     payload: CodeReviewPayload,
     background_tasks: BackgroundTasks,
     username: str = Depends(require_api_key),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """提交异步代码审查任务"""
     # 生成唯一任务ID
@@ -261,7 +261,7 @@ async def get_task_result(task_id: str):
 async def review(
     payload: CodeReviewPayload,
     username: str = Depends(require_api_key),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     logger.info(f"Received review request for PR {payload.pr_number} by {username}")
     # 使用payload中的author作为PR作者
@@ -374,7 +374,7 @@ async def update_reputation(payload: ReputationUpdatePayload):
 async def get_review_base_by_id(
     review_id: str,
     username: Optional[str] = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """根据审查记录ID获取基础信息（不包含大字段）"""  
     review = await code_review_service.get_review_by_id(review_id)
@@ -390,7 +390,7 @@ async def get_review_base_by_id(
 async def get_review_detail_by_id(
     review_id: str,
     username: Optional[str] = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """根据审查记录ID获取详细信息（包含所有字段）"""  
     review = await code_review_service.get_review_by_id(review_id)
@@ -406,7 +406,7 @@ async def get_review_detail_by_id(
 async def get_review_by_id(
     review_id: str,
     username: Optional[str] = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """根据审查记录ID获取详细的审查信息（保持向后兼容）"""  
     review = await code_review_service.get_review_by_id(review_id)
@@ -423,7 +423,7 @@ async def get_review_by_id(
 async def get_review_base_by_github_action_id(
     github_action_id: str,
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """根据GitHub Action ID获取审查记录基础信息"""
     review = await code_review_service.get_review_by_github_action_id(github_action_id, username)
@@ -439,7 +439,7 @@ async def get_review_base_by_github_action_id(
 async def get_review_detail_by_github_action_id(
     github_action_id: str,
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """根据GitHub Action ID获取审查记录详细信息"""
     review = await code_review_service.get_review_by_github_action_id(github_action_id, username)
@@ -455,7 +455,7 @@ async def get_review_detail_by_github_action_id(
 async def get_review_by_github_action_id(
     github_action_id: str,
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """根据GitHub Action ID获取审查记录（保持向后兼容）"""
     review = await code_review_service.get_review_by_github_action_id(github_action_id, username)
@@ -471,7 +471,7 @@ async def get_review_by_github_action_id(
 @router.get("/reviews", response_model=SimpleCodeReviewListResponse)
 async def list_reviews(
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service),
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service),
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(10, ge=1, le=100, description="每页数量")
 ):
@@ -492,7 +492,7 @@ async def list_reviews(
 @router.get("/review-latest/base", response_model=CodeReviewBaseResponse)
 async def get_latest_review_base_by_current_user(
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """
     获取当前授权用户的最近一条代码审查记录基础信息
@@ -535,7 +535,7 @@ async def get_latest_review_base_by_current_user(
 @router.get("/review-latest/detail", response_model=CodeReviewDetailResponse)
 async def get_latest_review_detail_by_current_user(
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """
     获取当前授权用户的最近一条代码审查记录详细信息
@@ -578,7 +578,7 @@ async def get_latest_review_detail_by_current_user(
 @router.get("/review-latest", response_model=CodeReviewResponse)
 async def get_latest_review_by_current_user(
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """
     获取当前授权用户的最近一条代码审查记录（保持向后兼容）
@@ -629,7 +629,7 @@ class MarkIssuePayload(BaseModel):
 # ==============================
 class SyncIssueToJiraPayload(BaseModel):
     """同步问题到Jira请求模型"""
-    connection_id: str = Field(..., description="Jira连接ID")
+    connection_id: List[str] = Field(..., description="Jira连接ID")
     jira_fields: Dict[str, Any] = Field(..., description="Jira Issue字段")
 
 @router.post("/reviews/{review_id}/mark-issue")
@@ -637,7 +637,7 @@ async def mark_issue(
     review_id: str,
     payload: MarkIssuePayload,
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """标记或取消标记问题项"""
     # 获取当前审查记录
@@ -680,21 +680,16 @@ async def sync_issue_to_jira(
     issue_id: str,
     payload: SyncIssueToJiraPayload,
     username: str = Depends(require_bearer),
-    code_review_service: CodeReviewService = Depends(get_code_review_service)
+    code_review_service: AICodeReviewDatabaseService = Depends(get_code_review_service)
 ):
     """将标记的问题同步到Jira"""
     try:
         # 导入AI代码审查服务
-        from app.services.codereview import get_ai_code_review_service
-        ai_service = get_ai_code_review_service(code_review_service)
-        
+                
         # 调用服务层的同步功能
-        result = await ai_service.sync_issue_to_jira(
-            review_id=review_id,
-            issue_id=issue_id,
+        result = await create_issue(
             connection_id=payload.connection_id,
-            user_id=username,
-            jira_fields=payload.jira_fields
+            issue_data=payload.jira_fields
         )
         
         if not result["success"]:
@@ -702,8 +697,6 @@ async def sync_issue_to_jira(
         
         return {
             "success": True,
-            "review_id": review_id,
-            "issue_id": issue_id,
             "jira_issue": result["issue"]
         }
         

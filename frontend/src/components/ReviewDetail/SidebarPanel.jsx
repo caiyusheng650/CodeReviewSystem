@@ -32,7 +32,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
 
       // 统计顽固问题（historical_mention为true）
       if (issue.historical_mention === true) {
-        acc['顽固'] = (acc['顽固'] || 0) + 1;
+        acc[t('sidebar.stubborn')] = (acc[t('sidebar.stubborn')] || 0) + 1;
       }
 
       return acc;
@@ -49,11 +49,11 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
 
   // 获取合并建议
   const getMergeSuggestion = () => {
-    const { 严重, 中等 } = issueStats.bySeverity;
-    if (严重 > 0 || 中等 > 0) {
-      return { suggestion: '不建议合并', color: 'error' };
+    const { [t('sidebar.severe')]: severe, [t('sidebar.medium')]: medium } = issueStats.bySeverity;
+    if (severe > 0 || medium > 0) {
+      return { suggestion: t('sidebar.notRecommended'), color: 'error' };
     }
-    return { suggestion: '建议合并', color: 'success' };
+    return { suggestion: t('sidebar.recommended'), color: 'success' };
   };
 
   const mergeSuggestion = getMergeSuggestion();
