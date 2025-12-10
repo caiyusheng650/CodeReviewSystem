@@ -78,9 +78,7 @@ class AICodeReviewDatabaseService:
     
     async def update_review(self, review_id: str, update_data: CodeReviewUpdate) -> bool:
         """更新代码审查记录"""
-        logger.info("开始更新代码审查记录，审查ID: %s", review_id)
-        logger.debug("更新数据字段: %s", list(update_data.dict(exclude_unset=True).keys()))
-        
+
         update_doc = {
             "updated_at": datetime.utcnow()
         }
@@ -105,10 +103,6 @@ class AICodeReviewDatabaseService:
             {"$set": update_doc}
         )
         
-        if result.modified_count > 0:
-            logger.info("成功更新代码审查记录，审查ID: %s，修改文档数: %d", review_id, result.modified_count)
-        else:
-            logger.warning("未找到需要更新的代码审查记录，审查ID: %s", review_id)
             
         return result.modified_count > 0
     

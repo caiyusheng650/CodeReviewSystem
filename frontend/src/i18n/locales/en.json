@@ -11,7 +11,9 @@
     "profile": "Profile",
     "notifications": "Notifications",
     "switchToLight": "Switch to light theme",
-    "switchToDark": "Switch to dark theme"
+    "switchToDark": "Switch to dark theme",
+    "clickToCopy": "Click to copy",
+    "copied": "Copied!"
   },
   "navigation": {
     "home": "Home",

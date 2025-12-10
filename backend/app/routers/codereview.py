@@ -25,6 +25,13 @@ from app.utils.database import get_database
 from app.services.codereview import get_ai_code_review_service
 from app.services.aicopilot import aicopilot_service
 from app.services.jira import create_issue
+
+import pickle
+import os
+import threading
+import platform
+
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -83,19 +90,96 @@ class CodeReviewPayload(BaseModel):
     def comments(self) -> List[Dict[str, Any]]:
         return parse_comments_from_base64(self.comments_b64)
     
+
+
 # ==============================
 # ⭐ 异步任务处理
 # ==============================
 
+# 任务存储文件路径
+TASK_STORE_FILE = "task_store.pkl"
+# 线程锁，确保进程内的文件操作原子性
+task_store_lock = threading.Lock()
+
 # 全局任务存储（生产环境应使用Redis或数据库）
 task_store = {}
+
+# 根据操作系统选择文件锁定方式
+if platform.system() == "Windows":
+    import msvcrt
+    
+    def lock_file(f, exclusive=True):
+        """Windows平台的文件锁定"""
+        if exclusive:
+            # 锁定整个文件用于写入（独占锁）
+            msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, os.path.getsize(f.name) or 1)
+        else:
+            # 锁定整个文件用于读取（共享锁）
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, os.path.getsize(f.name) or 1)
+    
+    def unlock_file(f):
+        """Windows平台的文件解锁"""
+        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, os.path.getsize(f.name) or 1)
+else:
+    import fcntl
+    
+    def lock_file(f, exclusive=True):
+        """Unix/Linux平台的文件锁定"""
+        if exclusive:
+            # 获取独占锁（写入时使用）
+            fcntl.flock(f, fcntl.LOCK_EX)
+        else:
+            # 获取共享锁（读取时使用）
+            fcntl.flock(f, fcntl.LOCK_SH)
+    
+    def unlock_file(f):
+        """Unix/Linux平台的文件解锁"""
+        fcntl.flock(f, fcntl.LOCK_UN)
+
+def load_task_store():
+    """从文件加载任务存储"""
+    global task_store
+    if os.path.exists(TASK_STORE_FILE):
+        try:
+            with open(TASK_STORE_FILE, "rb") as f:
+                # 获取共享锁（读取时使用）
+                lock_file(f, exclusive=False)
+                try:
+                    task_store = pickle.load(f)
+                    print(task_store)
+                finally:
+                    # 释放锁
+                    unlock_file(f)
+        except Exception as e:
+            logger.error(f"Failed to load task store from file: {str(e)}")
+            task_store = {}
+
+def save_task_store():
+    """保存任务存储到文件"""
+    global task_store
+    try:
+        with open(TASK_STORE_FILE, "wb") as f:
+            # 获取独占锁（写入时使用）
+            lock_file(f, exclusive=True)
+            try:
+                pickle.dump(task_store, f)
+            finally:
+                # 释放锁
+                unlock_file(f)
+    except Exception as e:
+        logger.error(f"Failed to save task store to file: {str(e)}")
+
+# 程序启动时加载任务存储
+load_task_store()
 
 async def run_async_review_task(task_id: str, payload: CodeReviewPayload, username: str, code_review_service: AICodeReviewDatabaseService):
     """异步运行代码审查任务"""
     try:
         # 更新任务状态为处理中
-        task_store[task_id]["status"] = "processing"
-        task_store[task_id]["updated_at"] = datetime.utcnow()
+        with task_store_lock:
+            task_store[task_id]["status"] = "processing"
+            task_store[task_id]["updated_at"] = datetime.utcnow()
+            save_task_store()
         
         # 使用payload中的author作为PR作者
         author = payload.author or "unknown"
@@ -178,15 +262,19 @@ async def run_async_review_task(task_id: str, payload: CodeReviewPayload, userna
         await aicopilot_service.add_chat_message(review_id, ai_chat_message,'system')
 
         # 更新任务结果为完成
-        task_store[task_id]["status"] = "completed"
-        task_store[task_id]["result"] = {"issues": issues}
-        task_store[task_id]["updated_at"] = datetime.utcnow()
+        with task_store_lock:
+            task_store[task_id]["status"] = "completed"
+            task_store[task_id]["result"] = {"issues": issues}
+            task_store[task_id]["updated_at"] = datetime.utcnow()
+            save_task_store()
         
     except Exception as e:
         logger.error(f"Async task {task_id} failed: {str(e)}")
-        task_store[task_id]["status"] = "failed"
-        task_store[task_id]["error"] = str(e)
-        task_store[task_id]["updated_at"] = datetime.utcnow()
+        with task_store_lock:
+            task_store[task_id]["status"] = "failed"
+            task_store[task_id]["error"] = str(e)
+            task_store[task_id]["updated_at"] = datetime.utcnow()
+            save_task_store()
 
 # ==============================
 # ⭐ 异步任务API端点
@@ -204,12 +292,14 @@ async def submit_review_task(
     task_id = str(uuid.uuid4())
     
     # 初始化任务状态
-    task_store[task_id] = {
-        "status": "pending",
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-        "username": username
-    }
+    with task_store_lock:
+        task_store[task_id] = {
+            "status": "pending",
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+            "username": username
+        }
+        save_task_store()
     
     # 在后台启动异步任务
     background_tasks.add_task(
@@ -226,10 +316,13 @@ async def submit_review_task(
 @router.get("/status/{task_id}", response_model=TaskStatusResponse)
 async def get_task_status(task_id: str):
     """查询异步任务状态"""
-    if task_id not in task_store:
-        raise HTTPException(status_code=404, detail="任务未找到")
-    
-    task = task_store[task_id]
+    with task_store_lock:
+        # 先加载最新的任务存储
+        load_task_store()
+        if task_id not in task_store:
+            raise HTTPException(status_code=404, detail="任务未找到")
+        
+        task = task_store[task_id]
     
     return TaskStatusResponse(
         task_id=task_id,
@@ -243,10 +336,13 @@ async def get_task_status(task_id: str):
 @router.get("/result/{task_id}")
 async def get_task_result(task_id: str):
     """获取异步任务结果"""
-    if task_id not in task_store:
-        raise HTTPException(status_code=404, detail="任务未找到")
-    
-    task = task_store[task_id]
+    with task_store_lock:
+        # 先加载最新的任务存储
+        load_task_store()
+        if task_id not in task_store:
+            raise HTTPException(status_code=404, detail="任务未找到")
+        
+        task = task_store[task_id]
     
     if task["status"] != "completed":
         raise HTTPException(status_code=400, detail="任务尚未完成")

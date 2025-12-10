@@ -3,13 +3,11 @@ name: wanan codereview
 on:
   pull_request_target:
     types: [opened, synchronize, reopened]
-  # 允许从PR分支直接触发，即使目标分支没有此配置
   workflow_dispatch:
 
 permissions:
   pull-requests: write
   contents: read
-  # 添加必要的权限以允许从PR分支运行
   actions: read
 
 jobs:
@@ -34,10 +32,8 @@ jobs:
           echo "RUN_ID=${{ github.run_id }}" >> $GITHUB_ENV
           echo "RUN_ATTEMPT=${{ github.run_attempt }}" >> $GITHUB_ENV
           echo "RUN_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
-
-          # Base64 encoding of title/body
           printf "%s" "${{ github.event.pull_request.title }}" | base64 -w0 > title.b64
-          printf "%s" "${{ github.event.pull_request.body }}" | base64 -w0 > body.b64
+          printf "%s" "" | base64 -w0 > body.b64
 
       # 3) Capture README Content
       - name: Capture README Content
