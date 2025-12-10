@@ -464,7 +464,7 @@ const ReviewDetail = ({ isDarkMode }) => {
       {/* 页面标题+操作按钮 */}
       <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3,maxWidth: '1200px' }}>
         <Typography variant="h4" component="h1" gutterBottom>
-          PR #{review.pr_number} {review.pr_title} {t('reviewDetail.intelligentCodeReview')} {t('reviewDetail.reviewResults')}
+          PR #{review.pr_number} {review.pr_title.slice(0, 7)}... {t('reviewDetail.intelligentCodeReview')} {t('reviewDetail.reviewResults')}
         </Typography>
         <Box display="flex" gap={2}>
           <Tooltip title={t('reviewDetail.exportReport')}>
