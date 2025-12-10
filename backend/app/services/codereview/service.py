@@ -11,7 +11,7 @@ import re
 from .config import logger, setup_logger, silence_autogen_console
 from .models import AgentBuffer, ReviewResult, ReviewRequest
 from .utils import JSONParser, ContentAnalyzer, ResultFormatter
-from .database_service import CodeReviewService
+from .database import AICodeReviewDatabaseService
 from app.models.codereview import AgentOutput, CodeReviewUpdate
 from autogen_agentchat.ui import Console
 from bson import ObjectId
@@ -25,19 +25,17 @@ from app.services.jira import create_issue
 
 class AICodeReviewService:
 
-    def __init__(self, code_review_service: CodeReviewService, flow: Optional[GraphFlow] = None, silence_agent_console: bool = True):
+    def __init__(self, code_review_service: AICodeReviewDatabaseService, flow: Optional[GraphFlow] = None, silence_agent_console: bool = True):
         # 初始化配置
         setup_logger()
         if silence_agent_console:
             silence_autogen_console()
         
         # 服务依赖
-        self.code_review_service:CodeReviewService = code_review_service
+        self.code_review_service:AICodeReviewDatabaseService = code_review_service
         self.flow = flow
         self.silence_agent_console = silence_agent_console
         
-        logger.info("AICodeReviewService initialized (silence_agent_console=%s)", silence_agent_console)
-
     # ---------------------------
     # 主入口方法
     # ---------------------------
@@ -207,95 +205,4 @@ class AICodeReviewService:
             update_data3 = CodeReviewUpdate(status="failed")
             success = await self.code_review_service.update_review(review_id, update_data3)
             return False
-    
-    async def sync_issue_to_jira(self, review_id: str, issue_id: str, connection_id: str, user_id: str, jira_fields: dict) -> dict:
-        """将标记的问题同步到Jira"""
-        try:
-            # 获取审查详情
-            review = await self.code_review_service.get_review_by_id(review_id)
-            if not review:
-                return {"success": False, "message": "审查记录不存在"}
-            
-            # 查找对应的标记问题
-            final_result = review.get("final_result", {})
-            issues = final_result.get("issues", [])
-            
-            target_issue = None
-            for issue in issues:
-                if issue.get("id") == issue_id:
-                    target_issue = issue
-                    break
-            
-            if not target_issue:
-                return {"success": False, "message": "问题不存在"}
-            
-            # 构建Jira Issue数据
-            issue_data = {
-                "summary": jira_fields.get("summary", f"代码审查问题: {target_issue.get('description', '未命名问题')}"),
-                "description": self._format_jira_description(target_issue, review),
-                "issuetype": jira_fields.get("issuetype", "Bug"),
-                "priority": jira_fields.get("priority", "Medium")
-            }
-            
-            # 添加可选字段
-            if jira_fields.get("assignee"):
-                issue_data["assignee"] = jira_fields["assignee"]
-            
-            # 调用Jira服务创建Issue
-            result = await create_issue(
-                ObjectId(connection_id), 
-                ObjectId(user_id), 
-                issue_data
-            )
-            
-            if result["success"]:
-                # 更新问题状态，添加Jira Issue信息
-                updated_marked_issues = review.get("marked_issues", [])
-                for idx, marked_issue in enumerate(updated_marked_issues):
-                    if marked_issue.get("issue_id") == issue_id:
-                        updated_marked_issues[idx]["jira_issue"] = {
-                            "id": result["issue"]["id"],
-                            "key": result["issue"]["key"],
-                            "self": result["issue"]["self"]
-                        }
-                        updated_marked_issues[idx]["status"] = "jira_synced"
-                        break
-                
-                # 更新数据库
-                await self.code_review_service.update_review(
-                    review_id, 
-                    CodeReviewUpdate(marked_issues=updated_marked_issues)
-                )
-                
-            return result
-            
-        except Exception as e:
-            logger.exception("同步问题到Jira失败: %s", e)
-            return {"success": False, "message": f"同步失败: {str(e)}"}
-    
-    def _format_jira_description(self, issue: dict, review: dict) -> str:
-        """格式化Jira Issue描述"""
-        description = f"# 代码审查问题\n\n"
-        description += f"## 基本信息\n"
-        description += f"- **审查ID**: {review.get('review_id', '')}\n"
-        description += f"- **文件**: {issue.get('file', '')}\n"
-        description += f"- **行号**: {issue.get('line', '')}\n"
-        description += f"- **类型**: {issue.get('type', '')}\n"
-        description += f"- **严重性**: {issue.get('severity', '')}\n\n"
-        
-        description += f"## 问题描述\n"
-        description += f"{issue.get('description', '')}\n\n"
-        
-        description += f"## 建议修复\n"
-        description += f"{issue.get('suggestion', '')}\n\n"
-        
-        if issue.get('problem_code'):
-            description += f"## 问题代码\n"
-            description += f"```\n{issue.get('problem_code')}\n```\n\n"
-        
-        if issue.get('optimized_code'):
-            description += f"## 优化代码\n"
-            description += f"```\n{issue.get('optimized_code')}\n```\n"
-        
-        return description
     

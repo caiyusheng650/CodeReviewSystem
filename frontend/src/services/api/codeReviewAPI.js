@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 
-export const codeReviewAPI = {
+const codeReviewAPI = {
   // Get review results - 基础信息（不包含大字段）
   getReviewBase: async (reviewId) => {
     const response = await apiClient.get(`/api/codereview/reviews/${reviewId}/base`);
@@ -79,3 +79,5 @@ export const codeReviewAPI = {
     return response.data;
   }
 };
+
+export default codeReviewAPI;

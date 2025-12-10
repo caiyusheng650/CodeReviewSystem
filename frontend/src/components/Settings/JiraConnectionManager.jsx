@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Paper,
   Table,
@@ -12,7 +12,8 @@ import {
   Typography,
   CircularProgress,
   Alert,
-  Tooltip
+  Tooltip,
+  TablePagination
 } from '@mui/material';
 import {
   Link as LinkIcon,
@@ -35,6 +36,8 @@ const JiraConnectionManager = () => {
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Fetch Jira connections when component mounts
   useEffect(() => {
@@ -47,7 +50,10 @@ const JiraConnectionManager = () => {
       setLoading(true);
       const connections = await jiraAPI.getConnections();
       // Ensure connections is always an array
-      setJiraConnections(Array.isArray(connections) ? connections : []);
+      const connectionsArray = Array.isArray(connections) ? connections : [];
+      setJiraConnections(connectionsArray);
+      // 重置到第一页当数据更新时
+      setPage(0);
     } catch (error) {
       console.error('Failed to fetch Jira connections:', error);
       showSnackbar(t('settings.jiraFetchFailed'), 'error');
@@ -58,22 +64,22 @@ const JiraConnectionManager = () => {
     }
   };
 
-
-
-  const handleTestJiraConnection = async (connection) => {
-    try {
-      setTestingConnection(true);
-      setConnectionTestResult(null);
-      const result = await jiraAPI.testConnection(connection);
-      setConnectionTestResult({ success: true, message: result.message });
-      showSnackbar(t('settings.jiraTestSuccess'), 'success');
-    } catch (error) {
-      setConnectionTestResult({ success: false, message: error.response?.data?.message || t('settings.jiraTestFailed') });
-      showSnackbar(t('settings.jiraTestFailed'), 'error');
-    } finally {
-      setTestingConnection(false);
-    }
+  // 处理页面切换
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
   };
+
+  // 处理每页显示数量变化
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // 重置到第一页
+  };
+
+  // 分页后的数据
+  const paginatedJiraConnections = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return jiraConnections.slice(startIndex, startIndex + rowsPerPage);
+  }, [jiraConnections, page, rowsPerPage]);
 
   const handleDeleteJiraConnection = async (connectionId) => {
     try {
@@ -93,10 +99,10 @@ const JiraConnectionManager = () => {
       setLoading(true);
       // Construct the authorization URL according to Atlassian OAuth 2.0 (3LO) documentation
       const state = `jira_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
       // Define the scopes needed for Jira API access
       const scopes = ['read:jira-work', 'write:jira-work', 'read:jira-user'];
-      
+
       // Construct the authorization URL
       const authUrl = new URL('https://auth.atlassian.com/authorize');
       authUrl.searchParams.append('audience', 'api.atlassian.com');
@@ -106,7 +112,7 @@ const JiraConnectionManager = () => {
       authUrl.searchParams.append('state', state);
       authUrl.searchParams.append('response_type', 'code');
       authUrl.searchParams.append('prompt', 'consent');
-      
+
       // Redirect the user to the authorization URL
       window.location.href = authUrl.toString();
     } catch (error) {
@@ -153,7 +159,7 @@ const JiraConnectionManager = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {jiraConnections.map((connection) => (
+              {paginatedJiraConnections.map((connection) => (
                 <TableRow
                   key={connection.id}
                   sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
@@ -162,21 +168,32 @@ const JiraConnectionManager = () => {
                     {connection.name}
                   </TableCell>
                   <TableCell>
-                    <Box sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {connection.jira_url}
+                    <Box sx={{ maxWidth: 300 }}>
+                      <Box>
+                        {connection.accessible_resources.map((resource, index) => (
+                          <Box key={resource.id} sx={{ mb: 0.5 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                fontSize: '0.875rem'
+                              }}
+                              title={resource.url}
+                            >
+                              {resource.url}
+                            </Typography>
+
+                          </Box>
+                        ))}
+                      </Box>
                     </Box>
                   </TableCell>
                   <TableCell>{formatSmartTime(connection.created_at, t)}</TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleTestJiraConnection(connection)}
-                        disabled={loading || testingConnection}
-                      >
-                        {testingConnection ? t('settings.jiraTesting') : t('settings.jiraTestConnection')}
-                      </Button>
+
                       <Button
                         size="small"
                         variant="outlined"
@@ -186,7 +203,7 @@ const JiraConnectionManager = () => {
                       >
                         {t('settings.delete')}
                       </Button>
-                      
+
                     </Box>
                   </TableCell>
                 </TableRow>
@@ -203,6 +220,35 @@ const JiraConnectionManager = () => {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* 分页控件 */}
+        <TablePagination
+          component="div"
+          count={jiraConnections.length}
+          page={page}
+          onPageChange={handleChangePage}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          rowsPerPageOptions={[10, 25, 50, 100]} // 可选择的每页显示数量
+          labelRowsPerPage={t('common.rowsPerPage')}
+          labelDisplayedRows={({ from, to, count }) => {
+            return `${from}-${to} ${t('common.of')} ${count !== -1 ? count : `>${to}`}`;
+          }}
+        />
+
+        {/* 统计信息 */}
+        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            {t('common.displayedRecords', {
+              from: jiraConnections.length > 0 ? (page * rowsPerPage + 1) : 0,
+              to: Math.min((page + 1) * rowsPerPage, jiraConnections.length),
+              total: jiraConnections.length
+            })}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('common.totalRecords', { count: jiraConnections.length })}
+          </Typography>
+        </Box>
       </Paper>
 
     </>

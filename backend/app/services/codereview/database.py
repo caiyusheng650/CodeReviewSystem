@@ -1,8 +1,3 @@
-"""
-数据库服务模块
-处理代码审查记录的CRUD操作
-"""
-
 import logging
 from motor.motor_asyncio import AsyncIOMotorCollection
 from typing import List, Optional, Dict, Any
@@ -18,8 +13,8 @@ from app.models.codereview import (
 logger = logging.getLogger(__name__)
 
 
-class CodeReviewService:
-    """代码审查服务类"""
+class AICodeReviewDatabaseService:
+    """代码审查数据库服务类 - 专门处理代码审查相关的数据库操作"""
     
     def __init__(self, collection):
         self.collection = collection
@@ -83,9 +78,7 @@ class CodeReviewService:
     
     async def update_review(self, review_id: str, update_data: CodeReviewUpdate) -> bool:
         """更新代码审查记录"""
-        logger.info("开始更新代码审查记录，审查ID: %s", review_id)
-        logger.debug("更新数据字段: %s", list(update_data.dict(exclude_unset=True).keys()))
-        
+
         update_doc = {
             "updated_at": datetime.utcnow()
         }
@@ -110,10 +103,6 @@ class CodeReviewService:
             {"$set": update_doc}
         )
         
-        if result.modified_count > 0:
-            logger.info("成功更新代码审查记录，审查ID: %s，修改文档数: %d", review_id, result.modified_count)
-        else:
-            logger.warning("未找到需要更新的代码审查记录，审查ID: %s", review_id)
             
         return result.modified_count > 0
     

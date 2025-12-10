@@ -41,7 +41,7 @@ import {
 import { alpha, styled } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
-import { codeReviewAPI } from '../../services/api/codeReviewAPI'
+import codeReviewAPI from '../../services/api/codeReviewAPI'
 import { formatSmartTime } from '../../utils/dateUtils';
 import { useTranslation } from 'react-i18next'
 

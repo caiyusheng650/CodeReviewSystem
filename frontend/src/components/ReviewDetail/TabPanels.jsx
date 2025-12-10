@@ -17,7 +17,10 @@ const TabPanels = ({
   handleMarkIssue,
   chatHistory,
   chatHistoryLoading,
-  reviewId
+  reviewId,
+  prNumber,
+  prTitle,
+  repository
 }) => {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -40,12 +43,12 @@ const TabPanels = ({
 
           const getDisplayName = (key) => {
             switch (key) {
-              case '已标记': return t('tabPanels.markedIssues');
-              case '未标记': return t('tabPanels.unmarkedIssues');
-              case '顽固问题': return t('tabPanels.persistentIssues');
-              case '普通问题': return t('tabPanels.normalIssues');
-              default: return key;
-            }
+    case t('utils.marked'): return t('tabPanels.markedIssues');
+    case t('utils.unmarked'): return t('tabPanels.unmarkedIssues');
+    case t('utils.persistentIssue'): return t('tabPanels.persistentIssues');
+    case t('utils.normalIssue'): return t('tabPanels.normalIssues');
+    default: return key;
+  }
           };
 
           return (
@@ -76,6 +79,9 @@ const TabPanels = ({
                   markedIssues={markedIssues}
                   handleMarkIssue={handleMarkIssue}
                   SeverityMap={SeverityMap}
+                  prNumber={prNumber}
+                  prTitle={prTitle}
+                  repository={repository}
                 />
               ))}
                 </Box>

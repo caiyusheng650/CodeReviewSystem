@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Typography,
@@ -20,14 +20,23 @@ import {
   TableRow,
   Container,
   Breadcrumbs,
-  Link
+  Link,
+  Tooltip,
+  IconButton
 } from '@mui/material'
-import { ExpandMore, Code, Download, GitHub, Create } from '@mui/icons-material'
+import { ExpandMore, Code, Download, GitHub, Create, ContentCopy, Check } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 
 const Documentation = ({ isDarkMode }) => {
   const { t } = useTranslation()
   const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  const [copied, setCopied] = useState(null)
+  
+  const copyToClipboard = (text, type) => {
+    navigator.clipboard.writeText(text)
+    setCopied(type)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   const installationSteps = [
     {
@@ -248,12 +257,19 @@ const Documentation = ({ isDarkMode }) => {
               {githubSecrets.map((secret, index) => (
                 <TableRow key={index}>
                   <TableCell>
-                    <Chip 
-                      label={secret.name} 
-                      color={secret.required ? 'primary' : 'default'} 
-                      variant="outlined"
-                      size="small"
-                    />
+                    <Tooltip title={copied === `name-${secret.name}` ? t('app.copied') : t('app.clickToCopy')} placement="top">
+                      <Box sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => copyToClipboard(secret.name, `name-${secret.name}`)}>
+                        <Chip 
+                          label={secret.name} 
+                          color={secret.required ? 'primary' : 'default'} 
+                          variant="outlined"
+                          size="small"
+                        />
+                        <IconButton size="small" sx={{ ml: 0.5 }}>
+                          {copied === `name-${secret.name}` ? <Check fontSize="small" color="success" /> : <ContentCopy fontSize="small" />}
+                        </IconButton>
+                      </Box>
+                    </Tooltip>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
@@ -262,9 +278,16 @@ const Documentation = ({ isDarkMode }) => {
                   </TableCell>
                   <TableCell>
                     {secret.value && (
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                        {secret.value}
-                      </Typography>
+                      <Tooltip title={copied === `value-${secret.name}` ? t('app.copied') : t('app.clickToCopy')} placement="top">
+                        <Box sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => copyToClipboard(secret.value, `value-${secret.name}`)}>
+                          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                            {secret.value}
+                          </Typography>
+                          <IconButton size="small" sx={{ ml: 0.5 }}>
+                            {copied === `value-${secret.name}` ? <Check fontSize="small" color="success" /> : <ContentCopy fontSize="small" />}
+                          </IconButton>
+                        </Box>
+                      </Tooltip>
                     )}
                   </TableCell>
                   <TableCell>

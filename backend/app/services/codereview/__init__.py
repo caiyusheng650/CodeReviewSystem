@@ -10,7 +10,7 @@ from .factory import get_ai_code_review_service, create_ai_code_review_service
 from .flow_builder import create_default_flow
 from .utils import JSONParser, ContentAnalyzer, ResultFormatter
 from .config import logger, setup_logger, silence_autogen_console, get_system_prompt
-from .database_service import CodeReviewService
+from .database import AICodeReviewDatabaseService
 
 __all__ = [
     # 主服务类
@@ -22,7 +22,7 @@ __all__ = [
     "ReviewRequest",
     
     # 数据库服务
-    "CodeReviewService",
+    "AICodeReviewDatabaseService",
     
     # 工厂函数
     "get_ai_code_review_service",
@@ -47,4 +47,3 @@ __all__ = [
 # 版本信息
 __version__ = "1.0.0"
 __author__ = "AI Code Review System"
-__description__ = "模块化的AI代码审查服务"

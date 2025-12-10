@@ -73,16 +73,36 @@ const jiraAPI = {
     return response.data;
   },
 
-  // 交换授权码为访问令牌 (OAuth 2.0 3LO)
-  exchangeToken: async (code, clientId, clientSecret, redirectUri) => {
-    const response = await apiClient.post('/api/jira/oauth/exchange-token', {
+  // 交换授权码获取访问令牌
+  exchangeToken(code, redirectUri) {
+    return apiClient.post('/api/jira/oauth/exchange-token', {
       code: code,
-      client_id: clientId,
-      client_secret: clientSecret,
       redirect_uri: redirectUri
     });
+  },
+
+  // 刷新OAuth令牌
+  refreshToken: async (connectionId) => {
+    const response = await apiClient.post('/api/jira/oauth/refresh-token', { connection_id: connectionId });
     return response.data;
   },
+
+  // 获取可访问的Jira资源
+  getAccessibleResources: async (connectionId) => {
+    const response = await apiClient.get(`/api/jira/accessible-resources/${connectionId}`);
+    return response.data;
+  },
+
+  // 切换Jira资源
+  switchResource: async (connectionId, resourceId) => {
+    const response = await apiClient.post(`/api/jira/switch-resource/${connectionId}`, { resource_id: resourceId });
+    return response.data;
+  },
+  // 获取Jira连接状态
+  getConnectionStatus: async (connectionId) => {
+    const response = await apiClient.get(`/api/jira/connection-status/${connectionId}`);
+    return response.data;
+  }
 };
 
 export default jiraAPI;

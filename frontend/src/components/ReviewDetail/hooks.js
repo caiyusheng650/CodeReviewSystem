@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { codeReviewAPI } from '../../services/api/codeReviewAPI';
+import codeReviewAPI from '../../services/api/codeReviewAPI';
 import { groupIssues } from './utils';
 
 export const useHomeData = (authUser, propUser, t = null) => {
@@ -32,7 +32,7 @@ export const useHomeData = (authUser, propUser, t = null) => {
         if (err.response?.status === 404) {
           setLatestReview(null);
         } else {
-          setError('获取最近审查记录失败：' + (err.response?.data?.message || err.message));
+          setError(t('error.fetchReviewFailed') + (err.response?.data?.message || err.message));
         }
       } finally {
         setLoading(false);
@@ -64,7 +64,7 @@ export const useHomeData = (authUser, propUser, t = null) => {
         const grouped = groupIssues(resultArr, latestReview.marked_issues || [], t);
         setGroupedData(grouped);
       } catch (err) {
-        setError('解析审查结果失败：' + err.message);
+        setError(t('error.parseResultFailed') + err.message);
       }
     }
   }, [latestReview]);
@@ -92,7 +92,7 @@ export const useHomeData = (authUser, propUser, t = null) => {
       
     } catch (err) {
       console.error('标记问题失败：', err);
-      setError('标记问题失败：' + (err.response?.data?.message || err.message));
+      setError(t('error.markIssueFailed') + (err.response?.data?.message || err.message));
     }
   };
 
