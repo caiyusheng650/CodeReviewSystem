@@ -272,6 +272,7 @@
     "hidePreview": "隐藏预览"
   },
   "common": {
+    "markIssue": "标记问题",
     "syncToJira": "同步到Jira",
     "sync": "同步",
     "loading": "加载中...",

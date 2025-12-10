@@ -274,6 +274,7 @@
     "hidePreview": "Hide Preview"
   },
   "common": {
+    "markIssue": "Mark Issue",
     "syncToJira": "Sync to Jira",
     "sync": "Sync",
     "loading": "Loading...",
