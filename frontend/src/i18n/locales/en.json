@@ -42,7 +42,10 @@
     "fillAllFields": "Please fill in all required fields",
     "passwordMismatch": "Password and confirmation password do not match",
     "passwordMinLength": "Password must be at least 6 characters long",
-    "registerFailed": "Registration failed, please try again later"
+    "registerFailed": "Registration failed, please try again later",
+    "or": "or",
+    "ssoLogin": "SSO Login",
+    "ssoLoginInDevelopment": "SSO login is under development"
   },
   "language": {
     "switch": "Switch Language",

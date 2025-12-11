@@ -21,6 +21,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useSnackbar } from '../contexts/SnackbarContext';
 
 
 const Login = ({ onThemeToggle, isDarkMode, onLanguageToggle }) => {
@@ -34,6 +35,7 @@ const Login = ({ onThemeToggle, isDarkMode, onLanguageToggle }) => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const { t, i18n } = useTranslation();
+  const { showSnackbar } = useSnackbar();
 
   // 语言切换处理函数
   const handleLanguageToggle = () => {
@@ -172,9 +174,25 @@ const Login = ({ onThemeToggle, isDarkMode, onLanguageToggle }) => {
                 </Link>
               </Grid>
             </Grid>
+            
+            {/* SSO登录分割线和按钮 */}
+            <Box sx={{ mt: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Box sx={{ flexGrow: 1, height: 1, bgcolor: 'divider' }} />
+                <Typography variant="body2" sx={{ mx: 2, color: 'text.secondary' }}>
+                  {t('auth.or')}
+                </Typography>
+                <Box sx={{ flexGrow: 1, height: 1, bgcolor: 'divider' }} />
+              </Box>
+              <Button
+                fullWidth
+                variant="outlined"
+                onClick={() => showSnackbar(t('auth.ssoLoginInDevelopment'), 'info')}
+              >
+                {t('auth.ssoLogin')}
+              </Button>
+            </Box>
           </Box>
-          
-          
         </Paper>
       </Box>
     </Container>
