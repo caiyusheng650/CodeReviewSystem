@@ -9,7 +9,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
 [![React](https://img.shields.io/badge/React-19%2B-blue?style=for-the-badge&logo=react)](https://reactjs.org)
 
-**🚀 在线演示**: [https://code-review-system-orpin.vercel.app/](https://code-review-system-orpin.vercel.app/)
+**🚀 在线演示**: [https://code-review-system-team.vercel.app/](https://code-review-system-team.vercel.app/)
 
 **📊 测评结果**: [AI代码审查基准测评](/docs/ai_code_review_benchmarks/README.md)
 
