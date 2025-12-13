@@ -9,9 +9,11 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
 [![React](https://img.shields.io/badge/React-19%2B-blue?style=for-the-badge&logo=react)](https://reactjs.org)
 
-**🚀 在线演示**: [https://code-review-system-orpin.vercel.app/](https://code-review-system-orpin.vercel.app/)
+**🚀 在线演示**: [https://code-review-system-team.vercel.app/](https://code-review-system-team.vercel.app/)
 
 **📊 测评结果**: [AI代码审查基准测评](/docs/ai_code_review_benchmarks/README.md)
+
+**🎬 项目演示**: [Bilibili视频教程](https://www.bilibili.com/video/BV1Q4mGBuEgM)
 
 > 一个基于AI的智能代码审查系统，通过GitHub Actions集成，为开发团队提供自动化的代码质量分析和审查服务
 
@@ -24,18 +26,31 @@
 ### 🎯 智能审查能力
 | 功能模块 | 描述 | 优势 |
 |---------|------|------|
-| **🤖 AI驱动审查** | 多Agent架构深度代码分析 | 精准识别代码问题 |
-| **🔗 GitHub集成** | 自动PR审查流程 | 无缝集成开发工作流 |
-| **📊 7维质量评估** | 全方位代码质量分析 | 全面保障代码质量 |
-| **🏆 信誉系统** | 开发者表现评估 | 激励代码质量提升 |
-| **💬 实时助手** | 智能代码建议 | 即时问题解答 |
+| **🤖 AutoGen 多智能体小组讨论系统** | 基于多Agent架构的深度代码分析机制 | 精准识别各类代码问题 |
+| **� 行号计算器智能体工具** | 精确的代码行号定位，解决智能体行号识别难题 | 辅助智能体实现精准代码审查 |
+| **📊 7维质量评估** | 全方位多维度代码质量分析体系 | 全面保障代码质量与可靠性 |
+| **🏆 信誉系统** | 结合开发者历史表现与PR讨论评论的综合评估 | 有效激励代码质量持续提升 |
+| **💬 实时助手** | 基于AI的智能代码建议与问题解答 | 提供即时、精准的开发支持 |
 
-### 🛠️ 技术特色
-- **⚡ 现代化技术栈**: FastAPI + React 19 + MongoDB
-- **🌐 多语言支持**: 完整中英文国际化
-- **🌓 黑暗模式**: 深色/浅色主题
-- **📱 响应式设计**: Material-UI现代化界面
-- **🔌 RESTful API**: 标准化API设计
+### 🎨 前端特色
+- **⚡ 现代化技术栈**: React 19 + Material-UI + Vite
+- **🌐 完整国际化**: 支持中英文无缝切换
+- **🌓 主题切换**: 深色/浅色主题自适应系统设置
+- **📱 响应式设计**: 适配各类设备的现代化界面
+- **🌟 高效交互**: 流畅的用户体验与动画效果
+
+### ⚙️ 后端特色
+- **🎯 精准数据模型**: 为每个API端口设计专属模型，确保数据返回无冗余
+- **🚀 高效并发设计**: 精心优化的异步处理机制，提升系统性能与响应速度
+- **🔒 安全认证**: 基于JWT的身份认证与权限控制
+- **📊 智能分析**: 集成AutoGen AI多智能体系统
+- **🔌 RESTful API**: 标准化接口设计，便于集成与扩展
+
+### 👥 团队版专属功能
+- **📋 Jira项目管理集成**: 根据AI审查结果快速创建和关联issue
+- **🔐 SSO单点登录**: 企业级统一身份认证（开发中）
+- **👤 团队成员管理**: 支持团队邀请、角色分配和权限控制（管理员/审查者/开发者）（开发中）
+
 
 ## 🏗️ 系统架构
 

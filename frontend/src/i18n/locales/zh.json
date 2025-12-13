@@ -42,7 +42,10 @@
     "fillAllFields": "请填写所有必填字段",
     "passwordMismatch": "密码和确认密码不匹配",
     "passwordMinLength": "密码长度至少为6位",
-    "registerFailed": "注册失败，请稍后再试"
+    "registerFailed": "注册失败，请稍后再试",
+    "or": "或",
+    "ssoLogin": "SSO登录",
+    "ssoLoginInDevelopment": "SSO登录功能正在开发中"
   },
   "language": {
     "switch": "切换语言",

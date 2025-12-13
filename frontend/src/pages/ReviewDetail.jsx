@@ -292,23 +292,16 @@ const ReviewDetail = ({ isDarkMode }) => {
 
   // 统计问题数量
   const getIssueCount = (parsedFinalResult) => {
-    return {
+    const ret = {
       严重: parsedFinalResult.filter(item => item.severity === '严重').length,
       中等: parsedFinalResult.filter(item => item.severity === '中等').length,
       轻微: parsedFinalResult.filter(item => item.severity === '轻微').length,
       表扬: parsedFinalResult.filter(item => item.severity === '表扬').length,
-      历史未修复: parsedFinalResult.filter(item => item.historical_mention).length
+      历史: parsedFinalResult.filter(item => item.historical_mention).length
     };
+    return ret;
   };
 
-  // 获取合并建议
-  const getMergeSuggestion = (issueCount) => {
-    const { 严重, 中等 } = issueCount;
-    if (严重 > 0 || 中等 > 0) {
-      return { suggestion: t('reviewDetail.notRecommendedToMerge'), color: 'error' };
-    }
-    return { suggestion: t('reviewDetail.recommendedToMerge'), color: 'success' };
-  };
 
   // 分组问题数据
   const groupIssues = (issues) => {
@@ -491,6 +484,7 @@ const ReviewDetail = ({ isDarkMode }) => {
           <SidebarPanel
             latestReview={review}
             setActiveTab={setActiveTab}
+            issueCount={issueCount}
           />
         )}
 
