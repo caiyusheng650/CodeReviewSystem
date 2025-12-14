@@ -9,7 +9,9 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python)](https://python.org)
 [![React](https://img.shields.io/badge/React-19%2B-blue?style=for-the-badge&logo=react)](https://reactjs.org)
 
-**🚀 在线演示**: [https://code-review-system-team.vercel.app](https://code-review-system-team.vercel.app)
+**🚀 团队版演示**: [https://code-review-system-team.vercel.app](https://code-review-system-team.vercel.app)
+
+**🚀 个人版演示**: [https://code-review-system-orpin.vercel.app](https://code-review-system-orpin.vercel.app)
 
 **📊 测评结果**: [/docs/ai_code_review_benchmarks/README.md](/docs/ai_code_review_benchmarks/README.md)
 
@@ -24,13 +26,11 @@
 ## ✨ 核心特性
 
 ### 🎯 智能审查能力
-| 功能模块 | 描述 | 优势 |
-|---------|------|------|
-| **🤖 AutoGen 多智能体小组讨论** | 基于多Agent架构的深度代码分析机制 | 精准识别各类代码问题 |
-| **📱 行号计算器智能体工具** | 精确的代码行号定位，解决智能体行号识别难题 | 辅助智能体实现精准代码审查 |
-| **📊 7维质量评估** | 全方位多维度代码质量分析体系 | 全面保障代码质量与可靠性 |
-| **🏆 信誉系统** | 结合开发者历史表现与PR讨论评论的综合评估 | 有效激励代码质量持续提升 |
-| **💬 实时助手** | 基于AI的智能代码建议与问题解答 | 提供即时、精准的开发支持 |
+- **🤖 AutoGen 多智能体小组讨论**: 基于多Agent架构的深度代码分析机制，精准识别各类代码问题
+- **📱 行号计算器智能体工具**: 精确的代码行号定位，解决智能体行号识别难题，辅助智能体实现精准代码审查
+- **📊 7维质量评估**: 全方位多维度代码质量分析体系，全面保障代码质量与可靠性
+- **🏆 信誉系统**: 结合开发者历史表现与PR讨论评论的综合评估，有效激励代码质量持续提升
+- **💬 实时助手**: 基于AI的智能代码建议与问题解答，提供即时、精准的开发支持
 
 ### 🎨 前端特色
 - **⚡ 现代化技术栈**: React 19 + Material-UI + Vite
