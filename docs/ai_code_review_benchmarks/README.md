@@ -143,13 +143,13 @@
 
 | PR / Bug Description | Severity | Greptile | Copilot | CodeRabbit | Cursor | Graphite | CodeReviewSystem (Ours) |
 |----------------------|----------|----------|---------|------------|--------|----------|-------------------------|
-| Fixing Re-authentication with passkeys<br>ConditionalPasskeysEnabled() called without UserModel parameter | Medium | ✓ | ✗ | ✗ | ✗ | ✗ | |
-| Add caching support for IdentityProviderStorageProvider .getForLogin operations<br>Recursive caching call using session instead of delegate | Critical | ✓ | ✗ | ✗ | ✗ | ✗ | |
-| Add AuthzClientCryptoProvider for authorization client cryptographic operations<br>Returns wrong provider (default keystore instead of BouncyCastle) | High | ✓ | ✗ | ✓ | ✗ | ✗ | |
+| Fixing Re-authentication with passkeys<br>ConditionalPasskeysEnabled() called without UserModel parameter | Medium | ✓ | ✗ | ✗ | ✗ | ✗ |✗ |
+| Add caching support for IdentityProviderStorageProvider .getForLogin operations<br>Recursive caching call using session instead of delegate | Critical | ✓ | ✗ | ✗ | ✗ | ✗ |✗ |
+| Add AuthzClientCryptoProvider for authorization client cryptographic operations<br>Returns wrong provider (default keystore instead of BouncyCastle) | High | ✓ | ✗ | ✓ | ✗ | ✗ | ✗|
 | Add rolling-updates feature flag and compatibility framework<br>Incorrect method call for exit codes | Medium | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
 | Add Client resource type and scopes to authorization schema<br>Inconsistent feature flag bug causing orphaned permissions | High | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ |
-| Add Groups resource type and scopes to authorization schema<br>Incorrect permission check in canManage() method | High | ✓ | ✓ | ✓ | ✓ | ✗ | |
-| Add HTML sanitizer for translated message resources<br>Lithuanian translation files contain Italian text | Low | ✓ | ✓ | ✓ | ✓ | ✗ | |
+| Add Groups resource type and scopes to authorization schema<br>Incorrect permission check in canManage() method | High | ✓ | ✓ | ✓ | ✓ | ✗ | ✗|
+| Add HTML sanitizer for translated message resources<br>Lithuanian translation files contain Italian text | Low | ✓ | ✓ | ✓ | ✓ | ✗ | ✗|
 | Implement access token context encoding framework<br>Wrong parameter in null check (grantType vs. rawTokenId) | Critical | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ |
 | Implement recovery key support for user storage providers<br>Unsafe raw List deserialization without type safety | Medium | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ |
 | Fix concurrent group access to prevent NullPointerException<br>Missing null check causing NullPointerException | Critical | ✓ | ✓ | ✗ | ✓ | ✗ | ✓ |
@@ -172,7 +172,7 @@
 | PR / Bug Description | Severity | Greptile | Copilot | CodeRabbit | Cursor | Graphite | CodeReviewSystem (Ours) |
 |----------------------|----------|----------|---------|------------|--------|----------|-------------------------|
 | Enhanced Pagination Performance for High-Volume Audit Logs<br>Importing non-existent OptimizedCursorPaginator | High | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
-| Optimize spans buffer insertion with eviction during insert<br>Negative offset cursor manipulation bypasses pagination boundaries | Critical | ✗ | ✗ | ✓ | ✓ | ✗ | |
+| Optimize spans buffer insertion with eviction during insert<br>Negative offset cursor manipulation bypasses pagination boundaries | Critical | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ |
 | Support upsampled error count with performance optimizations<br>sample_rate = 0.0 is falsy and skipped | Low | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
 | GitHub OAuth Security Enhancement<br>Null reference if github_authenticated_user state is missing | Critical | ✗ | ✓ | ✗ | ✓ | ✗ | |
 | Replays Self-Serve Bulk Delete System<br>Breaking changes in error response format | Critical | ✓ | ✗ | ✗ | ✓ | ✗ | |
