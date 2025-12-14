@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { CheckCircle as CheckCircleIcon, Error as ErrorIcon, Info as InfoIcon } from '@mui/icons-material';
 import { formatDateTime } from '../../utils/dateUtils';
 
-const SidebarPanel = ({ latestReview,setActiveTab }) => {
+const SidebarPanel = ({ latestReview,setActiveTab,issueCount }) => {
   const theme = useTheme();
   const SeverityMap = theme.severityMap;
   const isDarkMode = theme.palette.mode === 'dark';
@@ -21,36 +21,9 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
   
   if (!latestReview) return null;
 
-  // 统计问题数量
-  const getIssueCount = () => {
-    if (!latestReview.final_result) return { total: 0, bySeverity: {} };
-
-    const issues = Object.values(latestReview.final_result);
-    const bySeverity = issues.reduce((acc, issue) => {
-      const severity = issue.severity || '未知';
-      acc[severity] = (acc[severity] || 0) + 1;
-
-      // 统计顽固问题（historical_mention为true）
-      if (issue.historical_mention === true) {
-        acc[t('sidebar.stubborn')] = (acc[t('sidebar.stubborn')] || 0) + 1;
-      }
-
-      return acc;
-    }, {});
-
-
-    return {
-      total: issues.length,
-      bySeverity
-    };
-  };
-
-  const issueStats = getIssueCount();
-
   // 获取合并建议
   const getMergeSuggestion = () => {
-    const { [t('sidebar.severe')]: severe, [t('sidebar.medium')]: medium } = issueStats.bySeverity;
-    if (severe > 0 || medium > 0) {
+    if (issueCount.严重 > 0 || issueCount.中等 > 0) {
       return { suggestion: t('sidebar.notRecommended'), color: 'error' };
     }
     return { suggestion: t('sidebar.recommended'), color: 'success' };
@@ -162,7 +135,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('严重') }}>
             <Typography color="text.secondary">{t('sidebar.criticalIssues')}</Typography>
             <Typography color="error" variant="h5">
-              {issueStats.bySeverity.严重 || 0}
+              {issueCount.严重 || 0}
             </Typography>
           </Paper>
         </Grid>
@@ -170,7 +143,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('中等') }}>
             <Typography color="text.secondary">{t('sidebar.moderateIssues')}</Typography>
             <Typography color="warning" variant="h5">
-              {issueStats.bySeverity.中等 || 0}
+              {issueCount.中等 || 0}
             </Typography>
           </Paper>
         </Grid>
@@ -178,7 +151,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('轻微') }}>
             <Typography color="text.secondary">{t('sidebar.minorIssues')}</Typography>
             <Typography color="info" variant="h5">
-              {issueStats.bySeverity.轻微 || 0}
+              {issueCount.轻微 || 0}
             </Typography>
           </Paper>
         </Grid>
@@ -186,7 +159,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('表扬') }}>
             <Typography color="text.secondary">{t('sidebar.highPraise')}</Typography>
             <Typography color="success" variant="h5">
-              {issueStats.bySeverity.表扬 || 0}
+              {issueCount.表扬 || 0}
             </Typography>
           </Paper>
         </Grid>
@@ -194,7 +167,7 @@ const SidebarPanel = ({ latestReview,setActiveTab }) => {
           <Paper sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: getBgColor('顽固') }}>
             <Typography color="text.secondary">{t('sidebar.persistentIssues')}</Typography>
             <Typography color="secondary" variant="h5">
-              {issueStats.bySeverity.顽固 || 0}
+              {issueCount.历史 || 0}
             </Typography>
           </Paper>
         </Grid>

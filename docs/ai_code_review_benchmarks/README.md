@@ -7,7 +7,7 @@
 | 工具                  | Critical | High | Medium | Low |
 |-----------------------|----------|------|--------|-----|
 | Greptile              | 58%      | 100% | 89%    | 87% |
-| **CodeReviewSystem (Ours)** | 60%   | 75%  | 60%    | 50% |
+| **CodeReviewSystem (Ours)** | 60%   | 53%  | 62%    | 60% |
 | Cursor                | 58%      | 64%  | 56%    | 53% |
 | Copilot               | 50%      | 57%  | 78%    | 87% |
 | CodeRabbit            | 33%      | 36%  | 56%    | 53% |
@@ -18,20 +18,11 @@
 | 工具                  | 总体bug检测率 |
 |-----------------------|--------------|
 | Greptile              | 82%          |
-| **CodeReviewSystem (Ours)** | 54%   |
+| **CodeReviewSystem (Ours)** | 58%   |
 | Cursor                | 58%          |
 | Copilot               | 54%          |
 | CodeRabbit            | 44%          |
 | Graphite              | 6%           |
-
-## 3. 按严重程度的详细检测率
-
-| 严重程度 | Greptile | **CodeReviewSystem (Ours)** | Cursor | Copilot | CodeRabbit | Graphite |
-|----------|----------|----------------------------|--------|---------|------------|----------|
-| Critical | 58%      | 60%                        | 58%    | 50%     | 33%        | 17%      |
-| High     | 100%     | 75%                        | 64%    | 57%     | 36%        | 0%       |
-| Medium   | 89%      | 60%                        | 56%    | 78%     | 56%        | 11%      |
-| Low      | 87%      | 50%                        | 53%    | 87%     | 53%        | 0%       |
 
 ## 4. 测试方法论
 
@@ -143,13 +134,13 @@
 
 | PR / Bug Description | Severity | Greptile | Copilot | CodeRabbit | Cursor | Graphite | CodeReviewSystem (Ours) |
 |----------------------|----------|----------|---------|------------|--------|----------|-------------------------|
-| Fixing Re-authentication with passkeys<br>ConditionalPasskeysEnabled() called without UserModel parameter | Medium | ✓ | ✗ | ✗ | ✗ | ✗ | |
-| Add caching support for IdentityProviderStorageProvider .getForLogin operations<br>Recursive caching call using session instead of delegate | Critical | ✓ | ✗ | ✗ | ✗ | ✗ | |
-| Add AuthzClientCryptoProvider for authorization client cryptographic operations<br>Returns wrong provider (default keystore instead of BouncyCastle) | High | ✓ | ✗ | ✓ | ✗ | ✗ | |
+| Fixing Re-authentication with passkeys<br>ConditionalPasskeysEnabled() called without UserModel parameter | Medium | ✓ | ✗ | ✗ | ✗ | ✗ |✗ |
+| Add caching support for IdentityProviderStorageProvider .getForLogin operations<br>Recursive caching call using session instead of delegate | Critical | ✓ | ✗ | ✗ | ✗ | ✗ |✗ |
+| Add AuthzClientCryptoProvider for authorization client cryptographic operations<br>Returns wrong provider (default keystore instead of BouncyCastle) | High | ✓ | ✗ | ✓ | ✗ | ✗ | ✗|
 | Add rolling-updates feature flag and compatibility framework<br>Incorrect method call for exit codes | Medium | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
 | Add Client resource type and scopes to authorization schema<br>Inconsistent feature flag bug causing orphaned permissions | High | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ |
-| Add Groups resource type and scopes to authorization schema<br>Incorrect permission check in canManage() method | High | ✓ | ✓ | ✓ | ✓ | ✗ | |
-| Add HTML sanitizer for translated message resources<br>Lithuanian translation files contain Italian text | Low | ✓ | ✓ | ✓ | ✓ | ✗ | |
+| Add Groups resource type and scopes to authorization schema<br>Incorrect permission check in canManage() method | High | ✓ | ✓ | ✓ | ✓ | ✗ | ✗|
+| Add HTML sanitizer for translated message resources<br>Lithuanian translation files contain Italian text | Low | ✓ | ✓ | ✓ | ✓ | ✗ | ✗|
 | Implement access token context encoding framework<br>Wrong parameter in null check (grantType vs. rawTokenId) | Critical | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ |
 | Implement recovery key support for user storage providers<br>Unsafe raw List deserialization without type safety | Medium | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ |
 | Fix concurrent group access to prevent NullPointerException<br>Missing null check causing NullPointerException | Critical | ✓ | ✓ | ✗ | ✓ | ✗ | ✓ |
@@ -172,16 +163,16 @@
 | PR / Bug Description | Severity | Greptile | Copilot | CodeRabbit | Cursor | Graphite | CodeReviewSystem (Ours) |
 |----------------------|----------|----------|---------|------------|--------|----------|-------------------------|
 | Enhanced Pagination Performance for High-Volume Audit Logs<br>Importing non-existent OptimizedCursorPaginator | High | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
-| Optimize spans buffer insertion with eviction during insert<br>Negative offset cursor manipulation bypasses pagination boundaries | Critical | ✗ | ✗ | ✓ | ✓ | ✗ | |
+| Optimize spans buffer insertion with eviction during insert<br>Negative offset cursor manipulation bypasses pagination boundaries | Critical | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ |
 | Support upsampled error count with performance optimizations<br>sample_rate = 0.0 is falsy and skipped | Low | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ |
-| GitHub OAuth Security Enhancement<br>Null reference if github_authenticated_user state is missing | Critical | ✗ | ✓ | ✗ | ✓ | ✗ | |
-| Replays Self-Serve Bulk Delete System<br>Breaking changes in error response format | Critical | ✓ | ✗ | ✗ | ✓ | ✗ | |
-| Span Buffer Multiprocess Enhancement with Health Monitoring<br>Inconsistent metric tagging with 'shard' and 'shards' | Medium | ✓ | ✓ | ✗ | ✗ | ✗ | |
-| Implement cross-system issue synchronization<br>Shared mutable default in dataclass timestamp | Medium | ✓ | ✓ | ✓ | ✓ | ✗ | |
-| Reorganize incident creation / issue occurrence logic<br>Using stale config variable instead of updated one | High | ✓ | ✗ | ✓ | ✗ | ✗ | |
-| Add ability to use queues to manage parallelism<br>Invalid queue.ShutDown exception handling | High | ✓ | ✓ | ✓ | ✗ | ✗ | |
-| Add hook for producing occurrences from the stateful detector<br>Incomplete implementation (only contains pass) | High | ✓ | ✗ | ✗ | ✓ | ✗ | |
-| **Total Catches** | - | **8/10** | **4/10** | **3/10** | **4/10** | **0/10** | **2/10** |
+| GitHub OAuth Security Enhancement<br>Null reference if github_authenticated_user state is missing | Critical | ✗ | ✓ | ✗ | ✓ | ✗ |✗ |
+| Replays Self-Serve Bulk Delete System<br>Breaking changes in error response format | Critical | ✓ | ✗ | ✗ | ✓ | ✗ |✓ |
+| Span Buffer Multiprocess Enhancement with Health Monitoring<br>Inconsistent metric tagging with 'shard' and 'shards' | Medium | ✓ | ✓ | ✗ | ✗ | ✗ |✗ |
+| Implement cross-system issue synchronization<br>Shared mutable default in dataclass timestamp | Medium | ✓ | ✓ | ✓ | ✓ | ✗ |✓ |
+| Reorganize incident creation / issue occurrence logic<br>Using stale config variable instead of updated one | High | ✓ | ✗ | ✓ | ✗ | ✗ |✗ |
+| Add ability to use queues to manage parallelism<br>Invalid queue.ShutDown exception handling | High | ✓ | ✓ | ✓ | ✗ | ✗ | ✗|
+| Add hook for producing occurrences from the stateful detector<br>Incomplete implementation (only contains pass) | High | ✓ | ✗ | ✗ | ✓ | ✗ | ✗|
+| **Total Catches** | - | **8/10** | **4/10** | **3/10** | **4/10** | **0/10** | **4/10** |
 
 ### 相关PR链接
 - Enhanced Pagination Performance for High-Volume Audit Logs: https://github.com/caiyusheng650/discourse-wanan/pull/1
