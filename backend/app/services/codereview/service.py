@@ -11,27 +11,31 @@ import re
 from .config import logger, setup_logger, silence_autogen_console
 from .models import AgentBuffer, ReviewResult, ReviewRequest
 from .utils import JSONParser, ContentAnalyzer, ResultFormatter
-from .database_service import CodeReviewService
+from .database import AICodeReviewDatabaseService
 from app.models.codereview import AgentOutput, CodeReviewUpdate
 from autogen_agentchat.ui import Console
+from bson import ObjectId
+import sys
+import os
+# 添加项目根目录到Python路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+from app.services.jira import create_issue
 
 
 
 class AICodeReviewService:
 
-    def __init__(self, code_review_service: CodeReviewService, flow: Optional[GraphFlow] = None, silence_agent_console: bool = True):
+    def __init__(self, code_review_service: AICodeReviewDatabaseService, flow: Optional[GraphFlow] = None, silence_agent_console: bool = True):
         # 初始化配置
         setup_logger()
         if silence_agent_console:
             silence_autogen_console()
         
         # 服务依赖
-        self.code_review_service:CodeReviewService = code_review_service
+        self.code_review_service:AICodeReviewDatabaseService = code_review_service
         self.flow = flow
         self.silence_agent_console = silence_agent_console
         
-        logger.info("AICodeReviewService initialized (silence_agent_console=%s)", silence_agent_console)
-
     # ---------------------------
     # 主入口方法
     # ---------------------------
@@ -81,10 +85,8 @@ class AICodeReviewService:
 
             # 5. 格式化最终结果
             final_result = agent_outputs.get("FinalReviewAggregatorAgent", "")
-            
+
             # 使用正则表达式提取 ```json 和 ``` 之间的内容
-            
-            # 匹配 ```json 和 ``` 之间的内容
             json_pattern = r'```json\s*(.*?)\s*```'
             match = re.search(json_pattern, final_result, re.DOTALL)
             
@@ -94,6 +96,37 @@ class AICodeReviewService:
             else:
                 # 如果没有找到标记，保持原样
                 final_result = final_result.strip()
+            
+            # 验证并修复JSON格式
+            try:
+                # 尝试解析JSON
+                parsed_result = json.loads(final_result)
+                
+                # 检查是否是预期的格式（字典，键为字符串数字）
+                if isinstance(parsed_result, dict):
+                    valid_bugs = {}
+                    required_fields = ['file', 'line', 'bug_type', 'description', 'suggestion', 'severity']
+                    
+                    # 验证每个bug条目，移除缺少必填字段的条目
+                    for key, bug in parsed_result.items():
+                        if isinstance(bug, dict):
+                            # 检查是否包含所有必填字段
+                            missing_fields = [field for field in required_fields if field not in bug]
+                            if not missing_fields:
+                                # 检查severity值是否合法
+                                if bug.get('severity') in ['严重', '中等', '轻微', '表扬']:
+                                    valid_bugs[key] = bug
+                    
+                    # 如果有有效条目，使用过滤后的结果
+                    if valid_bugs:
+                        final_result = json.dumps(valid_bugs, ensure_ascii=False, indent=2)
+                    else:
+                        # 如果没有有效条目，返回空结果
+                        final_result = '{}'
+            except Exception as e:
+                logger.error("JSON格式验证失败: %s", e)
+                # 如果JSON解析失败，返回空结果
+                final_result = '{}'
 
             # 6. 一次性保存完整结果
             await self._save_complete_review_result(request.review_id, agent_outputs, final_result)
