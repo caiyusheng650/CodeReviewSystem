@@ -32,5 +32,11 @@ export const authAPI = {
   updateUser: async (userData) => {
     const response = await apiClient.put('/api/auth/me', userData);
     return response.data;
+  },
+
+  // Change password
+  changePassword: async (passwordData) => {
+    const response = await apiClient.post('/api/auth/change-password', passwordData);
+    return response.data;
   }
 };

@@ -6,9 +6,9 @@ import { aicopilotAPI } from '../services/api/AICopilotAPI';
 import { useTranslation } from 'react-i18next';
 import { useSnackbar } from '../contexts/SnackbarContext';
 import {
-  Box, Breadcrumbs, Button, Card, CardContent, Chip, CircularProgress,
+  Box, Button, Card, CardContent, Chip, CircularProgress,
   Tabs, Tab, Typography, Alert, Divider, IconButton, Tooltip, TextField,
-  useMediaQuery, useTheme
+  useMediaQuery, useTheme, CssBaseline
 } from '@mui/material';
 import {
   Download as DownloadIcon, Search as SearchIcon, Error as ErrorIcon
@@ -25,6 +25,7 @@ import {
   filterIssues,
   StatusMap
 } from '../components/ReviewDetail';
+import PageLayout from '../components/Layout/PageLayout';
 
 
 const ReviewDetail = ({ isDarkMode }) => {
@@ -438,126 +439,135 @@ const ReviewDetail = ({ isDarkMode }) => {
   const groupedData = groupIssues(parsedFinalResult);
 
   return (
-    <Box sx={{ p: 3, mx: 'auto', mt: 6, position: 'relative',
+    <PageLayout
+      title={t('reviewDetail.reviews')}
+      breadcrumbs={[
+        {
+          label: t('reviewDetail.reviews'),
+          onClick: () => navigate('/reviews')
+        },
+        { label: `PR #${review.pr_number}` }
+      ]}
+      maxWidth="1200px"
+      sx={{ 
+        minWidth: '1200px', 
+        mb: 4, 
+        minHeight: '100vh',
         ml: {
           xs: 0, // 小屏幕时不需要额外padding，因为ChatPanel会调整位置
           sm: 0,
           md: 0, // 中等屏幕及以上，ChatPanel展开时留出空间
           lg: isChatPanelCollapsed ? 0 : -40  // 大屏幕时留出更多空间
-        } }}>
-      {/* 面包屑导航 */}
-      <Breadcrumbs sx={{ mb: 3 }}>
-        
-        <Typography linkComponent="button" onClick={() => navigate('/reviews')} sx={{ cursor: 'pointer' }}>
-          {t('reviewDetail.reviews')}
-        </Typography>
-        <Typography>PR #{review.pr_number}</Typography>
-      </Breadcrumbs>
-
+        }
+      }}
+      titleComponent="div"
+    >
+      <CssBaseline />
+      
       {/* 页面标题+操作按钮 */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3,maxWidth: '1200px' }}>
-        <Typography variant="h4" component="h1" gutterBottom>
+      <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1">
           PR #{review.pr_number} {review.pr_title.slice(0, 7)}... {t('reviewDetail.intelligentCodeReview')} {t('reviewDetail.reviewResults')}
         </Typography>
-        <Box display="flex" gap={2}>
-          <Tooltip title={t('reviewDetail.exportReport')}>
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={() => handleExportReport(review)}
-            >
-              {t('reviewDetail.exportReport')}
-            </Button>
-          </Tooltip>
-        </Box>
+      <Box display="flex" gap={2}>
+        <Tooltip title={t('reviewDetail.exportReport')}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={() => handleExportReport(review)}
+          >
+            {t('reviewDetail.exportReport')}
+          </Button>
+        </Tooltip>
       </Box>
-
-      {/* 两列布局 */}
-      <Box sx={{ 
-        display: 'flex', 
-        gap: 3, 
-        position: 'relative',
-        
-      }}>
-        {/* 左侧列 - 仓库基本信息（屏幕宽度小于1300px时隐藏） */}
-        {!isSmallScreen && (
-          <SidebarPanel
-            latestReview={review}
-            setActiveTab={setActiveTab}
-            issueCount={issueCount}
-          />
-        )}
-
-        {/* 右侧列 - 主要内容 */}
-        <Box sx={{
-          flex: 1,
-          minHeight: '100vh',
-          // 小屏幕时左侧边栏隐藏，右侧内容占满宽度
-          width: isSmallScreen ? '100%' : 'auto',
-          // 响应式的右边距调整
-          marginRight: {
-            xs: 0, // 手机端不需要额外margin
-            sm: 0,
-            md: isChatPanelCollapsed ? 0 : (isSmallScreen ? 0 : 0), // 中等屏幕根据左侧边栏状态调整
-            lg: isChatPanelCollapsed ? 0 : (isSmallScreen ? 0 : 20) // 大屏幕时适度调整
-          }
-        }}>
-          {/* 搜索框 */}
-          <Box sx={{ mb: 3, width: '100%' }}>
-            <TextField
-              fullWidth
-              placeholder={t('reviewDetail.searchPlaceholder')}
-              variant="outlined"
-              size="small"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
-              }}
-            />
-          </Box>
-
-          {/* 问题详情标签页 */}
-          <Box sx={{ mb: 4 }}>
-            <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-              <Tab label={t('reviewDetail.byType')} />
-              <Tab label={t('reviewDetail.byFile')} />
-              <Tab label={t('reviewDetail.bySeverity')} />
-              <Tab label={t('reviewDetail.persistentIssues')} />
-              <Tab label={t('reviewDetail.markedIssues')} />
-              <Tab label={t('reviewDetail.chatHistory')} sx={{ ml: 'auto' }} />
-            </Tabs>
-            <Divider sx={{ mb: 2 }} />
-
-            {/* 标签页内容 */}
-            <TabPanels
-              activeTab={activeTab}
-              groupedData={groupedData}
-              filterIssues={filterIssues}
-              searchText={searchText}
-              markedIssues={markedIssues}
-              handleMarkIssue={handleMarkIssue}
-              isDarkMode={isDarkMode}
-              SeverityMap={SeverityMap}
-              chatHistory={chatHistory}
-              chatHistoryLoading={chatHistoryLoading}
-              reviewId={reviewId}
-              prNumber={review.pr_number}
-              prTitle={review.pr_title}
-              repository={review.repository}
-            />
-          </Box>
-        </Box>
-      </Box>
-
-      {/* ChatPanel - 右侧可折叠交流面板 */}
-      <ChatPanel
-        isCollapsed={isChatPanelCollapsed}
-        onToggle={handleToggleChatPanel}
-        messages={chatMessages}
-        onSendMessage={handleSendMessage}
-      />
     </Box>
+
+    {/* 两列布局 */}
+    <Box sx={{ 
+      display: 'flex', 
+      gap: 3, 
+      position: 'relative',
+      
+    }}>
+      {/* 左侧列 - 仓库基本信息（屏幕宽度小于1300px时隐藏） */}
+      {!isSmallScreen && (
+        <SidebarPanel
+          latestReview={review}
+          setActiveTab={setActiveTab}
+          issueCount={issueCount}
+        />
+      )}
+
+      {/* 右侧列 - 主要内容 */}
+      <Box sx={{
+        flex: 1,
+        minHeight: '100vh',
+        // 小屏幕时左侧边栏隐藏，右侧内容占满宽度
+        width: isSmallScreen ? '100%' : 'auto',
+        // 响应式的右边距调整
+        marginRight: {
+          xs: 0, // 手机端不需要额外margin
+          sm: 0,
+          md: isChatPanelCollapsed ? 0 : (isSmallScreen ? 0 : 0), // 中等屏幕根据左侧边栏状态调整
+          lg: isChatPanelCollapsed ? 0 : (isSmallScreen ? 0 : 20) // 大屏幕时适度调整
+        }
+      }}>
+        {/* 搜索框 */}
+        <Box sx={{ mb: 3, width: '100%' }}>
+          <TextField
+            fullWidth
+            placeholder={t('reviewDetail.searchPlaceholder')}
+            variant="outlined"
+            size="small"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            InputProps={{
+              startAdornment: <SearchIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+        </Box>
+
+        {/* 问题详情标签页 */}
+        <Box sx={{ mb: 4 }}>
+          <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+            <Tab label={t('reviewDetail.byType')} />
+            <Tab label={t('reviewDetail.byFile')} />
+            <Tab label={t('reviewDetail.bySeverity')} />
+            <Tab label={t('reviewDetail.persistentIssues')} />
+            <Tab label={t('reviewDetail.markedIssues')} />
+            <Tab label={t('reviewDetail.chatHistory')} sx={{ ml: 'auto' }} />
+          </Tabs>
+          <Divider sx={{ mb: 2 }} />
+
+          {/* 标签页内容 */}
+          <TabPanels
+            activeTab={activeTab}
+            groupedData={groupedData}
+            filterIssues={filterIssues}
+            searchText={searchText}
+            markedIssues={markedIssues}
+            handleMarkIssue={handleMarkIssue}
+            isDarkMode={isDarkMode}
+            SeverityMap={SeverityMap}
+            chatHistory={chatHistory}
+            chatHistoryLoading={chatHistoryLoading}
+            reviewId={reviewId}
+            prNumber={review.pr_number}
+            prTitle={review.pr_title}
+            repository={review.repository}
+          />
+        </Box>
+      </Box>
+    </Box>
+
+    {/* ChatPanel - 右侧可折叠交流面板 */}
+    <ChatPanel
+      isCollapsed={isChatPanelCollapsed}
+      onToggle={handleToggleChatPanel}
+      messages={chatMessages}
+      onSendMessage={handleSendMessage}
+    />
+    </PageLayout>
   );
 };
 

@@ -1,14 +1,15 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SettingsMain from '../components/Settings/SettingsMain';
-import { Breadcrumbs, Typography, Box } from '@mui/material';
 import { useSnackbar } from '../contexts/SnackbarContext';
+import PageLayout from '../components/Layout/PageLayout';
 
 const Settings = ({ isDarkMode }) => {
   const { showSnackbar } = useSnackbar();
   const { t } = useTranslation();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check if there's a success message from Jira callback
@@ -18,14 +19,17 @@ const Settings = ({ isDarkMode }) => {
   }, [location.state, showSnackbar, t]);
 
   return (
-    <Box sx={{ p: 3, mx: 'auto', mt: 6, position: 'relative' }}>
-      <Breadcrumbs sx={{ mb: 3 }}>
-        <Typography linkComponent="button" onClick={() => navigate('/settings')} sx={{ cursor: 'pointer' }}>
-          {t('settings.pageTitle')}
-        </Typography>
-      </Breadcrumbs>
+    <PageLayout
+      title={t('settings.pageTitle')}
+      breadcrumbs={[
+        {
+          label: t('settings.pageTitle'),
+          onClick: () => navigate('/settings')
+        }
+      ]}
+    >
       <SettingsMain />
-    </Box>
+    </PageLayout>
   );
 };
 
