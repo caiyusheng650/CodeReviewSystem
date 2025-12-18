@@ -197,3 +197,16 @@ class UserMeResponse(BaseModel):
     
     # 当前用户的用户名
     username: str = Field(..., description="当前登录用户的用户名")
+
+
+class PasswordChange(BaseModel):
+    """修改密码模型
+    
+    用于用户修改密码时的数据验证。
+    """
+    
+    # 当前密码
+    current_password: str = Field(..., description="用户的当前密码")
+    
+    # 新密码
+    new_password: str = Field(..., min_length=6, description="用户的新密码，最少6个字符")

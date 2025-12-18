@@ -541,7 +541,16 @@ const AppBar = ({
                 {renderSearchMenu}
               </Box>
             )}
-            
+
+            {/* 用户名显示 */}
+            <Button
+              color="inherit"
+              onClick={handleProfileMenuOpen}
+              sx={{ ml: 1 }}
+            >
+              {currentUser ? currentUser.username : t('common.user')}
+            </Button>
+
             <Box sx={{ display: 'flex' }}>
               {/* 语言切换按钮 */}
               <Tooltip title={t('language.switch')}>
@@ -556,15 +565,6 @@ const AppBar = ({
                   {isDarkMode ? <LightMode /> : <DarkMode />}
                 </IconButton>
               </Tooltip>
-              
-              {/* 用户名显示 */}
-              <Button
-                color="inherit"
-                onClick={handleProfileMenuOpen}
-                sx={{ ml: 1 }}
-              >
-                {currentUser ? currentUser.username : t('common.user')}
-              </Button>
 
               {/* 登出按钮 */}
               <Tooltip title={t('auth.logout')}>
@@ -584,8 +584,6 @@ const AppBar = ({
       
       {/* 移动端菜单 */}
       {renderMobileMenu}
-      
-
       
       {/* 移动端抽屉 */}
       <Drawer

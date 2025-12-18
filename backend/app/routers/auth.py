@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from typing import Dict, Any, List
-from app.models.user import UserCreate, UserMeResponse, UserInfoResponse
+from app.models.user import UserCreate, UserMeResponse, UserInfoResponse, PasswordChange
 from app.utils.apikey import require_api_key
 from app.utils.userauth import require_bearer, create_access_token, authenticate_user,get_password_hash
 from app.services.apikey import apikey_service
@@ -92,3 +92,35 @@ async def read_users_me(username: str = Depends(require_bearer)):
     return UserMeResponse(
         username=username,
     )
+
+
+@router.post("/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    username: str = Depends(require_bearer)
+):
+    """修改密码接口"""
+    # 获取当前用户
+    user = await users_collection.find_one({"username": username})
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # 验证当前密码
+    from app.utils.userauth import verify_password
+    if not verify_password(password_data.current_password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # 更新密码
+    new_hashed_password = get_password_hash(password_data.new_password)
+    await users_collection.update_one(
+        {"username": username},
+        {"$set": {"hashed_password": new_hashed_password, "updated_at": datetime.utcnow()}}
+    )
+    
+    return {"message": "Password changed successfully"}

@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import {
-  Box,
   Typography,
   Paper,
   Accordion,
@@ -18,14 +17,14 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Container,
-  Breadcrumbs,
   Link,
   Tooltip,
-  IconButton
+  IconButton,
+  Box
 } from '@mui/material'
 import { ExpandMore, Code, Download, GitHub, Create, ContentCopy, Check } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
+import PageLayout from '../components/Layout/PageLayout'
 
 const Documentation = ({ isDarkMode }) => {
   const { t } = useTranslation()
@@ -121,19 +120,12 @@ const Documentation = ({ isDarkMode }) => {
   ]
 
   return (
-    <Container maxWidth="1200">
-      <Box sx={{ mt: 4, mb: 4 }}>
-        {/* 面包屑导航 */}
-        <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
-          
-          <Typography color="text.primary">{t('documentation.title')}</Typography>
-        </Breadcrumbs>
-
-        {/* 页面标题 */}
-        <Typography variant="h4" component="h1" gutterBottom>
-          {t('documentation.title')}
-        </Typography>
-
+    <PageLayout
+      title={t('documentation.title')}
+      breadcrumbs={[
+        { label: t('documentation.title') }
+      ]}
+    >
       {/* 安装指南部分 */}
       <Paper sx={{ p: 3, mb: 4 }} elevation={2}>
         <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
@@ -441,8 +433,7 @@ const Documentation = ({ isDarkMode }) => {
           {t('documentation.actions.downloadScript')}
         </Button>
       </Box>
-      </Box>
-    </Container>
+    </PageLayout>
   )
 }
 
