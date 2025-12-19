@@ -36,7 +36,7 @@ import {
   ExpandMore,
   Logout as LogoutIcon,
   Code as CodeIcon,
-  Language as LanguageIcon
+  Translate as LanguageIcon
 } from '@mui/icons-material'
 import { alpha, styled } from '@mui/material/styles'
 import { useNavigate } from 'react-router-dom'

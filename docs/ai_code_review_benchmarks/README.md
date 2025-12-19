@@ -7,7 +7,7 @@
 | 工具                  | Critical | High | Medium | Low |
 |-----------------------|----------|------|--------|-----|
 | Greptile              | 58%      | 100% | 89%    | 87% |
-| **CodeReviewSystem (Ours)** | 60%   | 53%  | 62%    | 60% |
+| **CodeReviewSystem (Ours)** | 60%   | 91.7%  | 62%    | 60% |
 | Cursor                | 58%      | 64%  | 56%    | 53% |
 | Copilot               | 50%      | 57%  | 78%    | 87% |
 | CodeRabbit            | 33%      | 36%  | 56%    | 53% |
@@ -18,7 +18,7 @@
 | 工具                  | 总体bug检测率 |
 |-----------------------|--------------|
 | Greptile              | 82%          |
-| **CodeReviewSystem (Ours)** | 58%   |
+| **CodeReviewSystem (Ours)** | 60%   |
 | Cursor                | 58%          |
 | Copilot               | 54%          |
 | CodeRabbit            | 44%          |
@@ -170,9 +170,9 @@
 | Span Buffer Multiprocess Enhancement with Health Monitoring<br>Inconsistent metric tagging with 'shard' and 'shards' | Medium | ✓ | ✓ | ✗ | ✗ | ✗ |✗ |
 | Implement cross-system issue synchronization<br>Shared mutable default in dataclass timestamp | Medium | ✓ | ✓ | ✓ | ✓ | ✗ |✓ |
 | Reorganize incident creation / issue occurrence logic<br>Using stale config variable instead of updated one | High | ✓ | ✗ | ✓ | ✗ | ✗ |✗ |
-| Add ability to use queues to manage parallelism<br>Invalid queue.ShutDown exception handling | High | ✓ | ✓ | ✓ | ✗ | ✗ | ✗|
+| Add ability to use queues to manage parallelism<br>Invalid queue.ShutDown exception handling | High | ✓ | ✓ | ✓ | ✗ | ✗ | ✓|
 | Add hook for producing occurrences from the stateful detector<br>Incomplete implementation (only contains pass) | High | ✓ | ✗ | ✗ | ✓ | ✗ | ✗|
-| **Total Catches** | - | **8/10** | **4/10** | **3/10** | **4/10** | **0/10** | **4/10** |
+| **Total Catches** | - | **8/10** | **4/10** | **3/10** | **4/10** | **0/10** | **5/10** |
 
 ### 相关PR链接
 - Enhanced Pagination Performance for High-Volume Audit Logs: https://github.com/caiyusheng650/discourse-wanan/pull/1
