@@ -134,7 +134,7 @@ def build_deepseek_agent(name: str, key: str) -> AssistantAgent:
 def build_final_agent(name: str, key: str) -> AssistantAgent:
     # 创建工具列表
     model_client = OpenAIChatCompletionClient(
-                    model=AI_MODEL_NAME,
+                    model="MiniMaxAI/MiniMax-M2",
                     api_key=AI_API_KEY,
                     base_url=AI_API_BASE,
                     model_info={
