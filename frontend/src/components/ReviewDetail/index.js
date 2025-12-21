@@ -4,3 +4,4 @@ export { default as SidebarPanel } from './SidebarPanel';
 export * from './constants';
 export * from './utils';
 export * from './hooks';
+export { default as ChatPanel } from './ChatPanel';

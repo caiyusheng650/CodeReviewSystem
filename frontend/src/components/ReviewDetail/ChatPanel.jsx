@@ -93,7 +93,7 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
           display: 'flex', 
           alignItems: 'center',  
           justifyContent: 'space-between',
-          borderBottom: `1px solid ${theme.palette.divider}`
+          borderBottom: `0px solid ${theme.palette.divider}`
         }}
       >
         <Typography variant="h6" component="h2">
@@ -206,16 +206,15 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
         )}
       </Box>
 
-      <Divider />
-
       {/* 输入区域 */}
       <Box sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <TextField
-            placeholder={t('chatPanel.placeholder')}
+            placeholder={t('chatPanel.placeholder')+' '+t('chatPanel.hint')}
             multiline
             fullWidth
             maxRows={4}
+            rows={2}
             size="small"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
@@ -233,9 +232,7 @@ const ChatPanel = ({ isCollapsed, onToggle, messages = [], onSendMessage }) => {
           />
           
         </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            {t('chatPanel.hint')}
-          </Typography>
+        
       </Box>
     </Card>
   );
