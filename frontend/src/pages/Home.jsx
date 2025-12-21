@@ -28,9 +28,11 @@ const Home = ({ isDarkMode, user: propUser }) => {
 
   // 显示加载状态和友好的提示信息
   return (
-
+    <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
       <CircularProgress />
+    </Box>
   );
+  
 };
 
 export default Home;

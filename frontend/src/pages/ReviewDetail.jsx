@@ -14,16 +14,14 @@ import {
   Download as DownloadIcon, Search as SearchIcon, Error as ErrorIcon
 } from '@mui/icons-material';
 
-// 导入ChatPanel组件
-import ChatPanel from '../components/ChatPanel';
-
 // 导入模块化组件
 import {
   TabPanels,
   SidebarPanel,
   handleExportReport,
   filterIssues,
-  StatusMap
+  StatusMap,
+  ChatPanel
 } from '../components/ReviewDetail';
 import PageLayout from '../components/Layout/PageLayout';
 
