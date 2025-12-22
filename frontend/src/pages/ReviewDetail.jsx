@@ -455,7 +455,7 @@ const ReviewDetail = ({ isDarkMode }) => {
           xs: 0, // 小屏幕时不需要额外padding，因为ChatPanel会调整位置
           sm: 0,
           md: 0, // 中等屏幕及以上，ChatPanel展开时留出空间
-          lg: isChatPanelCollapsed ? 0 : -40  // 大屏幕时留出更多空间
+          lg: isChatPanelCollapsed ? 0 : -28  // 大屏幕时留出更多空间
         }
       }}
       titleComponent="div"
