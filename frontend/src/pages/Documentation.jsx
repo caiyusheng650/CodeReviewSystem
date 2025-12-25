@@ -241,8 +241,7 @@ const Documentation = ({ isDarkMode }) => {
               <TableRow>
                 <TableCell><strong>{t('documentation.secrets.secretName')}</strong></TableCell>
                 <TableCell><strong>{t('documentation.description')}</strong></TableCell>
-                <TableCell><strong>{t('documentation.secrets.value')}</strong></TableCell>
-                <TableCell><strong>{t('documentation.secrets.actions')}</strong></TableCell>
+                <TableCell><strong>{t('documentation.secrets.valueAndActions')}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -269,31 +268,31 @@ const Documentation = ({ isDarkMode }) => {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    {secret.value && (
-                      <Tooltip title={copied === `value-${secret.name}` ? t('app.copied') : t('app.clickToCopy')} placement="top">
-                        <Box sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => copyToClipboard(secret.value, `value-${secret.name}`)}>
-                          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
-                            {secret.value}
-                          </Typography>
-                          <IconButton size="small" sx={{ ml: 0.5 }}>
-                            {copied === `value-${secret.name}` ? <Check fontSize="small" color="success" /> : <ContentCopy fontSize="small" />}
-                          </IconButton>
-                        </Box>
-                      </Tooltip>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {secret.link && (
-                      <Button 
-                        variant="text" 
-                        size="small" 
-                        href={secret.link}
-                        target="_blank"
-                        sx={{ textTransform: 'none' }}
-                      >
-                        {secret.linkText}
-                      </Button>
-                    )}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {secret.value && (
+                        <Tooltip title={copied === `value-${secret.name}` ? t('app.copied') : t('app.clickToCopy')} placement="top">
+                          <Box sx={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }} onClick={() => copyToClipboard(secret.value, `value-${secret.name}`)}>
+                            <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                              {secret.value}
+                            </Typography>
+                            <IconButton size="small" sx={{ ml: 0.5 }}>
+                              {copied === `value-${secret.name}` ? <Check fontSize="small" color="success" /> : <ContentCopy fontSize="small" />}
+                            </IconButton>
+                          </Box>
+                        </Tooltip>
+                      )}
+                      {secret.link && (
+                        <Button 
+                          variant="text" 
+                          size="small" 
+                          href={secret.link}
+                          target="_blank"
+                          sx={{ textTransform: 'none', width: 'fit-content' }}
+                        >
+                          {secret.linkText}
+                        </Button>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}

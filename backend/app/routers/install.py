@@ -121,7 +121,7 @@ async def get_github_workflow_file(filename: str):
 @router.get("/")
 async def get_install_instructions():
     """返回安装说明页面"""
-    base_url = os.getenv("API_BASE_URL", "https://your-api-domain.com")
+    base_url = os.getenv("API_DOMAIN", "https://your-api-domain.com")
     
     instructions = f"""
 <!DOCTYPE html>
