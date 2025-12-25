@@ -489,7 +489,8 @@
       "getToken": "去设置页面获取",
       "secretName": "Secret 名称",
       "value": "值",
-      "actions": "操作"
+      "actions": "操作",
+      "valueAndActions": "值与操作"
     },
     "actions": {
       "viewGuide": "查看安装指南",

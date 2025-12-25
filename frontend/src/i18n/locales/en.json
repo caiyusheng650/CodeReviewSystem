@@ -491,7 +491,8 @@
       "getToken": "Get from Settings page",
       "secretName": "Secret Name",
       "value": "Value",
-      "actions": "Actions"
+      "actions": "Actions",
+      "valueAndActions": "Value & Actions"
     },
   
     "actions": {
